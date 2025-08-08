@@ -33,59 +33,48 @@ export class RPGGameScene extends Phaser.Scene {
 
     preload() {
         // 스프라이트시트를 프레임별로 분할해서 로드
-        this.load.spritesheet('player', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
+        this.load.spritesheet('player', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('player2', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
+        this.load.spritesheet('player2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('player3', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 05-1.png', { 
+        this.load.spritesheet('player3', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 05-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('player4', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 08-1.png', { 
+        this.load.spritesheet('player4', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 08-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
         
         // NPC 이미지들 - 스프라이트시트로 로드
-        this.load.spritesheet('npc1', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
+        this.load.spritesheet('npc1', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('npc2', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
+        this.load.spritesheet('npc2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('npc3', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 03-1.png', { 
+        this.load.spritesheet('npc3', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 03-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
         
         // 여성 캐릭터들도 스프라이트시트로 로드
-        this.load.spritesheet('female1', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 11-1.png', { 
+        this.load.spritesheet('female1', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 11-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('female2', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 12-1.png', { 
+        this.load.spritesheet('female2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 12-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
         
-        // 기존 placeholder 이미지들 (fallback용)
-        this.load.image('grass', 'https://via.placeholder.com/32x32/228B22/ffffff?text=G');
-        this.load.image('tree', 'https://via.placeholder.com/32x32/8B4513/ffffff?text=T');
-        
-        // 방법 3: 스프라이트시트 사용 (애니메이션용)
-        // this.load.spritesheet('player_sheet', 'assets/player_sheet.png', { 
-        //     frameWidth: 32, 
-        //     frameHeight: 32 
-        // });
-        
-        // 방법 4: SVG 이미지 사용
-        // this.load.svg('player_svg', 'assets/player.svg', { width: 32, height: 32 });
+        // placeholder 이미지들 제거 (로컬 에셋만 사용)
     }
 
 
@@ -140,10 +129,10 @@ export class RPGGameScene extends Phaser.Scene {
             }
         }
 
-        // 장식물 추가 (더 예쁘게)
-        this.add.image(100, 100, 'tree').setScale(1.5);
-        this.add.image(700, 150, 'tree').setScale(1.5);
-        this.add.image(200, 500, 'tree').setScale(1.5);
+        // 장식물 추가 (더 예쁘게) - placeholder 대신 도형 사용
+        this.add.circle(100, 100, 20, 0x8B4513).setScale(1.5); // 나무 대신 원형
+        this.add.circle(700, 150, 20, 0x8B4513).setScale(1.5);
+        this.add.circle(200, 500, 20, 0x8B4513).setScale(1.5);
         
         // 추가 장식물들
         this.add.circle(150, 80, 8, 0x87CEEB); // 하늘색 구름

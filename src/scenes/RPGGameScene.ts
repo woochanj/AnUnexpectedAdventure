@@ -26,6 +26,21 @@ export class RPGGameScene extends Phaser.Scene {
     private showInventory: boolean = false;
     private quests: string[] = [];
     private questUI!: Phaser.GameObjects.Container;
+    
+    // 모바일 터치 지원을 위한 변수들
+    private joystick!: Phaser.GameObjects.Container;
+    private joystickBase!: Phaser.GameObjects.Graphics;
+    private joystickThumb!: Phaser.GameObjects.Graphics;
+    private joystickActive: boolean = false;
+    private touchCurrentPos: { x: number, y: number } = { x: 0, y: 0 };
+    private isMobile: boolean = false;
+    
+    // 애니메이션 관련 변수들
+    private isMoving: boolean = false;
+    private animationFrame: number = 0;
+    private animationTimer: number = 0;
+    private animationSpeed: number = 60; // 애니메이션 속도 (ms) - 더 빠르고 부드럽게
+    private lastDirection: string = 'down'; // 이전 방향 추적
 
     constructor() {
         super({ key: 'RPGGameScene' });
@@ -41,51 +56,60 @@ export class RPGGameScene extends Phaser.Scene {
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('player3', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 05-1.png', { 
+        this.load.spritesheet('player3', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 03-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('player4', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 08-1.png', { 
+        this.load.spritesheet('player4', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 04-1.png', { 
+            frameWidth: 32, 
+            frameHeight: 32 
+        });
+        this.load.spritesheet('female1', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 01-1.png', { 
+            frameWidth: 32, 
+            frameHeight: 32 
+        });
+        this.load.spritesheet('female2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 02-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
         
         // NPC 이미지들 - 스프라이트시트로 로드
-        this.load.spritesheet('npc1', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
+        this.load.spritesheet('npc1', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 05-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('npc2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
+        this.load.spritesheet('npc2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 03-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('npc3', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 03-1.png', { 
+        this.load.spritesheet('npc3', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 06-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        
-        // 여성 캐릭터들도 스프라이트시트로 로드
-        this.load.spritesheet('female1', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 11-1.png', { 
+        this.load.spritesheet('npc4', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 04-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('female2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 12-1.png', { 
+        this.load.spritesheet('npc5', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 07-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        
-        // placeholder 이미지들 제거 (로컬 에셋만 사용)
+        this.load.spritesheet('npc6', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 05-1.png', { 
+            frameWidth: 32, 
+            frameHeight: 32 
+        });
     }
 
-
-
     create() {
+        // 모바일 디바이스 감지 (더 정확한 방법)
+        this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
         // 배경색 설정 (더 예쁜 하늘색)
         this.cameras.main.setBackgroundColor('#87CEEB');
 
         // 맵 생성 (더 예쁜 배경)
         this.createMap();
-
+        
         // 플레이어 생성 - 첫 번째 프레임 사용 (인덱스 0)
         this.player = this.physics.add.sprite(400, 300, 'player');
         this.player.setFrame(0); // 첫 번째 프레임 사용
@@ -100,6 +124,11 @@ export class RPGGameScene extends Phaser.Scene {
 
         // UI 생성
         this.createUI();
+        
+        // 모바일 조이스틱 생성
+        if (this.isMobile) {
+            this.createMobileControls();
+        }
 
         // 충돌 설정
         this.setupCollisions();
@@ -229,6 +258,156 @@ export class RPGGameScene extends Phaser.Scene {
         this.input.keyboard!.on('keydown-R', () => {
             this.createRandomPlayerImage();
         });
+
+        // 모바일 터치 이벤트 설정
+        if (this.isMobile) {
+            this.setupTouchEvents();
+        }
+    }
+
+    private setupTouchEvents() {
+        // 터치 시작
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            this.touchCurrentPos = { x: pointer.x, y: pointer.y };
+            
+            // 조이스틱 영역 확인
+            const joystickBounds = this.joystick.getBounds();
+            if (Phaser.Geom.Rectangle.Contains(joystickBounds, pointer.x, pointer.y)) {
+                this.joystickActive = true;
+            }
+        });
+
+        // 터치 이동
+        this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+            if (this.joystickActive) {
+                this.touchCurrentPos = { x: pointer.x, y: pointer.y };
+                this.updateJoystick();
+            }
+        });
+
+        // 터치 종료
+        this.input.on('pointerup', () => {
+            this.joystickActive = false;
+            this.resetJoystick();
+        });
+
+        // 더블 탭으로 상호작용
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            // 조이스틱 영역이 아닌 곳에서 더블 탭
+            const joystickBounds = this.joystick.getBounds();
+            if (!Phaser.Geom.Rectangle.Contains(joystickBounds, pointer.x, pointer.y)) {
+                // 탭 위치에서 가장 가까운 NPC 찾기
+                const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+                let closestNPC: NPC | null = null;
+                let minDistance = Infinity;
+
+                this.npcs.forEach(npc => {
+                    const distance = Phaser.Math.Distance.Between(
+                        worldPoint.x, worldPoint.y,
+                        npc.sprite.x, npc.sprite.y
+                    );
+                    if (distance < minDistance && distance < 50) {
+                        minDistance = distance;
+                        closestNPC = npc;
+                    }
+                });
+
+                if (closestNPC) {
+                    this.startDialogue(closestNPC);
+                }
+            }
+        });
+    }
+
+    private createMobileControls() {
+        // 조이스틱 생성
+        this.joystick = this.add.container(100, 500);
+        
+        // 조이스틱 베이스
+        this.joystickBase = this.add.graphics();
+        this.joystickBase.fillStyle(0x666666, 0.5);
+        this.joystickBase.fillCircle(0, 0, 50);
+        this.joystickBase.lineStyle(2, 0xffffff, 0.8);
+        this.joystickBase.strokeCircle(0, 0, 50);
+        
+        // 조이스틱 썸
+        this.joystickThumb = this.add.graphics();
+        this.joystickThumb.fillStyle(0xffffff, 0.8);
+        this.joystickThumb.fillCircle(0, 0, 20);
+        this.joystickThumb.lineStyle(2, 0x000000, 0.5);
+        this.joystickThumb.strokeCircle(0, 0, 20);
+        
+        this.joystick.add([this.joystickBase, this.joystickThumb]);
+        
+        // 액션 버튼들
+        this.createActionButtons();
+    }
+
+    private createActionButtons() {
+        // 상호작용 버튼
+        const interactBtn = this.add.graphics();
+        interactBtn.fillStyle(0x4CAF50, 0.8);
+        interactBtn.fillRoundedRect(0, 0, 80, 40, 10);
+        interactBtn.lineStyle(2, 0xffffff, 0.8);
+        interactBtn.strokeRoundedRect(0, 0, 80, 40, 10);
+        
+        const interactText = this.add.text(40, 20, 'E', {
+            fontSize: '16px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        
+        const interactContainer = this.add.container(700, 500);
+        interactContainer.add([interactBtn, interactText]);
+        interactContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, 80, 40), Phaser.Geom.Rectangle.Contains);
+        
+        interactContainer.on('pointerdown', () => {
+            this.interactWithNPC();
+        });
+
+        // 인벤토리 버튼
+        const inventoryBtn = this.add.graphics();
+        inventoryBtn.fillStyle(0x2196F3, 0.8);
+        inventoryBtn.fillRoundedRect(0, 0, 80, 40, 10);
+        inventoryBtn.lineStyle(2, 0xffffff, 0.8);
+        inventoryBtn.strokeRoundedRect(0, 0, 80, 40, 10);
+        
+        const inventoryText = this.add.text(40, 20, 'I', {
+            fontSize: '16px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        
+        const inventoryContainer = this.add.container(700, 450);
+        inventoryContainer.add([inventoryBtn, inventoryText]);
+        inventoryContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, 80, 40), Phaser.Geom.Rectangle.Contains);
+        
+        inventoryContainer.on('pointerdown', () => {
+            this.toggleInventory();
+        });
+    }
+
+    private updateJoystick() {
+        if (!this.joystickActive) return;
+
+        const joystickPos = { x: this.joystick.x, y: this.joystick.y };
+        const deltaX = this.touchCurrentPos.x - joystickPos.x;
+        const deltaY = this.touchCurrentPos.y - joystickPos.y;
+        
+        // 조이스틱 범위 제한
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const maxDistance = 50;
+        
+        if (distance > maxDistance) {
+            const angle = Math.atan2(deltaY, deltaX);
+            const limitedX = Math.cos(angle) * maxDistance;
+            const limitedY = Math.sin(angle) * maxDistance;
+            this.joystickThumb.setPosition(limitedX, limitedY);
+        } else {
+            this.joystickThumb.setPosition(deltaX, deltaY);
+        }
+    }
+
+    private resetJoystick() {
+        this.joystickThumb.setPosition(0, 0);
     }
 
     private changePlayerImage(imageKey: string) {
@@ -439,14 +618,14 @@ export class RPGGameScene extends Phaser.Scene {
         });
     }
 
-    update() {
+    update(_time: number, delta: number) {
         if (this.isInDialogue) return;
 
-        // 플레이어 이동
         let velocityX = 0;
         let velocityY = 0;
-        let direction = 'down'; // 기본 방향
+        let direction = 'down';
 
+        // 키보드 입력 처리
         if (this.wasdKeys.A.isDown || this.cursors.left.isDown) {
             velocityX = -160;
             direction = 'left';
@@ -463,12 +642,37 @@ export class RPGGameScene extends Phaser.Scene {
             direction = 'down';
         }
 
+        // 모바일 조이스틱 입력 처리
+        if (this.isMobile && this.joystickActive) {
+            const joystickPos = { x: this.joystick.x, y: this.joystick.y };
+            const thumbPos = { x: this.joystickThumb.x, y: this.joystickThumb.y };
+            const deltaX = thumbPos.x - joystickPos.x;
+            const deltaY = thumbPos.y - joystickPos.y;
+            
+            // 데드존 설정 (작은 움직임은 무시)
+            const deadzone = 10;
+            if (Math.abs(deltaX) > deadzone) {
+                velocityX = (deltaX / 50) * 160; // 조이스틱 위치에 비례한 속도
+                direction = deltaX > 0 ? 'right' : 'left';
+            }
+            if (Math.abs(deltaY) > deadzone) {
+                velocityY = (deltaY / 50) * 160;
+                direction = deltaY > 0 ? 'down' : 'up';
+            }
+        }
+
+        // 이동 상태 업데이트
+        this.isMoving = velocityX !== 0 || velocityY !== 0;
+
         // 대각선 이동 정규화
         if (velocityX !== 0 && velocityY !== 0) {
             this.player.setVelocity(velocityX * 0.707, velocityY * 0.707);
         } else {
             this.player.setVelocity(velocityX, velocityY);
         }
+
+        // 애니메이션 업데이트
+        this.updateAnimation(delta);
 
         // 방향에 따른 캐릭터 프레임 변경
         this.updatePlayerDirection(direction);
@@ -477,23 +681,65 @@ export class RPGGameScene extends Phaser.Scene {
     private updatePlayerDirection(direction: string) {
         if (!this.player) return;
 
-        let frameIndex = 0; // 기본 프레임 (아래쪽 보기)
+        // 방향이 변경되었는지 확인
+        const directionChanged = this.lastDirection !== direction;
+        this.lastDirection = direction;
+
+        let baseFrameIndex = 0; // 기본 프레임 (아래쪽 보기)
 
         switch (direction) {
             case 'up':
-                frameIndex = 3; // 위쪽 보기
+                baseFrameIndex = 9; // 위쪽 보기 (뒤를 바라봄) - 네 번째 행 첫 번째
                 break;
             case 'down':
-                frameIndex = 0; // 아래쪽 보기
+                baseFrameIndex = 0; // 아래쪽 보기 (정면) - 첫 번째 행 첫 번째
                 break;
             case 'left':
-                frameIndex = 1; // 왼쪽 보기
+                baseFrameIndex = 3; // 왼쪽 보기 (왼쪽을 바라봄) - 두 번째 행 첫 번째
                 break;
             case 'right':
-                frameIndex = 2; // 오른쪽 보기
+                baseFrameIndex = 6; // 오른쪽 보기 (오른쪽을 바라봄) - 세 번째 행 첫 번째
                 break;
         }
 
-        this.player.setFrame(frameIndex);
+        // 애니메이션 프레임 계산
+        let frameIndex = baseFrameIndex;
+        if (this.isMoving) {
+            frameIndex = baseFrameIndex + this.animationFrame;
+        }
+
+        // 방향 변경 시 부드러운 전환을 위해 첫 번째 프레임부터 시작
+        if (directionChanged && this.isMoving) {
+            this.animationFrame = 0;
+            this.animationTimer = 0;
+            frameIndex = baseFrameIndex;
+        }
+
+        // 프레임이 존재하는지 확인하고 설정
+        if (this.player.texture.frameTotal > frameIndex) {
+            this.player.setFrame(frameIndex);
+        }
+    }
+
+    private updateAnimation(delta: number) {
+        if (!this.isMoving) {
+            // 멈춤 상태에서는 첫 번째 프레임으로 부드럽게 전환
+            if (this.animationFrame !== 0) {
+                this.animationTimer += delta;
+                if (this.animationTimer >= this.animationSpeed * 0.5) {
+                    this.animationFrame = 0;
+                    this.animationTimer = 0;
+                }
+            }
+            return;
+        }
+
+        this.animationTimer += delta;
+        
+        // 더 부드러운 애니메이션을 위해 타이밍 조정
+        if (this.animationTimer >= this.animationSpeed) {
+            this.animationFrame = (this.animationFrame + 1) % 3; // 0, 1, 2 반복
+            this.animationTimer = 0;
+        }
     }
 }

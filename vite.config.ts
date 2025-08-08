@@ -14,5 +14,5 @@ export default defineConfig({
   optimizeDeps: {
     include: ['phaser']
   },
-  base: process.env.NODE_ENV === 'production' ? '/your-repo-name/' : '/'
+  base: process.env.NODE_ENV === 'production' ? '/AnUnexpectedAdventure/' : '/'
 })

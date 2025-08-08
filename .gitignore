@@ -5,7 +5,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Build outputs (GitHub Pages 배포를 위해 dist는 포함)
+# Build outputs
+dist/
 build/
 *.tsbuildinfo
 

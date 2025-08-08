@@ -33,43 +33,43 @@ export class RPGGameScene extends Phaser.Scene {
 
     preload() {
         // 스프라이트시트를 프레임별로 분할해서 로드
-        this.load.spritesheet('player', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
+        this.load.spritesheet('player', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('player2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
+        this.load.spritesheet('player2', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('player3', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 05-1.png', { 
+        this.load.spritesheet('player3', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 05-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('player4', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 08-1.png', { 
+        this.load.spritesheet('player4', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 08-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
         
         // NPC 이미지들 - 스프라이트시트로 로드
-        this.load.spritesheet('npc1', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
+        this.load.spritesheet('npc1', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('npc2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
+        this.load.spritesheet('npc2', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 02-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('npc3', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 03-1.png', { 
+        this.load.spritesheet('npc3', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 03-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
         
         // 여성 캐릭터들도 스프라이트시트로 로드
-        this.load.spritesheet('female1', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 11-1.png', { 
+        this.load.spritesheet('female1', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 11-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });
-        this.load.spritesheet('female2', 'assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 12-1.png', { 
+        this.load.spritesheet('female2', '/assets/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 12-1.png', { 
             frameWidth: 32, 
             frameHeight: 32 
         });

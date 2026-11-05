@@ -57,6 +57,71 @@ function Shake({ fx, target, children }: { fx: Fx[]; target: string; children: R
     );
 }
 
+interface Drag {
+    idx: number;
+    /** 대상을 골라야 하는 카드인지 */
+    target: boolean;
+    x0: number;
+    y0: number;
+    x: number;
+    y: number;
+    /** 화살표 시작점 (카드 위쪽 가운데) */
+    sx: number;
+    sy: number;
+    moved: boolean;
+    /** 지금 겨누고 있는 적 */
+    aim: string | null;
+    /** 대상 없는 카드: 놓으면 사용되는 위치인지 */
+    release: boolean;
+}
+
+/** 카드에서 커서까지 이어지는 픽셀 화살표 (네모 점을 곡선 위에 찍는다) */
+function DragArrow({ d }: { d: Drag }) {
+    const cx = (d.sx + d.x) / 2;
+    const cy = Math.min(d.sy, d.y) - 90;
+    const at = (t: number) => {
+        const u = 1 - t;
+        return [u * u * d.sx + 2 * u * t * cx + t * t * d.x, u * u * d.sy + 2 * u * t * cy + t * t * d.y];
+    };
+    const len = Math.hypot(d.x - d.sx, d.y - d.sy) + 90;
+    const n = Math.max(4, Math.floor(len / 26));
+    const dots: number[][] = [];
+    for (let i = 1; i < n - 1; i++) dots.push(at(i / n));
+    const [px, py] = at(0.94);
+    const ang = (Math.atan2(d.y - py, d.x - px) * 180) / Math.PI;
+    const color = d.aim ? '#ff4a3a' : '#ffcf3e';
+    return (
+        <svg className="drag-arrow" aria-hidden shapeRendering="crispEdges">
+            {dots.map(([x, y], i) => {
+                const s = 6 + Math.round((i / n) * 6);
+                return (
+                    <g key={i}>
+                        <rect x={Math.round(x - s / 2) - 2} y={Math.round(y - s / 2) - 2} width={s + 4} height={s + 4} fill="#1e1a40" />
+                        <rect x={Math.round(x - s / 2)} y={Math.round(y - s / 2)} width={s} height={s} fill={color} />
+                    </g>
+                );
+            })}
+            {d.aim && (
+                // 하스스톤처럼 적 위에 조준선
+                <g transform={`translate(${Math.round(d.x)} ${Math.round(d.y)})`} className="drag-reticle">
+                    {[0, 90, 180, 270].map((r) => (
+                        <g key={r} transform={`rotate(${r})`}>
+                            <rect x={-30} y={-30} width={18} height={8} fill="#1e1a40" />
+                            <rect x={-30} y={-30} width={8} height={18} fill="#1e1a40" />
+                            <rect x={-28} y={-28} width={14} height={4} fill="#ff4a3a" />
+                            <rect x={-28} y={-28} width={4} height={14} fill="#ff4a3a" />
+                        </g>
+                    ))}
+                </g>
+            )}
+            <g transform={`translate(${Math.round(d.x)} ${Math.round(d.y)}) rotate(${ang})`}>
+                <polygon points="6,0 -18,-16 -12,0 -18,16" fill="#1e1a40" transform="scale(1.25)" />
+                <polygon points="4,0 -16,-13 -10,0 -16,13" fill={color} />
+            </g>
+        </svg>
+    );
+}
+
 function IntentBadge({ e, c }: { e: EnemyState; c: CombatState }) {
     const it: Intent = e.intent;
     const parts: { cls: string; text: string; tip: string }[] = [];
@@ -279,14 +344,89 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
     );
 
     const clickCard = (idx: number) => {
+        // 끌어서 낸 직후 따라오는 클릭은 무시
+        if (suppressClick.current) {
+            suppressClick.current = false;
+            return;
+        }
         if (locked) return;
         const card = c.hand[idx];
         if (!canPlay(c, card)) return;
         if (selected === idx) return setSelected(null);
         sfx.select();
-        if (needsTarget(card) && living.length > 1) setSelected(idx);
+        // 대상이 필요한 카드는 적이 하나뿐이어도 직접 고른다
+        if (needsTarget(card)) setSelected(idx);
         else play(idx, living[0]?.uid ?? null);
     };
+
+    // ── 끌어서 내기: 대상 카드는 화살표로 적을 겨누고, 나머지는 카드를 위로 끌어 올린다 ──
+    const [drag, setDrag] = useState<Drag | null>(null);
+    const dragRef = useRef<Drag | null>(null);
+    const suppressClick = useRef(false);
+    const handRef = useRef<HTMLDivElement>(null);
+
+    const startDrag = (ev: React.PointerEvent<HTMLDivElement>, idx: number) => {
+        if (ev.button !== 0 || locked) return;
+        const card = c.hand[idx];
+        if (!card || !canPlay(c, card)) return;
+        const r = ev.currentTarget.getBoundingClientRect();
+        const d: Drag = {
+            idx, target: needsTarget(card), x0: ev.clientX, y0: ev.clientY, x: ev.clientX, y: ev.clientY,
+            sx: r.left + r.width / 2, sy: r.top + 8, moved: false, aim: null, release: false,
+        };
+        dragRef.current = d;
+        setDrag(d);
+    };
+
+    useEffect(() => {
+        if (!drag) return;
+        const enemyAt = (x: number, y: number) =>
+            (document.elementFromPoint(x, y)?.closest('.enemy[data-alive="1"]') as HTMLElement | null)?.dataset.uid ?? null;
+        const handTop = () => handRef.current?.getBoundingClientRect().top ?? window.innerHeight;
+        const onMove = (ev: PointerEvent) => {
+            const d = dragRef.current;
+            if (!d) return;
+            const moved = d.moved || Math.hypot(ev.clientX - d.x0, ev.clientY - d.y0) > 8;
+            if (moved && !d.moved) {
+                sfx.select();
+                if (d.target) setSelected(d.idx);
+            }
+            const aim = d.target && moved ? enemyAt(ev.clientX, ev.clientY) : null;
+            if (aim && aim !== d.aim) sfx.step();
+            const next = { ...d, x: ev.clientX, y: ev.clientY, moved, aim, release: !d.target && ev.clientY < handTop() - 20 };
+            dragRef.current = next;
+            setDrag(next);
+        };
+        const onUp = (ev: PointerEvent) => {
+            const d = dragRef.current;
+            dragRef.current = null;
+            setDrag(null);
+            if (!d || !d.moved) return; // 그냥 누른 것은 클릭으로 처리
+            suppressClick.current = true;
+            window.setTimeout(() => (suppressClick.current = false), 50);
+            if (d.target) {
+                const aim = enemyAt(ev.clientX, ev.clientY);
+                if (aim) play(d.idx, aim);
+                else setSelected(null);
+            } else if (ev.clientY < handTop() - 20) {
+                play(d.idx, living[0]?.uid ?? null);
+            }
+        };
+        const onCancel = () => {
+            dragRef.current = null;
+            setDrag(null);
+            setSelected(null);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onCancel);
+        return () => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onCancel);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [drag !== null]);
 
     const clickEnemy = (e: EnemyState) => {
         if (selected === null || e.hp <= 0 || locked) return;
@@ -345,7 +485,8 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                             <div
                                 key={e.uid}
                                 data-alive={e.hp > 0 ? '1' : '0'}
-                                className={`fighter enemy ${e.hp <= 0 ? 'dead' : ''} ${selected !== null && e.hp > 0 ? 'targetable' : ''}`}
+                                data-uid={e.uid}
+                                className={`fighter enemy ${e.hp <= 0 ? 'dead' : ''} ${selected !== null && e.hp > 0 ? 'targetable' : ''} ${drag?.aim === e.uid ? 'aimed' : ''}`}
                                 onClick={() => clickEnemy(e)}
                             >
                                 {e.hp > 0 && <IntentBadge e={e} c={c} />}
@@ -381,7 +522,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 <div className="bd-front" aria-hidden />
                 <FxCanvas cues={c.cues} numbers={c.fx} container={fieldRef} className="fx-front" clock={clock} />
                 {enemyTurn && !c.result && <div className="turn-banner">적의 차례</div>}
-                {selectedCard && <div className="target-hint">[{cardStats(selectedCard).name}] 대상을 고르세요 · Esc 취소</div>}
+                {selectedCard && <div className="target-hint">[{cardStats(selectedCard).name}] 적에게 끌어다 놓거나 적을 누르세요 · Esc 취소</div>}
             </div>
 
             <div className="hand-area">
@@ -393,13 +534,27 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                         뽑기 {c.draw.length}
                     </button>
                 </div>
-                <div className="hand">
-                    {c.hand.map((card, i) => (
-                        <div key={card.uid} className="hand-slot" style={{ ['--i' as string]: i, ['--n' as string]: c.hand.length }}>
+                <div className="hand" ref={handRef}>
+                    {c.hand.map((card, i) => {
+                        const dragging = drag?.idx === i && drag.moved;
+                        const lift = dragging && !drag.target;
+                        return (
+                        <div
+                            key={card.uid}
+                            className={`hand-slot ${dragging ? 'dragging' : ''} ${lift && drag.release ? 'will-play' : ''}`}
+                            style={{
+                                ['--i' as string]: i,
+                                ['--n' as string]: c.hand.length,
+                                ...(lift ? { transform: `translate(${drag.x - drag.x0}px, ${drag.y - drag.y0}px) scale(1.06)` } : {}),
+                            }}
+                            onPointerDown={(ev) => startDrag(ev, i)}
+                        >
                             <CardView card={card} disabled={locked || !canPlay(c, card)} selected={selected === i} onClick={() => clickCard(i)} />
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
+                {drag?.moved && drag.target && <DragArrow d={drag} />}
                 <div className="hand-right">
                     <button className="btn btn-end" onClick={doEndTurn} disabled={locked}>
                         턴 종료

@@ -3268,3 +3268,50 @@ kbd {
 .enemy-name .affix-venom { color: #8a3ad0; }
 .card.card-curse { filter: saturate(0.4) brightness(0.85); }
 .card.card-curse .card-name { color: #6a3a8a; }
+
+/* ── 카드 끌어서 내기 ── */
+.hand-slot {
+    touch-action: none;
+}
+.hand-slot.dragging {
+    z-index: 20;
+    transition: none;
+}
+.hand-slot.dragging:not([style*='translate']) {
+    transform: translateY(-18px);
+}
+.hand-slot.will-play .card {
+    box-shadow: 0 0 0 3px #ffcf3e, 0 0 22px rgba(255, 207, 62, 0.8);
+}
+.drag-arrow {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 60;
+}
+.fighter.enemy.aimed .fighter-sprite,
+.fighter.enemy.aimed [data-body] {
+    filter: drop-shadow(0 0 14px rgba(255, 74, 58, 1));
+}
+
+.look-pick .look-label {
+    align-self: center;
+    margin-right: 4px;
+    font-size: 0.85rem;
+    color: #f4d9a8;
+    opacity: 0.85;
+}
+
+.drag-reticle {
+    animation: reticle-pulse 0.6s steps(3) infinite alternate;
+}
+@keyframes reticle-pulse {
+    from { opacity: 1; }
+    to { opacity: 0.6; }
+}
+/* 겨누는 동안 카드는 살짝 떠 있는 채로 손에 남는다 */
+.hand-slot.dragging .card {
+    box-shadow: 0 0 0 3px #ffcf3e, 0 0 18px rgba(255, 207, 62, 0.7);
+}

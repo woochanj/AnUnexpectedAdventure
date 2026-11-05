@@ -68,7 +68,8 @@ function Title({ onNew, onContinue, canContinue }: { onNew: (cls: ClassId, hero:
                 })}
             </div>
             {def.looks.length > 1 && (
-                <div className="look-pick" role="radiogroup" aria-label="모습 고르기">
+                <div className="look-pick" role="radiogroup" aria-label="외형 고르기">
+                    <span className="look-label">외형</span>
                     {def.looks.map((id) => {
                         const h = HEROES.find((x) => x.id === id)!;
                         return (

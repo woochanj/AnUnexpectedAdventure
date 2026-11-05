@@ -74,11 +74,18 @@ export function CardView({
             <span className="card-type">
                 {s.def.unplayable ? '저주' : s.def.ultimate ? '궁극기' : TYPE_LABEL[s.def.type]} · <em className={`rar rar-${s.def.rarity}`}>{RARITY_INFO[s.def.rarity].name}</em>
             </span>
-            <span className="card-desc">
-                {describeCard(card).map((l, i) => (
-                    <span key={i}>{l}</span>
-                ))}
-            </span>
+            {/* 카드 크기는 모두 같다: 설명이 길면 글자를 줄여 칸 안에 넣는다 */}
+            {(() => {
+                const lines = describeCard(card);
+                const len = lines.join('').length + lines.length * 4;
+                return (
+                    <span className={`card-desc ${len > 46 ? 'xlong' : len > 30 ? 'long' : ''}`}>
+                        {lines.map((l, i) => (
+                            <span key={i}>{l}</span>
+                        ))}
+                    </span>
+                );
+            })()}
             {footer && <span className="card-footer">{footer}</span>}
         </button>
     );

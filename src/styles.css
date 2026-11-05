@@ -4595,3 +4595,53 @@ body {
 .fx-mid {
     z-index: 0;
 }
+/* 카드 크기 고정: 설명 길이와 상관없이 모든 카드가 같은 높이 (가로 × 1.4) */
+.card {
+    height: calc(var(--card-w) * 1.4);
+    aspect-ratio: auto;
+    /* 카드 자체는 자르지 않는다 (밖으로 나온 코스트 보석이 잘리지 않게), 설명 칸만 자른다 */
+}
+/* 그림 칸은 카드 높이의 1/3로 고정 (그림이 길쭉해도 설명 칸을 밀어내지 않게) */
+.card .card-art {
+    flex: 0 0 33%;
+    height: 33%;
+    min-height: 0;
+}
+.card .card-art img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.card .card-desc {
+    min-height: 0;
+    overflow: hidden;
+}
+.card .card-desc.long {
+    font-size: calc(var(--card-w) * 0.082);
+    line-height: 1.22;
+}
+.card .card-desc.xlong {
+    font-size: calc(var(--card-w) * 0.07);
+    line-height: 1.16;
+}
+/* 설명 칸을 넓힌다: 그림 30%, 여백 줄이고, 휴대폰은 종류·등급 줄을 숨긴다 */
+.card .card-art {
+    flex-basis: 30%;
+    height: 30%;
+}
+.card .card-desc {
+    padding: 2px 4px 5px;
+}
+.card .card-desc.long {
+    font-size: calc(var(--card-w) * 0.078);
+    line-height: 1.18;
+}
+.card .card-desc.xlong {
+    font-size: calc(var(--card-w) * 0.068);
+    line-height: 1.12;
+}
+@media (max-width: 640px) {
+    .hand .card .card-type {
+        display: none;
+    }
+}

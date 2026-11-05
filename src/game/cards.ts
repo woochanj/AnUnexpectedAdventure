@@ -150,6 +150,13 @@ const LIST: CardDef[] = [
     M({ id: 'meteor', name: '운석 낙하', type: 'attack', rarity: 'unique', cost: 3, exhaust: true, effects: [dmgAll(26), apply('burn', 8, 'all')], up: { effects: [dmgAll(34), apply('burn', 10, 'all')] } }),
     M({ id: 'absolute_zero', name: '절대 영도', type: 'attack', rarity: 'unique', cost: 3, exhaust: true, effects: [apply('frost', 3, 'all'), dmgAll(14)], up: { effects: [apply('frost', 3, 'all'), dmgAll(20)] } }),
     R({ id: 'thousand_cuts', name: '천 개의 칼날', type: 'attack', rarity: 'unique', cost: 2, exhaust: true, effects: [dmg(3, 10)], up: { effects: [dmg(4, 10)] } }),
+    // 새 궁극기: 직업마다 두 장씩
+    K({ id: 'sun_judgment', name: '태양의 심판', type: 'attack', rarity: 'unique', cost: 3, exhaust: true, effects: [dmgAll(22), apply('weak', 2, 'all')], up: { effects: [dmgAll(30), apply('weak', 3, 'all')] } }),
+    K({ id: 'iron_fortress', name: '철의 요새', type: 'skill', rarity: 'unique', cost: 2, exhaust: true, effects: [block(24), apply('thorns', 6, 'self')], up: { effects: [block(32), apply('thorns', 8, 'self')] } }),
+    M({ id: 'thunder_god', name: '뇌신 강림', type: 'attack', rarity: 'unique', cost: 3, exhaust: true, effects: [dmgAll(8, 3)], up: { effects: [dmgAll(11, 3)] } }),
+    M({ id: 'earth_rupture', name: '대지 붕괴', type: 'attack', rarity: 'unique', cost: 3, exhaust: true, effects: [dmgAll(20), apply('vulnerable', 2, 'all')], up: { effects: [dmgAll(28), apply('vulnerable', 3, 'all')] } }),
+    R({ id: 'shadow_clones', name: '그림자 분신', type: 'attack', rarity: 'unique', cost: 2, exhaust: true, effects: [dmg(5, 6)], up: { effects: [dmg(6, 6)] } }),
+    R({ id: 'venom_storm', name: '독의 폭풍', type: 'attack', rarity: 'unique', cost: 2, exhaust: true, ranged: true, effects: [apply('poison', 10, 'all'), dmgAll(6)], up: { effects: [apply('poison', 14, 'all'), dmgAll(8)] } }),
     R({ id: 'death_mark', name: '죽음의 낙인', type: 'attack', rarity: 'unique', cost: 2, exhaust: true, effects: [apply('poison', 14, 'target'), { kind: 'detonate', status: 'poison', mult: 1 }], up: { effects: [apply('poison', 18, 'target'), { kind: 'detonate', status: 'poison', mult: 1 }] } }),
 
     // ═════════ 저주 (적이 덱에 섞어 넣음, 전투가 끝나면 사라짐) ═════════
@@ -166,7 +173,7 @@ const CHARGED = new Set([
     'backstab', 'blade_storm', 'shadow_dance', 'finisher', 'assassinate',
 ]);
 /** 궁극기 */
-const ULTIMATE = new Set(['titan_strike', 'last_stand', 'meteor', 'absolute_zero', 'thousand_cuts', 'death_mark']);
+const ULTIMATE = new Set(['titan_strike', 'last_stand', 'meteor', 'absolute_zero', 'thousand_cuts', 'death_mark', 'sun_judgment', 'iron_fortress', 'thunder_god', 'earth_rupture', 'shadow_clones', 'venom_storm']);
 for (const c of LIST) {
     if (CHARGED.has(c.id) || ULTIMATE.has(c.id)) c.charge = true;
     if (ULTIMATE.has(c.id)) c.ultimate = true;

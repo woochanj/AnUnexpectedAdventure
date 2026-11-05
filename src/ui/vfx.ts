@@ -96,6 +96,8 @@ import * as ripples from 'pixelfx/fx/water/ripples';
 import * as waveCrash from 'pixelfx/fx/water/wave-crash';
 import * as magicCircle from 'pixelfx/fx/arcane/magic-circle-cast';
 import * as hitFlash from 'pixelfx/fx/impacts/hit-flash';
+// 이 게임만의 궁극기 도트 연출
+import { titanBlade, oathCrest, meteorStrike, zeroBloom, thousandBlades, deathBrand, sunJudgment, ironFortress, thunderGod, earthRupture, shadowClones, venomStorm } from './ultimates';
 // 카드마다 다른 이펙트를 주려고 더 가져온 것들
 import * as heavyLanding from 'pixelfx/fx/impacts/heavy-landing';
 import * as parry from 'pixelfx/fx/impacts/parry';
@@ -131,10 +133,8 @@ import { ENEMIES } from '../game/enemies';
 import type { Cue } from '../game/types';
 import { CARDS } from '../game/cards';
 import { ATTACK_WINDUP, chargeOf, windupOf } from '../game/combat';
-import * as meteorFx from 'pixelfx/fx/fire/meteor';
 import * as holyPillar from 'pixelfx/fx/holy/holy-pillar';
 import * as blizzardVortex from 'pixelfx/fx/ice/blizzard-vortex';
-import * as necroSkulls from 'pixelfx/fx/shadow/necro-skulls';
 import * as nuke from 'pixelfx/fx/explosions/nuke';
 import * as chargeUp from 'pixelfx/fx/lightning/charge-up';
 
@@ -223,18 +223,18 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     backstab: [{ mod: critHit, at: 'target' }],
     shadow_dance: [{ mod: shadowTendrils, at: 'target', speed: 2 }, { mod: daggerFlurry, at: 'target', dx: -28, delay: 0.1, opts: { palette: VENOM } }],
     // 궁극기
-    titan_strike: [{ mod: hammerSmash, at: 'target', dx: -20, speed: 1.3 }, { mod: nuke, at: 'target', delay: 0.05, speed: 1.6, stopAfter: 1.4 }, { mod: groundSlam, at: 'target', delay: 0.05, speed: 1.2 }],
-    last_stand: [{ mod: holyPillar, at: 'self', speed: 1.4 }, { mod: divineShield, at: 'self', delay: 0.2, stopAfter: 1.2 }, { mod: rage, at: 'self', delay: 0.3, stopAfter: 1 }],
-    meteor: [{ mod: meteorFx, at: 'all', speed: 1.4 }, { mod: bigExplosion, at: 'all', delay: 0.35, speed: 2.6, stopAfter: 1.6 }],
-    absolute_zero: [{ mod: blizzardVortex, at: 'all', speed: 1.6, stopAfter: 1.2 }, { mod: frostNova, at: 'all', delay: 0.2, speed: 1.6 }, { mod: iceSpikes, at: 'all', delay: 0.3, speed: 2 }],
-    thousand_cuts: [
-        { mod: daggerFlurry, at: 'target', dx: -28, speed: 1.3 },
-        { mod: spinSlash, at: 'target', delay: 0.3, speed: 1.6 },
-        { mod: doubleSlash, at: 'target', dx: -20, delay: 0.6, speed: 1.4 },
-        { mod: spinSlash, at: 'target', delay: 0.9, speed: 1.6 },
-        { mod: critHit, at: 'target', delay: 1.2 },
-    ],
-    death_mark: [{ mod: necroSkulls, at: 'target', speed: 1.6, stopAfter: 1.2 }, { mod: curseFx, at: 'target', delay: 0.2, speed: 1.4, stopAfter: 1 }, { mod: acidSplash, at: 'target', delay: 0.5, speed: 1.6 }],
+    titan_strike: [{ mod: titanBlade, at: 'target', speed: 1 }, { mod: groundSlam, at: 'target', delay: 0.42, speed: 1.2 }],
+    last_stand: [{ mod: oathCrest, at: 'self', speed: 1 }, { mod: divineShield, at: 'self', delay: 0.55, stopAfter: 1 }],
+    meteor: [{ mod: meteorStrike, at: 'all', speed: 1 }],
+    absolute_zero: [{ mod: zeroBloom, at: 'all', speed: 1 }, { mod: blizzardVortex, at: 'all', speed: 1.6, stopAfter: 0.8 }],
+    thousand_cuts: [{ mod: thousandBlades, at: 'target', speed: 1 }],
+    death_mark: [{ mod: deathBrand, at: 'target', speed: 1 }],
+    sun_judgment: [{ mod: sunJudgment, at: 'all', speed: 1 }],
+    iron_fortress: [{ mod: ironFortress, at: 'self', speed: 1 }],
+    thunder_god: [{ mod: thunderGod, at: 'all', speed: 1 }],
+    earth_rupture: [{ mod: earthRupture, at: 'all', speed: 1 }],
+    shadow_clones: [{ mod: shadowClones, at: 'target', speed: 1 }],
+    venom_storm: [{ mod: venomStorm, at: 'all', speed: 1 }],
     // 연계 카드
     shield_slam: [{ mod: cartoonPow, at: 'target', speed: 1.4 }, { mod: shieldBlock, at: 'target', dx: -20, speed: 1.4 }],
     // 연계 베기 → 사슬 철퇴: 사슬이 휘감기고 쇠공이 박힌다

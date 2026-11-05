@@ -74,3 +74,9 @@ declare module 'pixelfx' {
 declare module 'pixelfx/fx/*' {
     export const meta: import('pixelfx').FxMeta;
 }
+
+// pixelfx 그리기 도구 (궁극기 도트 연출을 직접 찍을 때 쓴다)
+declare module 'pixelfx/core/index' {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    export const Particles: any, Lights: any, P: any, Rng: any, fit: any, hex: any, WHITE: number, ease: any, clamp: (x: number, a?: number, b?: number) => number;
+}

@@ -54,4 +54,10 @@ export const CARD_ACT: Record<string, string> = {
     last_stand: 'rage',
     thousand_cuts: 'dagger',
     death_mark: 'thrust',
+    sun_judgment: 'cleave',
+    iron_fortress: 'block',
+    thunder_god: 'slash',
+    earth_rupture: 'smash',
+    shadow_clones: 'dagger',
+    venom_storm: 'thrust',
 };

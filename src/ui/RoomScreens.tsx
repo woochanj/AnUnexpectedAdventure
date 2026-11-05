@@ -8,6 +8,7 @@ import type { CardInst, RunState, Screen, ShopScreen } from '../game/types';
 import { CardGrid, CardView, Modal } from './common';
 import { FxView, HeroView } from './Actors';
 import { FX } from './creatures';
+import { sfx } from './sfx';
 
 type D = Dispatch<Action>;
 
@@ -27,11 +28,11 @@ export function RewardScreen({ s, dispatch }: { s: Extract<Screen, { kind: 'rewa
     return (
         <Panel title={s.combatKind === 'boss' ? '보스 처치!' : s.combatKind === 'elite' ? '강적을 쓰러뜨렸다' : '전리품'}>
             <div className="reward-list">
-                <button className="reward-item" disabled={s.goldTaken} onClick={() => dispatch({ type: 'takeGold' })}>
+                <button className="reward-item" disabled={s.goldTaken} onClick={() => (sfx.coin(), dispatch({ type: 'takeGold' }))}>
                     <i className="ico ico-coin" /> {s.goldTaken ? '골드 획득함' : `골드 ${s.gold}`}
                 </button>
                 {s.relic && (
-                    <button className="reward-item" disabled={s.relicTaken} onClick={() => dispatch({ type: 'takeRelic' })}>
+                    <button className="reward-item" disabled={s.relicTaken} onClick={() => (sfx.upgrade(), dispatch({ type: 'takeRelic' }))}>
                         <span className="reward-glyph">{RELICS[s.relic].glyph}</span>
                         <span>
                             <b>{RELICS[s.relic].name}</b>
@@ -46,7 +47,7 @@ export function RewardScreen({ s, dispatch }: { s: Extract<Screen, { kind: 'rewa
                     <p className="panel-sub">카드 한 장을 덱에 넣을 수 있다</p>
                     <div className="card-row">
                         {s.cards.map((id) => (
-                            <CardView key={id} card={{ id, upgraded: false }} onClick={() => dispatch({ type: 'takeCard', id })} />
+                            <CardView key={id} card={{ id, upgraded: false }} onClick={() => (sfx.card(), dispatch({ type: 'takeCard', id }))} />
                         ))}
                     </div>
                     <button className="btn btn-ghost" onClick={() => dispatch({ type: 'skipCards' })}>
@@ -73,7 +74,7 @@ export function RestScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'r
                 <>
                     <p className="panel-text">타닥타닥 불꽃이 튄다. 잠시 숨을 돌릴 수 있을 것 같다.</p>
                     <div className="choice-list">
-                        <button className="choice" onClick={() => dispatch({ type: 'rest' })}>
+                        <button className="choice" onClick={() => (sfx.heal(), dispatch({ type: 'rest' }))}>
                             <b>휴식</b> <span>체력 {heal} 회복</span>
                         </button>
                         <button className="choice" onClick={() => dispatch({ type: 'restUpgrade' })} disabled={run.deck.every((c) => cardLevel(c) >= MAX_LEVEL)}>
@@ -99,7 +100,7 @@ export function ShopView({ s, run, dispatch }: { s: ShopScreen; run: RunState; d
                         key={i}
                         card={{ id: it.id, upgraded: false }}
                         disabled={it.sold || run.gold < it.price}
-                        onClick={() => !it.sold && run.gold >= it.price && dispatch({ type: 'buy', idx: i })}
+                        onClick={() => !it.sold && run.gold >= it.price && (sfx.coin(), dispatch({ type: 'buy', idx: i }))}
                         footer={it.sold ? '판매됨' : <span className={run.gold < it.price ? 'price no' : 'price'}>{it.price} G</span>}
                     />
                 ))}
@@ -121,7 +122,7 @@ export function TreasureScreen({ s, dispatch }: { s: Extract<Screen, { kind: 'tr
             art={s.taken ? <FxView key="open" mod={FX['pickups/chest-open']} scale={3} /> : <FxView key="idle" mod={FX['pickups/loot-beam']} scale={2} opts={{ palette: ['#3a2406', '#7a4a0c', '#c8841a', '#f0b84a', '#ffe08a', '#fff6d0'] }} />}
         >
             {!s.taken ? (
-                <button className="btn btn-primary" onClick={() => dispatch({ type: 'treasureTake' })}>
+                <button className="btn btn-primary" onClick={() => (sfx.coin(), dispatch({ type: 'treasureTake' }))}>
                     상자를 연다
                 </button>
             ) : (
@@ -215,6 +216,8 @@ export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'p
                             className="btn btn-primary"
                             autoFocus
                             onClick={() => {
+                                if (up) sfx.upgrade();
+                                else sfx.debuff();
                                 dispatch({ type: 'pick', uid: chosen.uid });
                                 setChosen(null);
                             }}

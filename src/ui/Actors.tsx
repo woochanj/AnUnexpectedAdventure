@@ -140,10 +140,12 @@ export const HEROES: { id: string; name: string; desc: string }[] = [
     { id: 'water-priestess', name: '물의 사제', desc: '물결을 다루는 주문' },
     { id: 'wind-hashashin', name: '바람 암살자', desc: '바람처럼 베고 사라진다' },
     { id: 'ground-monk', name: '대지 수도승', desc: '대지를 울리는 주먹' },
+    { id: 'leaf-ranger', name: '나뭇잎 궁수', desc: '빛나는 화살을 쏜다' },
 ];
 
 /** 모습별 동작 설정 */
-const LOOK: Record<string, { caster?: boolean; ranged?: boolean; cast?: string; block?: string; power?: string }> = {
+const LOOK: Record<string, { caster?: boolean; ranged?: boolean; cast?: string; block?: string; power?: string; shoot?: string }> = {
+    'leaf-ranger': { ranged: true, shoot: 'special', block: 'defend', power: 'airAttack' },
     wizard: { caster: true, cast: 'attack2' },
     'water-priestess': { caster: true, cast: 'special', block: 'defend', power: 'special' },
     adventurer: { cast: 'cast', power: 'cast' },
@@ -164,7 +166,7 @@ function heroSteps(char: string, a: HeroAction): SpriteStep[] {
     const multi0 = a.act === 'double' || a.act === 'dagger' || a.act === 'spin';
     if (ATTACK_ACTS.has(a.act) && (a.ranged || caster || cfg.ranged)) {
         // 제자리에서 휘둘러 주문/투척/활 — 무기가 닿는 프레임을 피해 순간에 맞춘다
-        const anim = multi0 && hasAnim(char, 'combo') && !cfg.ranged ? 'combo' : (a.act === 'cleave' || a.act === 'smash') && hasAnim(char, 'attack2') && !cfg.ranged ? 'attack2' : 'attack';
+        const anim = cfg.shoot ?? (multi0 && hasAnim(char, 'combo') && !cfg.ranged ? 'combo' : (a.act === 'cleave' || a.act === 'smash') && hasAnim(char, 'attack2') && !cfg.ranged ? 'attack2' : 'attack');
         const hitMs = ((a.windup ?? 0.3) + 0.08) * 1000;
         const lead = (hitFrame(char, anim) / animFps(anim)) * 1000;
         return [{ anim: 'idle', ms: Math.max(0, hitMs - lead) }, { anim }];
@@ -229,7 +231,7 @@ export function HeroView(props: {
 const HERO_SCALE: Record<string, number> = {
     'hero-knight': 0.62, 'fantasy-knight-1': 0.8, 'fantasy-knight-2': 0.8, wizard: 0.5, 'martial-hero': 0.62,
     adventurer: 1.05, 'adventurer-fist': 1.05, 'adventurer-bow': 1.05,
-    'water-priestess': 0.85, 'wind-hashashin': 0.8, 'ground-monk': 0.85,
+    'water-priestess': 0.85, 'wind-hashashin': 0.8, 'ground-monk': 0.85, 'leaf-ranger': 0.85,
 };
 
 function CatKnightView({

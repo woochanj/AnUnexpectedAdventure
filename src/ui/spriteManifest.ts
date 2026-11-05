@@ -346,6 +346,43 @@ export const SPRITES = {
         },
         "bodyX": 47
     },
+    "leaf-ranger": {
+        "w": 195,
+        "h": 65,
+        "anims": {
+            "idle": {
+                "frames": 12
+            },
+            "run": {
+                "frames": 10
+            },
+            "attack": {
+                "frames": 10,
+                "hit": 5
+            },
+            "special": {
+                "frames": 17,
+                "hit": 9
+            },
+            "airAttack": {
+                "frames": 10,
+                "hit": 6
+            },
+            "defend": {
+                "frames": 19
+            },
+            "hurt": {
+                "frames": 6
+            },
+            "death": {
+                "frames": 19
+            },
+            "roll": {
+                "frames": 8
+            }
+        },
+        "bodyX": 50
+    },
     "fantasy-knight-1": {
         "w": 87,
         "h": 43,

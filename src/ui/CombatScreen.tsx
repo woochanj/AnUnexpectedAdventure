@@ -10,6 +10,7 @@ import { HeroView, lookIsRanged, MonsterView, PROJECTILE_MS, SceneryView, type H
 import { PROJECTILES } from './spriteManifest';
 import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
+import { sfx } from './sfx';
 import { AMBIENT } from './vfx';
 
 function FxLayer({ fx, target }: { fx: Fx[]; target: string }) {
@@ -158,6 +159,18 @@ function useJuice(
         };
 
         for (const q of c.cues.filter((q) => q.id > seenCue.current)) {
+            // 효과음
+            if (q.kind === 'card') {
+                const cd = CARDS[q.card ?? ''];
+                sfx.card();
+                if (cd?.type === 'attack' && !cd.ranged && !lookIsRanged(heroLook)) window.setTimeout(() => sfx.swing(), (ATTACK_WINDUP - 0.05) * 1000);
+                else if (cd?.type === 'attack' || cd?.type === 'power') window.setTimeout(() => sfx.cast(), 120);
+            }
+            if (q.kind === 'enemyAttack') window.setTimeout(() => sfx.swing(), Math.max(0, q.delay * 1000 - 40));
+            if (q.kind === 'enemyBuff') sfx.buff(q.delay);
+            if (q.kind === 'enemyDebuff') sfx.debuff(q.delay);
+            if (q.kind === 'poison') sfx.poison(q.delay);
+            if (q.kind === 'death') sfx.death(q.delay + 0.1);
             if (q.kind === 'card') {
                 const card = CARDS[q.card ?? ''];
                 const attack = card?.type === 'attack';
@@ -201,6 +214,15 @@ function useJuice(
         if (c.cues.length) seenCue.current = c.cues[c.cues.length - 1].id;
 
         // 맞는 순간: 히트스톱 + 화면 흔들림
+        for (const f of c.fx.filter((f) => f.id > seenFx.current)) {
+            if (f.kind === 'block') sfx.block(f.delay);
+            if (f.kind === 'heal') sfx.heal(f.delay);
+            if (f.kind === 'dmg' && !f.dot) {
+                if (f.crit) sfx.crit(f.delay);
+                else if (f.target === 'player') sfx.hurt(f.delay);
+                else sfx.hit(f.amount ?? 5, f.delay);
+            }
+        }
         for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg')) {
             const dmg = dmgOf(f);
             const start = now + f.delay * 1000;
@@ -233,6 +255,10 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
     const locked = enemyTurn || !!c.result;
 
     useEffect(() => setSelected(null), [c.hand.length, c.turn]);
+    useEffect(() => {
+        if (c.result === 'win') window.setTimeout(() => sfx.victory(), 500);
+        if (c.result === 'lose') window.setTimeout(() => sfx.defeat(), 500);
+    }, [c.result]);
     const [heroAction, setHeroAction] = useState<HeroAction | null>(null);
     // 적마다 가장 최근 공격 신호 → 몬스터 덮치기 동작
     const attacks: Record<string, MonsterAttack> = {};
@@ -255,6 +281,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
         const card = c.hand[idx];
         if (!canPlay(c, card)) return;
         if (selected === idx) return setSelected(null);
+        sfx.select();
         if (needsTarget(card) && living.length > 1) setSelected(idx);
         else play(idx, living[0]?.uid ?? null);
     };

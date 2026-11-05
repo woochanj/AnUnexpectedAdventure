@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { regionOf } from '../game/biomes';
 import type { RunState } from '../game/types';
 import { CardGrid, Modal, RelicIcon } from './common';
+import { setSound, sfx, soundOn } from './sfx';
 
 export function Hud({ run, hp, onQuit }: { run: RunState; hp?: number; onQuit: () => void }) {
     const [deckOpen, setDeckOpen] = useState(false);
+    const [sound, setSoundState] = useState(soundOn());
     const curHp = hp ?? run.hp;
     return (
         <header className="hud">
@@ -25,6 +27,18 @@ export function Hud({ run, hp, onQuit }: { run: RunState; hp?: number; onQuit: (
                 ))}
             </div>
             <div className="hud-actions">
+                <button
+                    className="btn btn-small btn-ghost"
+                    title={sound ? '소리 끄기' : '소리 켜기'}
+                    aria-label={sound ? '소리 끄기' : '소리 켜기'}
+                    onClick={() => {
+                        setSound(!sound);
+                        setSoundState(!sound);
+                        if (!sound) sfx.select();
+                    }}
+                >
+                    {sound ? '♪ 켬' : '♪ 끔'}
+                </button>
                 <button className="btn btn-small" onClick={() => setDeckOpen(true)}>
                     덱 {run.deck.length}
                 </button>

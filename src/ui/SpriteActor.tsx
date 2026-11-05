@@ -20,6 +20,7 @@ const HIT_OVERRIDE: Record<string, Record<string, number>> = {
     'wind-hashashin': { attack: 3, combo: 4 },
     'ground-monk': { combo: 4, special: 9 },
     'water-priestess': { combo: 5, attack2: 6 },
+    'leaf-ranger': { special: 8 },
 };
 
 export const hasAnim = (name: string, anim: string) => !!spriteInfo(name)?.anims[anim];

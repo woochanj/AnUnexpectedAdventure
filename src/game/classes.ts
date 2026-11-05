@@ -38,7 +38,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
         hp: 68,
         crit: 0.2,
         deck: ['stab', 'stab', 'stab', 'stab', 'stab', 'dodge', 'dodge', 'dodge', 'dodge', 'poison_stab'],
-        looks: ['wind-hashashin', 'adventurer-bow', 'martial-hero'],
+        looks: ['wind-hashashin', 'leaf-ranger', 'adventurer-bow', 'martial-hero'],
     },
 };
 

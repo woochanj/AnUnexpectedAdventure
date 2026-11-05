@@ -4,6 +4,7 @@ import { FLOOR_COUNT, type Action } from '../game/run';
 import type { Room, RoomType, RunState } from '../game/types';
 import { FxView, HeroView, monsterStill, SceneryView } from './Actors';
 import { FX } from './creatures';
+import { sfx } from './sfx';
 import { spriteStillStyle } from './SpriteActor';
 import { FxCanvas } from './FxCanvas';
 import { AMBIENT } from './vfx';
@@ -44,6 +45,7 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
     useEffect(() => {
         if (lastPos.current === run.pos) return;
         lastPos.current = run.pos;
+        sfx.step();
         setWalking(true);
         const t = setTimeout(() => setWalking(false), 260);
         return () => clearTimeout(t);

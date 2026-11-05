@@ -77,7 +77,7 @@ if os.path.isdir(A15):
 
 # chierit Elementals 무료판 (CC-BY 4.0) — fetch 스크립트가 동작별 띠로 미리 합쳐 둔 것
 EL = os.path.join(SRC, 'elementals')
-for name in ('water-priestess', 'wind-hashashin', 'ground-monk'):
+for name in ('water-priestess', 'wind-hashashin', 'ground-monk', 'leaf-ranger'):
     d = os.path.join(EL, name)
     if not os.path.isdir(d):
         continue

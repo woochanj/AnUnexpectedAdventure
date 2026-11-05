@@ -2,10 +2,10 @@ import { CARDS, cardLevel, cardPool, MAX_LEVEL } from './cards';
 import { CLASSES } from './classes';
 import { pickRoute } from './biomes';
 import { endTurn, playCard, startCombat } from './combat';
-import { EVENTS, type EventApi } from './events';
+import { ENCOUNTER_IDS, EVENTS, type EventApi } from './events';
 import { canStep, generateFloor, reveal, revealAll } from './map';
 import { BOSS_RELICS, RELIC_IDS, RELICS } from './relics';
-import type { CardInst, ClassId, CombatKind, Dir, Room, RunState, ShopScreen } from './types';
+import type { CardInst, ClassId, CombatKind, Dir, Room, RunState, Screen, ShopScreen } from './types';
 import { pick, rand, shuffle } from './util';
 
 export const FLOOR_COUNT = 3;
@@ -34,7 +34,8 @@ export type Action =
     | { type: 'shopRemove' }
     | { type: 'treasureTake' }
     | { type: 'eventChoice'; idx: number }
-    | { type: 'nextFloor' };
+    | { type: 'nextFloor' }
+    | { type: 'dialogueNext' };
 
 export interface GameState {
     run: RunState | null;
@@ -201,6 +202,8 @@ export function newRun(cls: ClassId = 'knight', hero?: string): RunState {
     };
     run.deck = def.deck.map((id) => newCard(run, id));
     reveal(map, map.start, visionRadius(run));
+    // 프롤로그 → 첫 지역 도착
+    run.screen = { kind: 'dialogue', scene: 'prologue', next: { kind: 'dialogue', scene: `region:${run.route[0]}`, next: { kind: 'map' } } };
     return run;
 }
 
@@ -218,7 +221,9 @@ function enterRoom(run: RunState) {
         case 'elite':
         case 'boss': {
             const kind: CombatKind = r.type === 'combat' ? 'normal' : r.type;
-            run.screen = { kind: 'combat', combat: startCombat(run, kind, r.encounter ?? []) };
+            const combat: Screen = { kind: 'combat', combat: startCombat(run, kind, r.encounter ?? []) };
+            // 보스는 싸우기 전에 한마디
+            run.screen = kind === 'boss' && r.encounter?.[0] ? { kind: 'dialogue', scene: `boss:${r.encounter[0]}:intro`, next: combat } : combat;
             break;
         }
         case 'treasure':
@@ -275,13 +280,14 @@ function finishCombat(run: RunState) {
     // 불사조 깃털은 한 번 쓰면 사라진다
     if (c.revived) run.relics = run.relics.filter((r) => r !== 'phoenix_feather');
     if (run.relics.includes('blood_charm')) healRun(run, 6);
-    room(run).cleared = true;
+    // 길 위 인카운터 전투였다면 가던 방은 아직 정리하지 않는다
+    if (!run.pendingEnter) room(run).cleared = true;
 
     const gold = c.kind === 'boss' ? rand(70, 90) : c.kind === 'elite' ? rand(28, 38) : rand(11, 20);
     const relic = c.kind === 'elite' ? randomRelic(run) : null;
     // 보스: 보스 유물 셋 중 하나를 고른다
     const relicChoices = c.kind === 'boss' ? shuffle(BOSS_RELICS.filter((r) => !run.relics.includes(r))).slice(0, 3) : undefined;
-    run.screen = {
+    const reward: Screen = {
         kind: 'reward',
         combatKind: c.kind,
         gold,
@@ -292,6 +298,8 @@ function finishCombat(run: RunState) {
         relicTaken: false,
         relicChoices,
     };
+    const boss = c.kind === 'boss' ? c.enemies[0]?.defId : null;
+    run.screen = boss ? { kind: 'dialogue', scene: `boss:${boss}:defeat`, next: reward } : reward;
 }
 
 function startFloor(run: RunState, floor: number) {
@@ -301,7 +309,7 @@ function startFloor(run: RunState, floor: number) {
     run.facing = 'right';
     reveal(run.map, run.pos, visionRadius(run));
     if (run.relics.includes('compass')) revealAll(run.map);
-    run.screen = { kind: 'map' };
+    run.screen = { kind: 'dialogue', scene: `region:${run.route[floor]}`, next: { kind: 'map' } };
 }
 
 const DIRS: Record<Dir, [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -317,7 +325,25 @@ function move(run: RunState, to: number) {
     const dy = there.y - here.y;
     run.facing = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
     run.pos = to;
+    // 길 위의 랜덤 인카운터: 아직 안 가 본 방으로 가는 길에 가끔 무언가를 만난다
+    if (!there.visited && there.type !== 'boss' && Math.random() < ENCOUNTER_CHANCE) {
+        run.pendingEnter = true;
+        reveal(run.map, there.id, visionRadius(run));
+        run.screen = { kind: 'event', eventId: pick(ENCOUNTER_IDS), encounter: true };
+        return;
+    }
     enterRoom(run);
+}
+
+/** 한 칸 이동할 때 랜덤 인카운터가 일어날 확률 */
+const ENCOUNTER_CHANCE = 0.14;
+
+/** 랜덤 인카운터가 끝났으면 원래 가던 방으로 들어간다 */
+function afterEncounter(run: RunState): boolean {
+    if (!run.pendingEnter) return false;
+    run.pendingEnter = false;
+    enterRoom(run);
+    return true;
 }
 
 // ───────────────────────── 리듀서 ─────────────────────────
@@ -389,8 +415,8 @@ export function reducer(state: GameState, action: Action): GameState {
             break;
         case 'leave':
             if (sc.kind === 'reward' && sc.combatKind === 'boss') {
-                run.screen = run.floor + 1 >= FLOOR_COUNT ? { kind: 'victory' } : { kind: 'floorClear' };
-            } else {
+                run.screen = run.floor + 1 >= FLOOR_COUNT ? { kind: 'dialogue', scene: 'epilogue', next: { kind: 'victory' } } : { kind: 'floorClear' };
+            } else if (!afterEncounter(run)) {
                 leaveRoom(run);
             }
             break;
@@ -461,9 +487,12 @@ export function reducer(state: GameState, action: Action): GameState {
                 else if (text !== null && run.screen.kind === 'event') run.screen = { ...run.screen, result: text };
             }
             break;
+        case 'dialogueNext':
+            if (sc.kind === 'dialogue') run.screen = sc.next;
+            break;
         case 'nextFloor':
             if (sc.kind === 'floorClear') {
-                healRun(run, Math.round((run.maxHp - run.hp) * 0.5));
+                healRun(run, Math.round((run.maxHp - run.hp) * 0.7));
                 startFloor(run, run.floor + 1);
             }
             break;

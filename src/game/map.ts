@@ -103,7 +103,7 @@ export function generateFloor(floor: number): FloorMap {
     const eliteSpots = rest.filter((r) => r.y <= H - 4 && r.y >= 1).slice(0, elitesWanted);
     for (const r of eliteSpots) r.type = 'elite';
 
-    const plan: RoomType[] = ['treasure', 'rest', 'rest', 'shop', 'event', 'event', 'event'];
+    const plan: RoomType[] = ['treasure', 'rest', 'rest', 'rest', 'shop', 'event', 'event', 'event'];
     if (floor > 0) plan.push('treasure');
     const others = rest.filter((r) => r.type === 'combat');
     // 시작 방 바로 옆은 전투로 남겨 둔다
@@ -114,12 +114,14 @@ export function generateFloor(floor: number): FloorMap {
     }
 
     // 마나의 샘은 두 번째 지역부터, 지역마다 40% 확률로 한 곳
-    const events = shuffle(EVENT_IDS.filter((e) => e !== 'mana_spring'));
+    const events = shuffle(EVENT_IDS.filter((e) => e !== 'mana_spring' && !e.startsWith('moren_')));
     if (floor > 0 && Math.random() < 0.4) events.push('mana_spring');
+    // 지역마다 지도 제작자 모렐을 한 번 만난다 (이야기 사건)
+    events.push(`moren_${floor + 1}`);
     for (const r of rooms) {
         if (r.type === 'combat') r.encounter = pick(theme.encounters);
         if (r.type === 'elite') r.encounter = pick(theme.elites);
-        if (r.type === 'event') r.eventId = events.pop() ?? pick(EVENT_IDS.filter((e) => e !== 'mana_spring'));
+        if (r.type === 'event') r.eventId = events.pop() ?? pick(EVENT_IDS.filter((e) => e !== 'mana_spring' && !e.startsWith('moren_')));
     }
 
     start.visited = true;

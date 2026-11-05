@@ -6,6 +6,7 @@ import { regionOf } from './game/biomes';
 import type { ClassId } from './game/types';
 import { CombatScreen } from './ui/CombatScreen';
 import { Hud } from './ui/Hud';
+import { DialogueScreen } from './ui/Dialogue';
 import { MapScreen } from './ui/MapScreen';
 import { EndScreen, EventScreen, FloorClearScreen, PickScreen, RestScreen, RewardScreen, ShopView, TreasureScreen } from './ui/RoomScreens';
 
@@ -162,6 +163,9 @@ export default function App() {
             break;
         case 'pick':
             body = <PickScreen s={sc} run={run} dispatch={dispatch} />;
+            break;
+        case 'dialogue':
+            body = <DialogueScreen key={sc.scene} s={sc} run={run} dispatch={dispatch} />;
             break;
         case 'floorClear':
             body = <FloorClearScreen run={run} dispatch={dispatch} />;

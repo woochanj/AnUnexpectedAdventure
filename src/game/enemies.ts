@@ -23,7 +23,7 @@ const LIST: EnemyDef[] = [
         moves: [{ attack: 12 }, { block: 10, attack: 5 }, { buff: { status: 'strength', amount: 3 } }, { attack: 6, hits: 2 }],
     },
     {
-        id: 'goblin_chief', name: '익사한 기사', look: { kind: 'knight', variant: 'drowned', scale: 4 }, hp: [88, 88], size: 'huge', enrage: 3,
+        id: 'goblin_chief', name: '익사한 기사', look: { kind: 'knight', variant: 'drowned', scale: 4 }, hp: [78, 78], size: 'huge', enrage: 3,
         moves: [
             { attack: 7, hits: 2 },
             { block: 14, buff: { status: 'strength', amount: 2 } },
@@ -58,7 +58,7 @@ const LIST: EnemyDef[] = [
         moves: [{ attack: 18 }, { block: 16, buff: { status: 'strength', amount: 2 } }, { attack: 8, hits: 2 }, { debuff: { status: 'vulnerable', amount: 2 }, attack: 8 }],
     },
     {
-        id: 'old_shaman', name: '감시자의 눈', look: { kind: 'eye', scale: 5 }, hp: [132, 132], size: 'huge', enrage: 3,
+        id: 'old_shaman', name: '감시자의 눈', look: { kind: 'eye', scale: 5 }, hp: [118, 118], size: 'huge', enrage: 3,
         moves: [
             { debuff: { status: 'weak', amount: 2 }, block: 12, curse: 1 },
             { attack: 10, hits: 2 },
@@ -90,7 +90,7 @@ const LIST: EnemyDef[] = [
         moves: [{ attack: 9, hits: 2 }, { buff: { status: 'strength', amount: 3 }, block: 12 }, { attack: 16, drain: true }, { debuff: { status: 'weak', amount: 2 }, attack: 9 }],
     },
     {
-        id: 'endless_shadow', name: '끝없는 그림자', look: { kind: 'knight', variant: 'shadow', crown: true, scale: 5 }, hp: [200, 200], size: 'huge', enrage: 3,
+        id: 'endless_shadow', name: '끝없는 그림자', look: { kind: 'knight', variant: 'shadow', crown: true, scale: 5 }, hp: [178, 178], size: 'huge', enrage: 3,
         moves: [
             { attack: 11, hits: 2 },
             { block: 18, buff: { status: 'strength', amount: 2 }, curse: 2 },

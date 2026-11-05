@@ -3783,3 +3783,402 @@ kbd {
         font-size: 0.75rem;
     }
 }
+
+/* 피해·치명타 숫자는 살짝 투명하게: 숫자 너머로 맞는 몬스터가 보이도록 */
+.fx-numbers {
+    opacity: 0.82;
+}
+
+/* ═════ 이야기 장면 ═════ */
+.dialogue-scene {
+    position: relative;
+    min-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 16px;
+    cursor: pointer;
+    isolation: isolate;
+    overflow: hidden;
+}
+.dialogue-scene .scenery {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    filter: brightness(0.75) saturate(0.9);
+}
+.dialogue-scene.narrating .scenery {
+    filter: brightness(0.5) saturate(0.7) blur(1px);
+}
+.dialogue-chapter {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-head);
+    color: #fff3c8;
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    padding: 4px 18px;
+    border: 3px solid var(--ui-ink);
+    background: rgba(30, 20, 60, 0.75);
+    border-radius: 10px;
+}
+.dialogue-box {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    max-width: 920px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 16px 18px;
+    border: 4px solid var(--ui-ink);
+    border-radius: 16px;
+    background: linear-gradient(var(--ui-parch), #e8d4a8);
+    box-shadow: 0 6px 0 var(--ui-ink), 0 20px 50px rgba(0, 0, 0, 0.5);
+    color: #2a1a10;
+}
+.dialogue-portrait {
+    flex: none;
+    width: 140px;
+    height: 140px;
+    margin-top: -70px;
+    display: grid;
+    place-items: end center;
+    border: 4px solid var(--ui-ink);
+    border-radius: 14px;
+    background: radial-gradient(circle at 50% 70%, #5a6aa8, #1e2448);
+    overflow: hidden;
+}
+.dialogue-portrait:empty {
+    display: none;
+}
+.dialogue-body {
+    flex: 1;
+    min-width: 0;
+}
+.dialogue-name {
+    display: inline-block;
+    font-family: var(--font-head);
+    font-size: 1rem;
+    padding: 2px 12px;
+    margin-bottom: 6px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 8px;
+    background: var(--ui-orange);
+    color: #2a1000;
+}
+.dialogue-text {
+    font-size: 1.12rem;
+    line-height: 1.6;
+    min-height: 3.2em;
+    margin: 0;
+}
+.narrating .dialogue-text {
+    font-style: italic;
+    color: #4a3420;
+}
+.dialogue-foot {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+.dialogue-next {
+    animation: arrowbob 0.6s steps(2, end) infinite alternate;
+}
+.dialogue-skip {
+    position: absolute;
+    top: -40px;
+    right: 0;
+}
+@media (max-width: 640px) {
+    .dialogue-box {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px;
+    }
+    .dialogue-portrait {
+        width: 96px;
+        height: 96px;
+        margin-top: -60px;
+    }
+    .dialogue-text {
+        font-size: 0.98rem;
+    }
+}
+
+/* 졸개 말풍선 */
+.bark {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 34px);
+    transform: translateX(-50%);
+    z-index: 12;
+    pointer-events: none;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    padding: 4px 10px 5px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 10px;
+    background: #fffbe8;
+    color: #2a1a10;
+    box-shadow: 0 3px 0 var(--ui-ink);
+}
+.bark::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: 10px;
+    height: 8px;
+    margin-left: -5px;
+    background: var(--ui-ink);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.bark-death {
+    background: #e8e0f0;
+    color: #5a4a70;
+    font-style: italic;
+}
+.bark-hurt {
+    background: #ffe4dc;
+}
+.fighter.enemy {
+    position: relative;
+}
+@media (max-width: 640px) {
+    .bark {
+        font-size: 0.7rem;
+        padding: 2px 6px 3px;
+        bottom: calc(100% + 20px);
+    }
+}
+
+/* ═════ 체력: 하스스톤식 체력 보석 + 장식 테두리 줄 + 방패 보석 ═════ */
+.hp2 {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: min(180px, 100%);
+    height: 30px;
+    margin: 4px auto 0;
+    padding-left: 18px;
+}
+.hp2-gem {
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    width: 36px;
+    height: 40px;
+    transform: translateY(-50%);
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    /* 핏방울 모양 보석: 바깥선 + 밝은 면 + 어두운 면 */
+    background: var(--ui-ink);
+    clip-path: polygon(50% 0, 82% 34%, 100% 62%, 88% 88%, 50% 100%, 12% 88%, 0 62%, 18% 34%);
+    filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.5));
+}
+.hp2-gem::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    clip-path: polygon(50% 0, 82% 34%, 100% 62%, 88% 88%, 50% 100%, 12% 88%, 0 62%, 18% 34%);
+    background:
+        radial-gradient(circle at 36% 52%, #ffb4a8 0 12%, transparent 13%),
+        linear-gradient(135deg, #ff6a5a 0 40%, #d4202e 40% 72%, #8a0a1a 72%);
+}
+.hp2-gem b {
+    position: relative;
+    margin-top: 6px;
+    font-family: var(--font-head);
+    font-size: 0.95rem;
+    color: #fff;
+    text-shadow: 0 2px 0 #4a0010, 2px 0 0 #4a0010, -2px 0 0 #4a0010, 0 -2px 0 #4a0010;
+}
+.hp2-track {
+    position: relative;
+    flex: 1;
+    height: 16px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 3px;
+    background: #2a1820;
+    box-shadow: 0 0 0 2px #c89a3a, 0 0 0 4px var(--ui-ink), inset 0 3px 0 rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+.hp2-fill,
+.hp2-lag {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+}
+.hp2-lag {
+    background: #fff3d0;
+    transition: width 0.4s steps(6, end);
+}
+.hp2-fill {
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.35) 0 3px, transparent 3px 9px, rgba(0, 0, 0, 0.25) 9px),
+        repeating-linear-gradient(90deg, transparent 0 10px, rgba(0, 0, 0, 0.18) 10px 12px),
+        #d8283a;
+    transition: width 0.15s steps(3, end);
+}
+.hp2-low .hp2-fill {
+    animation: hp-low 0.8s steps(2, end) infinite;
+}
+@keyframes hp-low {
+    50% { filter: brightness(1.5); }
+}
+.hp2-max {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.62rem;
+    color: #fff;
+    text-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000;
+}
+.hp2-armor {
+    position: absolute;
+    right: -14px;
+    top: 50%;
+    width: 30px;
+    height: 34px;
+    transform: translateY(-50%);
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    background: var(--ui-ink);
+    clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%);
+    filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.5));
+}
+.hp2-armor::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%);
+    background: linear-gradient(135deg, #e0ecff 0 35%, #7a9ac8 35% 70%, #3a5a8a 70%);
+}
+.hp2-armor b {
+    position: relative;
+    margin-top: -4px;
+    font-family: var(--font-head);
+    font-size: 0.85rem;
+    color: #fff;
+    text-shadow: 0 2px 0 #1a2a4a, 2px 0 0 #1a2a4a, -2px 0 0 #1a2a4a, 0 -2px 0 #1a2a4a;
+}
+.hp2-hit .hp2-gem {
+    animation: gem-hit 0.3s steps(3, end);
+}
+@keyframes gem-hit {
+    0% { transform: translateY(-50%) scale(1.35); filter: brightness(2); }
+    100% { transform: translateY(-50%) scale(1); }
+}
+.enemy-row .fighter.enemy.dead .hp2 {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+@media (max-width: 640px) {
+    .hp2 {
+        height: 24px;
+        padding-left: 14px;
+    }
+    .hp2-gem {
+        width: 28px;
+        height: 32px;
+    }
+    .hp2-gem b {
+        font-size: 0.75rem;
+    }
+    .hp2-track {
+        height: 12px;
+    }
+    .hp2-max {
+        display: none;
+    }
+    .hp2-armor {
+        width: 24px;
+        height: 28px;
+        right: -10px;
+    }
+    .hp2-armor b {
+        font-size: 0.7rem;
+    }
+}
+
+/* 하스스톤처럼: 낼 수 있는 카드는 초록 테두리 */
+.hand-slot.playable:not(.combo-ready) .card {
+    box-shadow: 0 0 0 3px #4ae06a, 0 0 14px rgba(74, 224, 106, 0.7), 0 4px 0 var(--ui-ink);
+}
+/* 낼 카드가 없으면 턴 종료 버튼이 초록으로 빛난다 */
+.btn-end.no-plays {
+    background: #3ac85a;
+    color: #0a2a10;
+    animation: end-ready 0.9s steps(2, end) infinite alternate;
+}
+@keyframes end-ready {
+    from { box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.3), 0 4px 0 var(--ui-ink), 0 0 0 0 rgba(74, 224, 106, 0.6); }
+    to { box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.3), 0 4px 0 var(--ui-ink), 0 0 0 8px rgba(74, 224, 106, 0.35); }
+}
+.energy-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.mana-pips {
+    display: flex;
+    gap: 2px;
+}
+.mana-pips i {
+    width: 10px;
+    height: 12px;
+    background: var(--ui-ink);
+    clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
+    position: relative;
+}
+.mana-pips i::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
+    background: #2a3050;
+}
+.mana-pips i.on::before {
+    background: linear-gradient(135deg, #bff0ff 0 30%, #3a9aff 30%);
+}
+@media (max-width: 640px) {
+    .energy-wrap {
+        flex-direction: row;
+    }
+    .mana-pips {
+        flex-direction: column;
+        flex-wrap: wrap;
+        max-height: 50px;
+    }
+    .mana-pips i {
+        width: 8px;
+        height: 10px;
+    }
+}
+
+.hp2:has(.hp2-armor) .hp2-max {
+    right: 16px;
+}
+@media (max-width: 640px) {
+    .enemy-row .enemy-name {
+        font-size: 0.62rem;
+        white-space: normal;
+        line-height: 1.15;
+        max-width: 100%;
+        text-align: center;
+        word-break: keep-all;
+    }
+    .enemy-row .enemy-name .affix {
+        display: block;
+    }
+}

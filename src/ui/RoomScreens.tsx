@@ -182,7 +182,7 @@ export function EventScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: '
     const ev = EVENTS[s.eventId];
     return (
         <Panel title={ev.title} className="event">
-            <p className="panel-text">{ev.text}</p>
+            <p className="panel-text">{typeof ev.text === 'function' ? ev.text(run) : ev.text}</p>
             {s.result ? (
                 <>
                     <p className="panel-result">{s.result}</p>

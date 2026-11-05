@@ -152,6 +152,9 @@ export function playRun(cls: ClassId): Result {
                 st = n.run === st.run || JSON.stringify(n.run!.screen) === JSON.stringify(sc) ? reducer(st, { type: 'leave' }) : n;
                 break;
             }
+            case 'dialogue':
+                st = reducer(st, { type: 'dialogueNext' });
+                break;
             case 'floorClear':
                 st = reducer(st, { type: 'nextFloor' });
                 break;
@@ -160,7 +163,17 @@ export function playRun(cls: ClassId): Result {
                 const cells = run.map.cells;
                 const here = cells[run.pos]!;
                 const hp = run.hp / run.maxHp;
-                const side = (sideSteps.get(here.y) ?? 0) >= 2;
+                const canUp = here.links.some((id) => cells[id]!.y < here.y);
+                if (!canUp) {
+                    // 위로 갈 길이 없으면 같은 줄에서 위로 이어진 방까지 곧장 간다
+                    const path = bfsPath(run, (id) => cells[id]!.y === here.y && cells[id]!.links.some((n) => cells[n]!.y < here.y));
+                    if (path) {
+                        st = reducer(st, { type: 'move', to: path[0] });
+                        break;
+                    }
+                }
+                // 위로 갈 길이 없으면 옆으로는 몇 번이든 간다
+                const side = canUp && (sideSteps.get(here.y) ?? 0) >= 2;
                 let best: { id: number; v: number } | null = null;
                 for (const id of here.links) {
                     const r = cells[id]!;

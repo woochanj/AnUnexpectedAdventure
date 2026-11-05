@@ -61,14 +61,23 @@ export function HpBar({ hp, max, block = 0 }: { hp: number; max: number; block?:
         setLag(hp);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hp]);
+    const pct = Math.max(0, Math.min(1, hp / max));
+    // 하스스톤처럼: 붉은 체력 보석에 큰 숫자, 옆으로 장식 테두리 안의 체력 줄, 방어도는 방패 보석
     return (
-        <div key={hitKey} className={`hpbar ${block > 0 ? 'has-block' : ''} ${hitKey ? 'hpbar-hit' : ''}`}>
-            <div className="hpbar-lag" style={{ width: `${(Math.max(lag, hp) / max) * 100}%` }} />
-            <div className="hpbar-fill" style={{ width: `${(hp / max) * 100}%` }} />
-            <span className="hpbar-text">
-                {hp} / {max}
+        <div key={hitKey} className={`hp2 ${hitKey ? 'hp2-hit' : ''} ${pct <= 0.3 ? 'hp2-low' : ''}`} title={`체력 ${hp} / ${max}${block ? ` · 방어도 ${block}` : ''}`}>
+            <span className="hp2-gem">
+                <b>{hp}</b>
             </span>
-            {block > 0 && <span className="block-badge">{block}</span>}
+            <span className="hp2-track">
+                <span className="hp2-lag" style={{ width: `${(Math.max(lag, hp) / max) * 100}%` }} />
+                <span className="hp2-fill" style={{ width: `${pct * 100}%` }} />
+                <span className="hp2-max">/ {max}</span>
+            </span>
+            {block > 0 && (
+                <span className="hp2-armor">
+                    <b>{block}</b>
+                </span>
+            )}
         </div>
     );
 }

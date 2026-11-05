@@ -12,6 +12,7 @@ import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { sfx } from './sfx';
 import { DragArrow } from './DragArrow';
+import { barkFor } from '../game/story';
 import { CARD_MOVE, playHeroMotion } from './heroMoves';
 import { spawnAfterimages } from './afterimage';
 import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
@@ -115,6 +116,34 @@ function chargeMoment(field: HTMLElement, el: string, ultimate: string | null, c
     );
     n.finished.then(() => name.remove()).catch(() => name.remove());
     window.setTimeout(() => sfx.crit(), charge * 1000 - 120);
+}
+
+/** 졸개 말풍선: 몬스터 머리 위에 잠깐 떴다 사라진다 */
+function say(field: HTMLElement, c: CombatState, uid: string, kind: 'start' | 'attack' | 'hurt' | 'death', delayMs: number) {
+    const foe = c.enemies.find((e) => e.uid === uid);
+    if (!foe || c.kind === 'boss') return;
+    const look = ENEMIES[foe.defId].look;
+    const text = barkFor(look.kind === 'sprite' ? look.sprite ?? '' : look.kind, kind);
+    if (!text) return;
+    window.setTimeout(() => {
+        const host = field.querySelector<HTMLElement>(`.enemy[data-uid="${uid}"]`);
+        if (!host) return;
+        host.querySelector('.bark')?.remove();
+        const b = document.createElement('div');
+        b.className = `bark bark-${kind}`;
+        b.textContent = text;
+        host.appendChild(b);
+        const a = b.animate(
+            [
+                { opacity: 0, transform: 'translate(-50%, 6px) scale(0.8)' },
+                { opacity: 1, transform: 'translate(-50%, 0) scale(1)', offset: 0.1 },
+                { opacity: 1, transform: 'translate(-50%, 0) scale(1)', offset: 0.85 },
+                { opacity: 0, transform: 'translate(-50%, -6px) scale(1)' },
+            ],
+            { duration: 1900, easing: 'steps(12, end)', fill: 'forwards' },
+        );
+        a.finished.then(() => b.remove()).catch(() => b.remove());
+    }, Math.max(0, delayMs));
 }
 
 /** 지금 내면 연계 효과가 붙는 카드 */
@@ -251,6 +280,8 @@ function useJuice(
             if (q.kind === 'enemyBuff') sfx.buff(q.delay);
             if (q.kind === 'enemyDebuff') sfx.debuff(q.delay);
             if (q.kind === 'poison') sfx.poison(q.delay);
+            if (q.kind === 'enemyAttack' && q.source && Math.random() < 0.35) say(field, c, q.source, 'attack', q.delay * 1000 - 150);
+            if (q.kind === 'death' && q.target) say(field, c, q.target, 'death', q.delay * 1000 + 80);
             if (q.kind === 'death') {
                 sfx.death(q.delay + 0.1);
                 const body = q.target ? field.querySelector<HTMLElement>(`[data-body="${q.target}"]`) : null;
@@ -329,6 +360,8 @@ function useJuice(
                 else sfx.hit(f.amount ?? 5, f.delay);
             }
         }
+        for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg' && !f.dot && f.target !== 'player'))
+            if (Math.random() < 0.15) say(field, c, f.target, 'hurt', f.delay * 1000 + 120);
         // 피격 반응: 맞은 쪽이 뒤로 밀리고 번쩍인다. 주인공이 맞으면 화면 가장자리도 붉게
         for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg' && !f.dot && (f.amount ?? 0) > 0)) {
             const toPlayer = f.target === 'player';
@@ -387,6 +420,13 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
     const living = c.enemies.filter((e) => e.hp > 0);
     const locked = enemyTurn || !!c.result;
     const [showResult, setShowResult] = useState(false);
+    // 전투 시작: 졸개 하나가 한마디
+    useEffect(() => {
+        const field = fieldRef.current;
+        const foes = c.enemies.filter((e) => e.hp > 0);
+        if (field && foes.length) say(field, c, foes[Math.floor(Math.random() * foes.length)].uid, 'start', 900);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => setSelected(null), [c.hand.length, c.turn]);
     useEffect(() => {
@@ -617,8 +657,16 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                             연계 <b>{c.played}</b>
                         </div>
                     )}
-                    <div className="energy" title="에너지">
-                        {c.energy}/{c.maxEnergy}
+                    <div className="energy-wrap">
+                        <div className="energy" title="에너지">
+                            {c.energy}/{c.maxEnergy}
+                        </div>
+                        {/* 하스스톤처럼 마나 수정 줄: 남은 것은 밝게, 쓴 것은 비게 */}
+                        <div className="mana-pips" aria-hidden>
+                            {Array.from({ length: Math.max(c.maxEnergy, c.energy) }, (_, k) => (
+                                <i key={k} className={k < c.energy ? 'on' : ''} />
+                            ))}
+                        </div>
                     </div>
                     <button className="pile" onClick={() => setPile('draw')} title="뽑을 카드">
                         뽑기 {c.draw.length}
@@ -631,7 +679,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                         return (
                         <div
                             key={card.uid}
-                            className={`hand-slot ${dragging ? 'dragging' : ''} ${lift && drag.release ? 'will-play' : ''} ${comboReady(card, c) ? 'combo-ready' : ''}`}
+                            className={`hand-slot ${dragging ? 'dragging' : ''} ${lift && drag.release ? 'will-play' : ''} ${comboReady(card, c) ? 'combo-ready' : ''} ${!locked && canPlay(c, card) ? 'playable' : ''}`}
                             style={{
                                 ['--i' as string]: i,
                                 ['--n' as string]: c.hand.length,
@@ -648,7 +696,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 {drag && <ChargeFx key={drag.card + drag.idx} element={cardElement(drag.card)} getRect={chargeRect} heat={drag.aim ? 1 : drag.moved ? 0.5 : 0.2} />}
                 {drag?.moved && drag.target && <DragArrow d={drag} />}
                 <div className="hand-right">
-                    <button className="btn btn-end" onClick={doEndTurn} disabled={locked}>
+                    <button className={`btn btn-end ${!locked && !c.hand.some((h) => canPlay(c, h)) ? 'no-plays' : ''}`} onClick={doEndTurn} disabled={locked}>
                         턴 종료
                     </button>
                     <button className="pile" onClick={() => setPile('discard')} title="버린 카드">

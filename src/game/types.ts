@@ -224,9 +224,11 @@ export type Screen =
     | { kind: 'rest'; done: boolean; message?: string }
     | ShopScreen
     | { kind: 'treasure'; relic: string | null; gold: number; taken: boolean }
-    | { kind: 'event'; eventId: string; result?: string }
+    | { kind: 'event'; eventId: string; result?: string; /** 길에서 만난 랜덤 인카운터: 끝나면 원래 가던 방으로 들어간다 */ encounter?: boolean }
     | { kind: 'pick'; purpose: 'upgrade' | 'remove'; returnTo: Screen; cost?: number }
     | { kind: 'floorClear' }
+    /** 이야기 장면 (story.ts의 scene 키). 끝나면 next 화면으로 */
+    | { kind: 'dialogue'; scene: string; next: Screen }
     | { kind: 'gameover' }
     | { kind: 'victory' };
 
@@ -251,6 +253,10 @@ export interface RunState {
     screen: Screen;
     uidSeq: number;
     stats: { kills: number; rooms: number; turns: number };
+    /** 이야기 진행 (다시 만나는 인물과의 관계 등) */
+    story?: { flags: Record<string, number> };
+    /** 랜덤 인카운터 뒤에 원래 가던 방으로 들어가야 하는지 */
+    pendingEnter?: boolean;
 }
 
 export type Dir = 'up' | 'down' | 'left' | 'right';

@@ -27,11 +27,201 @@ export interface EventChoice {
 export interface EventDef {
     id: string;
     title: string;
-    text: string;
+    /** 본문. 이야기 진행에 따라 달라지면 함수 */
+    text: string | ((run: RunState) => string);
     choices: EventChoice[];
 }
 
+const flag = (r: RunState, k: string) => r.story?.flags[k] ?? 0;
+const setFlag = (r: RunState, k: string, v: number) => {
+    r.story = r.story ?? { flags: {} };
+    r.story.flags[k] = v;
+};
+
+// ───────────── 길 위의 랜덤 인카운터 (지도에서 이동할 때 가끔) ─────────────
+const ENCOUNTERS: EventDef[] = [
+    {
+        id: 'enc_ambush',
+        title: '매복!',
+        text: '덤불이 흔들리더니 길을 막고 무언가가 튀어나온다. 피하기엔 너무 가깝다.',
+        choices: [
+            { label: '맞서 싸운다', hint: '전투', run: (r, api) => (api.startFight(ambush(r.floor), false), null) },
+            { label: '뒤도 안 보고 달린다', hint: '체력 6 잃음', run: (_r, api) => (api.loseHp(6), '등에 상처를 입었지만 겨우 따돌렸다.') },
+        ],
+    },
+    {
+        id: 'enc_peddler',
+        title: '떠돌이 행상',
+        text: '커다란 짐을 진 행상이 길가에 앉아 쉬고 있다. "싸게 줄게, 싸게. 이런 데선 다들 급하잖아?"',
+        choices: [
+            { label: '수상한 비전서', hint: '골드 45 — 고급 카드 1장', enabled: (r) => r.gold >= 45, run: (_r, api) => (api.gainGold(-45), `[${api.addRandomCard('uncommon')}]을(를) 손에 넣었다.`) },
+            { label: '약초 꾸러미', hint: '골드 25 — 체력 14 회복', enabled: (r) => r.gold >= 25, run: (_r, api) => (api.gainGold(-25), api.heal(14), '쓴맛이 혀를 감싸고, 상처가 아물었다.') },
+            { label: '그냥 지나간다', run: () => '"다음에 또 봐!" 행상은 손을 흔들었다.' },
+        ],
+    },
+    {
+        id: 'enc_goblin_thief',
+        title: '보물 고블린',
+        text: '금화 자루를 짊어진 고블린이 허둥지둥 달아난다. 자루에서 금화가 쨍그랑 떨어진다.',
+        choices: [
+            { label: '쫓아간다', hint: '고블린들과 전투 — 이기면 골드 넉넉히', run: (_r, api) => (api.startFight(['goblin', 'goblin_bomber'], false), null) },
+            { label: '떨어진 금화만 줍는다', hint: '골드 18', run: (_r, api) => (api.gainGold(18), '길에 떨어진 금화를 주웠다.') },
+        ],
+    },
+    {
+        id: 'enc_traveler',
+        title: '지친 여행자',
+        text: '모닥불도 없이 웅크린 여행자가 있다. "지워진 땅에서 돌아오는 길이오... 먹을 것 좀 있소?"',
+        choices: [
+            { label: '식량을 나눈다', hint: '체력 5 잃고 카드 1장 강화', run: (_r, api) => {
+                api.loseHp(5);
+                const up = api.upgradeRandom(1);
+                return `여행자가 답례로 지워진 땅의 요령을 알려 주었다.${up.length ? ` [${up[0]}] 강화됨.` : ''}`;
+            } },
+            { label: '길을 묻는다', hint: '이 지역 지도가 드러난다', run: (_r, api) => (api.revealMap(), '여행자가 손가락으로 땅바닥에 길을 그려 주었다.') },
+            { label: '지나친다', run: () => '여행자의 기침 소리가 멀어졌다.' },
+        ],
+    },
+    {
+        id: 'enc_shrine',
+        title: '길가의 작은 사당',
+        text: '이끼 낀 작은 사당. 제단 위의 촛불이 바람도 없는데 흔들린다.',
+        choices: [
+            { label: '기도한다', hint: '무언가 일어난다', run: (_r, api) => {
+                const roll = Math.random();
+                if (roll < 0.45) return (api.heal(12), '따뜻한 빛이 몸을 감쌌다. 체력 12 회복.');
+                if (roll < 0.8) return (api.gainGold(30), '제단 밑에서 누군가 두고 간 금화를 발견했다. 골드 30.');
+                return (api.addCard('dread'), '촛불이 꺼지며 불길한 한기가 스며들었다. [불길한 예감] 저주가 덱에 들어왔다.');
+            } },
+            { label: '지나친다', run: () => '촛불이 등 뒤에서 조용히 흔들렸다.' },
+        ],
+    },
+];
+
+/** 지역별 매복 적 */
+function ambush(floor: number): string[] {
+    const pools = [
+        [['slime_s', 'bat_s'], ['spider', 'spider'], ['goblin']],
+        [['skeleton_s'], ['crow', 'crow'], ['ghost_s', 'bat_s']],
+        [['void_goblin'], ['void_bee', 'void_bee'], ['void_skeleton']],
+    ];
+    const p = pools[Math.min(floor, 2)];
+    return p[Math.floor(Math.random() * p.length)];
+}
+
 const LIST: EventDef[] = [
+    // ── 지도 제작자 모렐: 지역마다 한 번씩 다시 만난다. 앞에서 어떻게 대했는지에 따라 달라진다 ──
+    {
+        id: 'moren_1',
+        title: '바위 밑의 지도 제작자',
+        text: '무너진 바위 아래에 누군가 깔려 있다. 품에 꼭 쥔 두루마리 지도만은 멀쩡하다. "거기... 누구요? 이것 좀... 치워 주시오..."',
+        choices: [
+            {
+                label: '바위를 들어 올린다',
+                hint: '체력 6 잃음 — 그는 은혜를 기억할 것이다',
+                run: (r, api) => {
+                    api.loseHp(6);
+                    setFlag(r, 'moren', 1);
+                    return '"고맙소! 나는 모렐, 지도 제작자요. 지워진 땅을 그리러 왔다가 이 꼴이 됐지." 그는 다음 지역에서 다시 보자며 절뚝이며 떠났다.';
+                },
+            },
+            {
+                label: '지도만 챙긴다',
+                hint: '골드 35 — 그는 이 일을 잊지 않을 것이다',
+                run: (r, api) => {
+                    api.gainGold(35);
+                    setFlag(r, 'moren', -1);
+                    return '두루마리를 빼내 팔 만한 곳을 떠올렸다. 바위 밑에서 원망 섞인 목소리가 들렸다. "기억하겠소... 당신 얼굴..."';
+                },
+            },
+            { label: '지나친다', run: (r) => (setFlag(r, 'moren', 0), '뒤에서 들리는 신음을 모른 척했다. 잠시 뒤, 누군가 스스로 빠져나오는 소리가 났다.') },
+        ],
+    },
+    {
+        id: 'moren_2',
+        title: '다시 만난 모렐',
+        text: (r) =>
+            flag(r, 'moren') > 0
+                ? '"오, 은인이로군!" 모렐이 모닥불 옆에서 손을 흔든다. 그의 지도에는 이 지역의 길이 절반쯤 그려져 있다.'
+                : flag(r, 'moren') < 0
+                  ? '"당신이군." 모렐이 칼을 쥔 용병 둘과 함께 길을 막아선다. "내 지도, 값을 치르시오."'
+                  : '지쳐 쓰러진 모렐이 벽에 기대 있다. "물... 물 좀..." 그는 당신을 알아보지 못한다.',
+        choices: [
+            {
+                label: '지도를 맞춰 본다',
+                hint: '이 지역 지도가 드러나고 카드 1장 강화',
+                enabled: (r) => flag(r, 'moren') > 0,
+                run: (r, api) => {
+                    api.revealMap();
+                    const up = api.upgradeRandom(1);
+                    setFlag(r, 'moren', 2);
+                    return `두 사람의 지도를 겹치자 길이 또렷해졌다.${up.length ? ` [${up[0]}] 강화됨.` : ''} "끝에서 다시 봅시다. 마지막 장은 함께 그립시다."`;
+                },
+            },
+            {
+                label: '값을 치른다',
+                hint: '골드 50 — 화해한다',
+                enabled: (r) => flag(r, 'moren') < 0 && r.gold >= 50,
+                run: (r, api) => {
+                    api.gainGold(-50);
+                    setFlag(r, 'moren', 1);
+                    return '모렐은 금화를 세어 보더니 용병들을 물렸다. "...다음엔 바위부터 치워 주시오."';
+                },
+            },
+            {
+                label: '맞서 싸운다',
+                hint: '강적과 전투',
+                enabled: (r) => flag(r, 'moren') < 0,
+                run: (r, api) => {
+                    setFlag(r, 'moren', -2);
+                    api.startFight(r.floor >= 1 ? ['skeleton_s', 'goblin'] : ['goblin', 'goblin'], true);
+                    return null;
+                },
+            },
+            {
+                label: '물을 나눠 준다',
+                hint: '체력 8 잃고 희귀 카드 1장',
+                enabled: (r) => flag(r, 'moren') === 0,
+                run: (r, api) => {
+                    api.loseHp(8);
+                    const name = api.addRandomCard('rare');
+                    setFlag(r, 'moren', 1);
+                    return `모렐이 숨을 돌리고 낡은 비망록을 건넨다. 그 속에서 [${name}]의 비법을 익혔다. "은혜는 끝에서 갚겠소."`;
+                },
+            },
+            { label: '지나친다', run: () => '모렐을 뒤로하고 길을 재촉했다.' },
+        ],
+    },
+    {
+        id: 'moren_3',
+        title: '지도의 마지막 장',
+        text: (r) =>
+            flag(r, 'moren') > 0
+                ? '모렐이 거의 완성된 지도를 펼친다. "그림자의 둥지가 여기요. 이 길로 가면 돌아올 수도 있을 거요." 그의 눈이 젖어 있다.'
+                : '모렐이 머물던 자리에 낡은 배낭만 남아 있다. 펼쳐진 일지의 마지막 장에는 "여기까지"라고만 적혀 있다.',
+        choices: [
+            {
+                label: '지도를 받아 든다',
+                hint: '체력 20 회복, 유물 1개',
+                enabled: (r) => flag(r, 'moren') > 0,
+                run: (_r, api) => {
+                    api.heal(20);
+                    const relic = api.gainRandomRelic();
+                    return `모렐의 지도에는 숨겨진 쉼터와 보물이 표시되어 있었다.${relic ? ` [${relic}] 획득.` : ''} "그림자를 걷어 내면, 이 지도에 당신 이름을 적겠소."`;
+                },
+            },
+            {
+                label: '배낭을 뒤진다',
+                hint: '골드 60',
+                enabled: (r) => flag(r, 'moren') <= 0,
+                run: (_r, api) => {
+                    api.gainGold(60);
+                    return '배낭 밑바닥에서 금화 주머니가 나왔다. 일지는 덮어 제자리에 두었다.';
+                },
+            },
+            { label: '묵념하고 떠난다', run: (_r, api) => (api.heal(8), '잠시 눈을 감았다. 이상하게 발걸음이 가벼워졌다.') },
+        ],
+    },
     {
         id: 'mana_spring',
         title: '마나의 샘',
@@ -235,5 +425,7 @@ const LIST: EventDef[] = [
     },
 ];
 
-export const EVENTS: Record<string, EventDef> = Object.fromEntries(LIST.map((e) => [e.id, e]));
+export const EVENTS: Record<string, EventDef> = Object.fromEntries([...LIST, ...ENCOUNTERS].map((e) => [e.id, e]));
 export const EVENT_IDS = LIST.map((e) => e.id);
+
+export const ENCOUNTER_IDS = ENCOUNTERS.map((e) => e.id);

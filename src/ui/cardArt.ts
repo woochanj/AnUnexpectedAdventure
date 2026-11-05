@@ -1,5 +1,5 @@
 import { clearFrame, composite, createFrame, createFx, type FxModule } from 'pixelfx';
-import { CARD_VFX } from './vfx';
+import { artSpec } from './vfx';
 import { cleanOpts } from './creatures';
 
 const cache = new Map<string, string | null>();
@@ -17,7 +17,7 @@ export function stillOf(key: string, mod: FxModule, opts: Record<string, unknown
  * 그려진 영역만 잘라 PNG data URL로 만든다. 카드 종류마다 한 번만 계산한다.
  */
 export function cardArt(cardId: string): string | null {
-    const spec = CARD_VFX[cardId]?.[0];
+    const spec = artSpec(cardId);
     if (!spec) return null;
     return stillOf(`card:${cardId}`, spec.mod, spec.opts);
 }

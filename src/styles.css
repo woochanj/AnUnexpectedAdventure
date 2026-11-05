@@ -4227,3 +4227,234 @@ kbd {
     cursor: pointer;
     padding: 4px;
 }
+
+/* ═════════ 탑바: 금테 두른 나무 판자 + 보석 배지 + 메달 버튼 ═════════ */
+.hud {
+    position: relative;
+    padding: 6px 12px 9px;
+    background:
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.08) 0 2px, transparent 2px 46px),
+        linear-gradient(#5a3a28, #3e2618 55%, #2c190f);
+    border-bottom: 3px solid var(--ui-ink);
+    box-shadow:
+        inset 0 2px 0 rgba(255, 220, 160, 0.25),
+        inset 0 -5px 0 #b8862e,
+        inset 0 -7px 0 #5a3a10,
+        0 4px 0 rgba(0, 0, 0, 0.35);
+}
+/* 양 끝 금 리벳 */
+.hud::before,
+.hud::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-top: -6px;
+    background: radial-gradient(circle at 35% 35%, #fff2b0, #d89a20 55%, #6a3e08);
+    box-shadow: 0 0 0 2px var(--ui-ink);
+}
+.hud::before { left: 4px; }
+.hud::after { right: 4px; }
+.hud-stats {
+    gap: 10px;
+    align-items: center;
+}
+.hud-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 12px 3px 4px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 999px !important;
+    background: linear-gradient(#2a1c40, #1a1028);
+    color: #fff1d6;
+    font-family: var(--font-head);
+    text-shadow: 0 2px 0 var(--ui-ink);
+    box-shadow: inset 0 0 0 2px #b8862e, inset 0 3px 0 rgba(255, 255, 255, 0.15), 0 3px 0 var(--ui-ink);
+}
+.hud-stat .ico {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    padding: 3px;
+    box-sizing: content-box;
+    border: 2px solid var(--ui-ink);
+}
+.hud-stat.hp .ico {
+    background: radial-gradient(circle at 35% 30%, #ff9a9a, #d0283a 55%, #6a0a14);
+    color: #fff;
+}
+.hud-stat.gold .ico {
+    background: radial-gradient(circle at 35% 30%, #fff2a8, #e0a020 55%, #7a4a08);
+    color: #5a3000;
+}
+/* 지역 이름: 끝이 갈라진 리본 */
+.hud-stat.floor {
+    position: relative;
+    padding: 3px 22px;
+    border-radius: 0 !important;
+    border-left: none;
+    border-right: none;
+    background: linear-gradient(#a8487e, #7a2e5e);
+    color: #fff1d6;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 50%, 100% 100%, 0 100%, 10px 50%);
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.25), inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+.hud-stat.floor small {
+    font-size: 0.7em;
+    opacity: 0.8;
+    margin-right: 4px;
+}
+.hud-actions {
+    gap: 8px;
+    align-items: center;
+}
+.hud-btn {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    cursor: pointer;
+    border: 3px solid var(--ui-ink);
+    border-radius: 10px;
+    background: radial-gradient(circle at 50% 30%, #4a3a78, #241a40);
+    color: #ffe9a8;
+    box-shadow: inset 0 0 0 2px #b8862e, inset 0 3px 0 rgba(255, 255, 255, 0.2), 0 3px 0 var(--ui-ink);
+    transition: transform 0.08s;
+}
+.hud-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 0 0 2px #ffd24a, inset 0 3px 0 rgba(255, 255, 255, 0.25), 0 5px 0 var(--ui-ink), 0 0 12px rgba(255, 210, 74, 0.5);
+}
+.hud-btn:active {
+    transform: translateY(2px);
+    box-shadow: inset 0 0 0 2px #b8862e, 0 1px 0 var(--ui-ink);
+}
+.hud-btn.off .hud-glyph {
+    opacity: 0.4;
+}
+.hud-btn.off::after {
+    content: '';
+    position: absolute;
+    width: 26px;
+    height: 3px;
+    background: #ff6b6b;
+    transform: rotate(-45deg);
+    box-shadow: 0 0 0 1px var(--ui-ink);
+}
+.hud-glyph {
+    font-size: 1.2rem;
+    line-height: 1;
+    text-shadow: 0 2px 0 var(--ui-ink);
+}
+/* 덱: 겹친 카드 두 장 */
+.deck-glyph {
+    position: relative;
+    width: 14px;
+    height: 19px;
+    border: 2px solid var(--ui-ink);
+    border-radius: 3px;
+    background: linear-gradient(#ffd24a, #d8901c);
+    transform: rotate(8deg);
+    box-shadow: -5px -2px 0 -1px #8a5ae0, -5px -2px 0 1px var(--ui-ink);
+}
+.hud-badge {
+    position: absolute;
+    right: -8px;
+    bottom: -8px;
+    min-width: 20px;
+    padding: 1px 4px;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    text-align: center;
+    border: 2px solid var(--ui-ink);
+    border-radius: 999px;
+    background: #e9658c;
+    color: #fff;
+    font-family: var(--font-head);
+}
+
+/* ═════════ 턴 종료: 금테 두른 보석 인장 ═════════ */
+.btn-end {
+    position: relative;
+    padding: 4px !important;
+    border: 3px solid var(--ui-ink) !important;
+    border-radius: 16px !important;
+    background: linear-gradient(#ffe48a, #d8901c 50%, #8a5410) !important;
+    box-shadow: 0 5px 0 var(--ui-ink), 0 8px 14px rgba(0, 0, 0, 0.35) !important;
+    color: #fff1d6;
+    text-shadow: none;
+    transition: transform 0.08s, filter 0.2s;
+    animation: none;
+}
+.btn-end .end-face {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px 8px 12px;
+    border: 2px solid var(--ui-ink);
+    border-radius: 11px;
+    background: radial-gradient(ellipse at 50% 20%, #ff9a5a, #d0402a 55%, #7a1a14);
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), inset 0 -4px 0 rgba(0, 0, 0, 0.35);
+    font-family: var(--font-head);
+    font-size: 1.05rem;
+    letter-spacing: 0.04em;
+    text-shadow: 0 2px 0 var(--ui-ink);
+    white-space: nowrap;
+}
+.btn-end .end-arrow {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--ui-ink);
+    background: radial-gradient(circle at 35% 30%, #fff2b0, #ffcf3e 60%, #b8761a);
+    color: #5a2a00;
+    font-size: 0.8rem;
+    text-shadow: none;
+}
+.btn-end:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}
+.btn-end:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 var(--ui-ink) !important;
+}
+.btn-end:disabled {
+    filter: grayscale(0.7) brightness(0.75);
+    cursor: default;
+}
+/* 낼 카드가 없으면 초록 보석이 되어 빛이 테를 따라 돈다 */
+.btn-end.no-plays {
+    background: linear-gradient(#ffe48a, #d8901c 50%, #8a5410) !important;
+    animation: end-glow 1.1s ease-in-out infinite alternate;
+}
+.btn-end.no-plays .end-face {
+    background: radial-gradient(ellipse at 50% 20%, #9affb0, #2ab85a 55%, #0a5a24);
+}
+.btn-end.no-plays .end-arrow {
+    animation: end-nudge 0.55s ease-in-out infinite alternate;
+}
+@keyframes end-glow {
+    from { box-shadow: 0 5px 0 var(--ui-ink), 0 0 0 0 rgba(90, 240, 130, 0.0); }
+    to { box-shadow: 0 5px 0 var(--ui-ink), 0 0 18px 4px rgba(90, 240, 130, 0.65); }
+}
+@keyframes end-nudge {
+    from { transform: translateX(-1px); }
+    to { transform: translateX(3px); }
+}
+@media (max-width: 640px) {
+    .hud { padding: 5px 8px 8px; }
+    .hud-btn { width: 32px; height: 32px; }
+    .hud-glyph { font-size: 1rem; }
+    .hud-stat { padding: 2px 9px 2px 3px; font-size: 0.85rem; }
+    .hud-stat .ico { width: 16px; height: 16px; padding: 2px; }
+    .hud-stat.floor { padding: 2px 16px; }
+    .btn-end .end-face { padding: 6px 10px 6px 8px; font-size: 0.88rem; gap: 5px; }
+    .btn-end .end-arrow { width: 18px; height: 18px; }
+}

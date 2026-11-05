@@ -97,7 +97,33 @@ import * as ripples from 'pixelfx/fx/water/ripples';
 import * as waveCrash from 'pixelfx/fx/water/wave-crash';
 import * as magicCircle from 'pixelfx/fx/arcane/magic-circle-cast';
 import * as hitFlash from 'pixelfx/fx/impacts/hit-flash';
+// 카드마다 다른 이펙트를 주려고 더 가져온 것들
+import * as heavyLanding from 'pixelfx/fx/impacts/heavy-landing';
+import * as parry from 'pixelfx/fx/impacts/parry';
+import * as forceField from 'pixelfx/fx/scifi/force-field';
+import * as halo from 'pixelfx/fx/holy/halo';
+import * as blessing from 'pixelfx/fx/holy/blessing';
+import * as cartoonPow from 'pixelfx/fx/explosions/cartoon-pow';
+import * as exclamation from 'pixelfx/fx/ui/exclamation';
+import * as thunderclap from 'pixelfx/fx/lightning/thunderclap';
+import * as arcaneOrb from 'pixelfx/fx/arcane/arcane-orb';
+import * as runeCircle from 'pixelfx/fx/arcane/rune-circle';
+import * as waterOrb from 'pixelfx/fx/water/water-orb';
+import * as haste from 'pixelfx/fx/status/haste';
+import * as featherBurst from 'pixelfx/fx/holy/feather-burst';
+import * as powerStar from 'pixelfx/fx/pickups/power-star';
+import * as electrified from 'pixelfx/fx/lightning/electrified';
+import * as fireTornado from 'pixelfx/fx/fire/fire-tornado';
+import * as icicleFall from 'pixelfx/fx/ice/icicle-fall';
+import * as iceCrystal from 'pixelfx/fx/ice/ice-crystal';
+import * as whirlpool from 'pixelfx/fx/water/whirlpool';
+import * as implosion from 'pixelfx/fx/explosions/implosion';
+import * as toxicPuddle from 'pixelfx/fx/nature/toxic-puddle';
+import * as graspingHands from 'pixelfx/fx/shadow/grasping-hands';
+import * as potion from 'pixelfx/fx/pickups/potion';
+import * as whipCrack from 'pixelfx/fx/melee/whip-crack';
 import { cardElement, type Element } from './cardElement';
+import { CARD_MOVE } from './heroMoves';
 import { ENEMIES } from '../game/enemies';
 import type { Cue } from '../game/types';
 import { CARDS } from '../game/cards';
@@ -141,22 +167,22 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     sweep: [{ mod: spinSlash, at: 'all' }],
     heavy_blow: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.6 }],
     venom_dagger: [{ mod: daggerFlurry, at: 'target', dx: -28, opts: { palette: VENOM } }],
-    crouch: [BLOCK],
-    scout: [{ mod: spellCharge, at: 'self', stopAfter: 0.7, speed: 1.4 }],
-    sand_throw: [{ mod: hexSigil, at: 'target', speed: 2.6 }],
-    catch_breath: [{ mod: spellCharge, at: 'self', stopAfter: 0.7, speed: 1.4 }],
-    brace: [BLOCK],
+    crouch: [{ ...BLOCK, speed: 1.6 }, { mod: heavyLanding, at: 'self', speed: 1.8 }],
+    scout: [{ mod: haste, at: 'self', stopAfter: 0.7, speed: 1.4 }],
+    sand_throw: [{ mod: dirtExplosion, at: 'target', speed: 1.8 }],
+    catch_breath: [{ mod: featherBurst, at: 'self', speed: 1.8, stopAfter: 0.9 }],
+    brace: [BLOCK, { mod: halo, at: 'self', dy: -70, stopAfter: 0.8, speed: 1.4 }],
     poison_fog: [{ mod: acidSplash, at: 'all', speed: 1.6 }],
     fury: [{ mod: rage, at: 'self', stopAfter: 1.1 }],
-    iron_wall: [{ ...BLOCK, speed: 1 }],
+    iron_wall: [{ mod: forceField, at: 'self', stopAfter: 1, speed: 1.2, opts: { palette: ['#141a2a', '#2a3550', '#4a5a80', '#8a9ac0', '#c8d4f0', '#ffffff'] } }],
     thorn_stance: [{ mod: thorns, at: 'self', dx: -40, speed: 1.6 }],
     blood_strike: [{ mod: scytheReap, at: 'target', dx: -36, speed: 1.6, opts: { palette: BLOOD } }],
-    gale: [{ mod: daggerFlurry, at: 'target', dx: -28 }],
+    gale: [{ mod: tornado, at: 'target', stopAfter: 0.6, speed: 1.6 }, { mod: daggerFlurry, at: 'target', dx: -28, delay: 0.1 }],
     expose: [{ mod: hexSigil, at: 'target', speed: 2.4 }],
-    second_wind: [BLOCK, { mod: spellCharge, at: 'self', stopAfter: 0.6, speed: 1.4 }],
+    second_wind: [BLOCK, { mod: powerStar, at: 'self', dy: -70, stopAfter: 0.8, speed: 1.4 }],
     thunder: [{ mod: lightningStrike, at: 'target', speed: 1.5 }],
     regrowth: [{ mod: healingBloom, at: 'self', speed: 1.6 }],
-    frenzy: [{ mod: manaBurst, at: 'self', speed: 1.2 }],
+    frenzy: [{ mod: electrified, at: 'self', stopAfter: 0.9, speed: 1.4 }],
     toxic_bloom: [{ mod: sporeBurst, at: 'target', speed: 1.8 }],
     blade_storm: [{ mod: spinSlash, at: 'all' }, { mod: spinSlash, at: 'all', delay: 0.25 }, { mod: spinSlash, at: 'all', delay: 0.5 }],
 
@@ -170,17 +196,17 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     chain_lightning: [{ mod: zapHit, at: 'all' }],
     fireball: [{ mod: bigExplosion, at: 'target', speed: 3.2, stopAfter: 1.6 }],
     ice_lance: [{ mod: iceSpikes, at: 'target', speed: 2.2 }],
-    arcane_shield: [{ mod: divineShield, at: 'self', stopAfter: 0.9 }],
-    focus: [{ mod: spellCharge, at: 'self', stopAfter: 0.7, speed: 1.4 }],
+    arcane_shield: [{ mod: arcaneOrb, at: 'self', dy: -40, stopAfter: 0.9, speed: 1.4 }],
+    focus: [{ mod: runeCircle, at: 'self', stopAfter: 0.9, speed: 1.6 }],
     arcane_missiles: [{ mod: arcaneMissiles, at: 'target', dx: -60, speed: 1.4 }],
     fire_ring: [{ mod: fireRing, at: 'all', speed: 2.4 }],
     frost_armor: [{ mod: freeze, at: 'self', speed: 2.5, stopAfter: 1.2 }],
     blizzard: [{ mod: frostNova, at: 'all', speed: 2 }],
-    archmage: [{ mod: manaBurst, at: 'self', speed: 1.2 }],
+    archmage: [{ mod: magicCircle, at: 'self', speed: 1.4 }, { mod: manaBurst, at: 'self', delay: 0.25, speed: 1.2 }],
     // 도적
     stab: [{ mod: thrustFx, at: 'target', dx: -30 }],
     dodge: [{ mod: blinkOut, at: 'self', speed: 1.8 }],
-    poison_stab: [{ mod: thrustFx, at: 'target', dx: -30, opts: { palette: VENOM } }],
+    poison_stab: [{ mod: thrustFx, at: 'target', dx: -30, opts: { palette: VENOM } }, { mod: toxicPuddle, at: 'target', delay: 0.1, stopAfter: 0.7, speed: 1.6 }],
     dagger_throw: [{ mod: hitSpark, at: 'target', opts: { seed: 3 } }],
     shadow_step: [{ mod: blinkIn, at: 'self', speed: 1.8 }],
     backstab: [{ mod: critHit, at: 'target' }],
@@ -199,34 +225,66 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     ],
     death_mark: [{ mod: necroSkulls, at: 'target', speed: 1.6, stopAfter: 1.2 }, { mod: curseFx, at: 'target', delay: 0.2, speed: 1.4, stopAfter: 1 }, { mod: acidSplash, at: 'target', delay: 0.5, speed: 1.6 }],
     // 연계 카드
-    shield_slam: [{ mod: bluntHit, at: 'target', speed: 1.3 }, { mod: shieldBlock, at: 'target', dx: -20, speed: 1.4 }],
+    shield_slam: [{ mod: cartoonPow, at: 'target', speed: 1.4 }, { mod: shieldBlock, at: 'target', dx: -20, speed: 1.4 }],
     chain_strike: [{ mod: swordSlash, at: 'target', dx: SLASH_DX }, { mod: doubleSlash, at: 'target', dx: -34, delay: 0.18 }],
-    war_cry: [{ mod: rage, at: 'self', stopAfter: 0.9 }],
+    war_cry: [{ mod: exclamation, at: 'self', dy: -60, speed: 1.4 }, { mod: thunderclap, at: 'self', delay: 0.1, speed: 1.6, opts: { palette: ['#2a1406', '#5a2e0a', '#9a5a10', '#d89a20', '#ffd24a', '#fff2b0', '#ffffff'] } }],
     counter_stance: [BLOCK, { mod: thorns, at: 'self', dx: -40, speed: 1.6 }],
     execution: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.4, opts: { palette: BLOOD } }, { mod: critHit, at: 'target', delay: 0.08 }],
-    rally: [{ ...BLOCK, speed: 1 }],
+    rally: [{ ...BLOCK, speed: 1 }, { mod: blessing, at: 'self', stopAfter: 0.9, speed: 1.4 }],
     rising_slash: [{ mod: uppercut, at: 'target', dx: -26, speed: 1.3 }],
     momentum: [{ mod: swordSlash, at: 'target', dx: SLASH_DX, opts: { angle: 0.4 } }],
-    frost_touch: [{ mod: iceShatter, at: 'target', speed: 2.4 }],
+    frost_touch: [{ mod: icicleFall, at: 'target', speed: 2 }],
     shatter: [{ mod: iceSpikes, at: 'target', speed: 2 }, { mod: iceShatter, at: 'target', delay: 0.15, speed: 2 }],
-    glacier: [{ mod: frostNova, at: 'all', speed: 1.8 }, { ...BLOCK, delay: 0.1 }],
-    ignite: [{ mod: smallExplosion, at: 'target', speed: 3, stopAfter: 1, opts: { palette: FIRE } }],
-    combust: [{ mod: bigExplosion, at: 'target', speed: 3, stopAfter: 1.4 }],
-    flame_chain: [{ mod: fireRing, at: 'all', speed: 2.6 }],
-    mana_flow: [{ mod: spellCharge, at: 'self', stopAfter: 0.7, speed: 1.4 }],
-    tidal_wave: [{ mod: frostNova, at: 'all', speed: 1.6, opts: { palette: ['#06142e', '#0c2c5a', '#14508c', '#2a86c8', '#5ac0ec', '#a8e6ff', '#ffffff'] } }],
-    quick_slash: [{ mod: thrustFx, at: 'target', dx: -30, speed: 1.4 }],
+    glacier: [{ mod: iceCrystal, at: 'all', stopAfter: 0.9, speed: 1.4 }, { ...BLOCK, delay: 0.1 }],
+    ignite: [{ mod: burning, at: 'target', stopAfter: 0.9, speed: 1.4 }, { mod: smallExplosion, at: 'target', speed: 3, stopAfter: 1, opts: { palette: FIRE } }],
+    combust: [{ mod: implosion, at: 'target', speed: 2 }, { mod: bigExplosion, at: 'target', delay: 0.35, speed: 3, stopAfter: 1.4 }],
+    flame_chain: [{ mod: fireTornado, at: 'all', stopAfter: 0.7, speed: 1.6 }],
+    mana_flow: [{ mod: waterOrb, at: 'self', dy: -40, stopAfter: 0.9, speed: 1.4 }],
+    tidal_wave: [{ mod: whirlpool, at: 'all', stopAfter: 0.5, speed: 1.6 }, { mod: waveCrash, at: 'all', delay: 0.2, speed: 1.4 }],
+    quick_slash: [{ mod: thrustFx, at: 'target', dx: -30, speed: 1.4 }, { mod: parry, at: 'target', dx: -12, delay: 0.05, speed: 1.6 }],
     finisher: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.5 }, { mod: critHit, at: 'target', delay: 0.1 }],
     venom_burst: [{ mod: acidSplash, at: 'target', speed: 1.8 }, { mod: sporeBurst, at: 'target', delay: 0.1, speed: 2 }],
-    shred: [{ mod: daggerFlurry, at: 'target', dx: -28 }],
-    smoke_bomb: [{ mod: blinkOut, at: 'self', speed: 1.6 }, { ...BLOCK, delay: 0.1 }],
+    shred: [{ mod: clawSwipe, at: 'target', dx: -26, speed: 1.4 }, { mod: daggerFlurry, at: 'target', dx: -28, delay: 0.12 }],
+    smoke_bomb: [{ mod: poof, at: 'self', speed: 1.2 }, { ...BLOCK, delay: 0.1 }],
     assassinate: [{ mod: shadowTendrils, at: 'target', speed: 2 }, { mod: critHit, at: 'target', delay: 0.1 }],
-    shadow_chain: [{ mod: blinkIn, at: 'self', speed: 1.8 }],
-    bandage: [{ mod: healingBloom, at: 'self', speed: 1.6 }],
+    shadow_chain: [{ mod: graspingHands, at: 'self', stopAfter: 0.8, speed: 2 }],
+    bandage: [{ mod: heal, at: 'self', speed: 1.4 }, { mod: potion, at: 'self', dy: -70, stopAfter: 0.7, speed: 1.4 }],
     adrenaline: [{ mod: rage, at: 'self', stopAfter: 0.9 }, { mod: manaBurst, at: 'self', speed: 1.4, delay: 0.1 }],
 };
 
 const HEAL: VfxSpec = { mod: heal, at: 'target', speed: 1.4 };
+
+/** 속성별 임팩트 섬광 색 */
+function cardTint(el: Element): string {
+    const T: Record<Element, string> = {
+        fire: '#ffb04a', ice: '#bfe8ff', lightning: '#fff27a', poison: '#a8ef7a', arcane: '#d8b8ff', shadow: '#c8a0ff',
+        steel: '#ffe6a0', guard: '#ffe6a0', nature: '#c8f08a', blood: '#ff8a8a', wind: '#b8f0e4',
+    };
+    return T[el] ?? '#ffffff';
+}
+
+/** 카드 그림이 다른 카드와 겹칠 때 따로 정한 그림 */
+const CARD_ART: Record<string, VfxSpec> = {
+    guard: BLOCK,
+    counter_stance: { mod: parry, at: 'self' },
+    chain_strike: { mod: whipCrack, at: 'target' },
+    momentum: { mod: sparkArc, at: 'target', opts: { palette: ['#2a1406', '#5a2e0a', '#9a5a10', '#d89a20', '#ffd24a', '#fff2b0', '#ffffff'] } },
+    blade_storm: { mod: spearSweep, at: 'target' },
+    cleave_line: { mod: groundSlam, at: 'target' },
+    finisher: { mod: sunburst, at: 'target', opts: { palette: BLOOD } },
+    adrenaline: { mod: manaBurst, at: 'self' },
+    shatter: { mod: snowflakeBurst, at: 'target' },
+    quick_slash: { mod: hitFlash, at: 'target' },
+    venom_burst: { mod: poisonCloud, at: 'target' },
+    assassinate: { mod: curseFx, at: 'target' },
+    ward: { mod: divineShield, at: 'self', opts: { palette: ['#0a1440', '#14286a', '#2448a8', '#4a7ad8', '#8ab4f8', '#d0e4ff', '#ffffff'] } },
+};
+
+/** 카드 일러스트로 쓸 이펙트: 따로 정한 것, 없으면 방패가 아닌 첫 이펙트 */
+export function artSpec(id: string): VfxSpec | undefined {
+    const list = CARD_VFX[id] ?? [];
+    return CARD_ART[id] ?? list.find((s) => s.mod !== shieldBlock) ?? list[0];
+}
 
 /** 카드가 아닌 신호에 대한 이펙트. 위치는 cue.target 기준 */
 export function cueVfx(c: Cue): VfxSpec[] {
@@ -249,6 +307,19 @@ export function cueVfx(c: Cue): VfxSpec[] {
             if (attack && CARDS[id].cls === 'knight') for (const k of knightFlourish(id, c.id)) out.push({ ...k, delay: wait + (k.delay ?? 0) });
             // 도적(바람 암살자): 바람 칼날이 덧붙는다
             if (attack && CARDS[id].cls === 'rogue') for (const w of windFlourish(id, c.id)) out.push({ ...w, delay: wait + (w.delay ?? 0) });
+            // 순간이동하는 기술: 사라지는 자리에 연기, 나타나는 자리에 섬광 (그냥 투명해지면 버그처럼 보인다)
+            if (CARD_MOVE[id]?.motion === 'blink') {
+                const run = ATTACK_WINDUP - 0.02;
+                const c0 = def ? chargeOf(def) : 0;
+                out.push({ mod: blinkOut, at: 'self', delay: c0 + run * 0.4, speed: 2 });
+                out.push({ mod: blinkIn, at: 'target', dx: -40, delay: c0 + run * 0.75, speed: 2.2 });
+            }
+            // 큰 일격(피해 12 이상)은 강타처럼 맞는 순간 화면이 번쩍인다
+            const big = attack && def.effects.some((e) => (e.kind === 'damage' || e.kind === 'damageAll') && (e.amount ?? 0) * (e.hits ?? 1) >= 12);
+            if (big && !(def.cls === 'knight' && KNIGHT_HEAVY.has(id)) && !specs.some((s) => s.mod === impactFrame)) {
+                const all = def.effects.some((e) => e.kind === 'damageAll');
+                out.push({ mod: impactFrame, at: all ? 'all' : 'target', delay: wait + 0.02, speed: 1.6, opts: { palette: ['#1a1030', cardTint(cardElement(id))] } });
+            }
             // 맞는 자리에 속성별 여운 (불씨, 눈꽃, 전기, 독, 피 …)
             if (attack) {
                 const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');

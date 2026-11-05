@@ -18,7 +18,7 @@ export function Hud({ run, hp, onQuit }: { run: RunState; hp?: number; onQuit: (
                     <i className="ico ico-coin" /> {run.gold}
                 </span>
                 <span className="hud-stat floor" title="현재 층">
-                    지역 {run.floor + 1} · {regionOf(run).name}
+                    <small>지역 {run.floor + 1}</small> {regionOf(run).name}
                 </span>
             </div>
             <div className="hud-relics">
@@ -28,7 +28,7 @@ export function Hud({ run, hp, onQuit }: { run: RunState; hp?: number; onQuit: (
             </div>
             <div className="hud-actions">
                 <button
-                    className="btn btn-small btn-ghost"
+                    className={`hud-btn ${sound ? '' : 'off'}`}
                     title={sound ? '소리 끄기' : '소리 켜기'}
                     aria-label={sound ? '소리 끄기' : '소리 켜기'}
                     onClick={() => {
@@ -37,18 +37,21 @@ export function Hud({ run, hp, onQuit }: { run: RunState; hp?: number; onQuit: (
                         if (!sound) sfx.select();
                     }}
                 >
-                    {sound ? '♪ 켬' : '♪ 끔'}
+                    <span className="hud-glyph" aria-hidden>♪</span>
                 </button>
-                <button className="btn btn-small" onClick={() => setDeckOpen(true)}>
-                    덱 {run.deck.length}
+                <button className="hud-btn deck" title="내 덱" aria-label={`내 덱 ${run.deck.length}장`} onClick={() => setDeckOpen(true)}>
+                    <span className="hud-glyph deck-glyph" aria-hidden />
+                    <b className="hud-badge">{run.deck.length}</b>
                 </button>
                 <button
-                    className="btn btn-small btn-ghost"
+                    className="hud-btn"
+                    title="메뉴"
+                    aria-label="메뉴"
                     onClick={() => {
                         if (confirm('타이틀로 돌아갈까요? 진행 상황은 저장되어 이어할 수 있어요.')) onQuit();
                     }}
                 >
-                    메뉴
+                    <span className="hud-glyph" aria-hidden>☰</span>
                 </button>
             </div>
             {deckOpen && (

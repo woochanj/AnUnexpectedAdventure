@@ -180,6 +180,8 @@ function heroSteps(char: string, a: HeroAction): SpriteStep[] {
         const p = pose.length ? [{ ...pose[0], ms: Math.min(pose[0].ms ?? 0, before) }] : [];
         return [...p, { anim: 'idle', ms: Math.max(0, before - (p[0]?.ms ?? 0)) }, { anim }];
     }
+    // 카드가 고른 스프라이트 동작이 있으면 방어·강화·주문도 그 동작으로
+    if (!ATTACK_ACTS.has(a.act) && a.act !== 'hurt' && a.act !== 'death' && pick && pick !== 'idle') return [...pose, { anim: pick }];
     if ((a.act === 'cast' || a.act === 'heal' || a.act === 'charge') && cfg.cast && hasAnim(char, cfg.cast)) return [...pose, { anim: pick ?? cfg.cast }];
     if (a.act === 'rage' && cfg.power && hasAnim(char, cfg.power)) return [{ anim: cfg.power }];
     if (a.act === 'block' && cfg.block && hasAnim(char, cfg.block)) return [{ anim: cfg.block }];

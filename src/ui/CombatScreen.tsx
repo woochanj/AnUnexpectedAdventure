@@ -13,7 +13,7 @@ import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { sfx } from './sfx';
 import { DragArrow } from './DragArrow';
 import { barkFor } from '../game/story';
-import { CARD_MOVE, playHeroMotion } from './heroMoves';
+import { CARD_MOVE, IN_PLACE, playHeroMotion, STILL_FOR } from './heroMoves';
 import { spawnAfterimages } from './afterimage';
 import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
 import { hasAnim } from './SpriteActor';
@@ -301,11 +301,17 @@ function useJuice(
                 const attack = card?.type === 'attack';
                 const act = CARD_ACT[q.card ?? ''] ?? (attack ? 'slash' : 'cast');
                 const move = CARD_MOVE[q.card ?? ''];
-                const inPlace = !!card?.ranged || lookIsRanged(heroLook) || move?.motion === 'stay';
+                const inPlace = !!card?.ranged || lookIsRanged(heroLook) || (!!move && IN_PLACE.has(move.motion));
                 const charge = card ? chargeOf(card) : 0;
                 setHeroAction({ id: q.id, act, windup: card ? Math.max(windupOf(card), attack ? 0 : 0.05) : 0.05, ranged: inPlace, anims: move?.anims, charge });
                 if (charge) chargeMoment(field, cardElement(q.card ?? ''), card?.ultimate ? card.name : null, charge);
                 const hero = field.querySelector<HTMLElement>('[data-body="player"]');
+                // 제자리 카드(주문·방어·강화)도 카드마다 다른 몸짓
+                if (hero && inPlace && move) {
+                    const still = IN_PLACE.has(move.motion) ? move.motion : (STILL_FOR[move.motion] ?? 'stay');
+                    const at = attack ? ATTACK_WINDUP * 1000 : 260;
+                    playHeroMotion(hero, still, 0, charge * 1000, at, 360, 380);
+                }
                 if (attack && hero && !inPlace) {
                     // 대상(광역 공격이면 적들 가운데) 바로 앞까지
                     const all = card.effects.some((e) => e.kind === 'damageAll');
@@ -371,14 +377,16 @@ function useJuice(
             const push = Math.min(28, 8 + amt * 0.9) * (toPlayer ? -1 : 1) * (f.crit ? 1.5 : 1);
             const at = f.delay * 1000;
             if (sprite) {
+                // 맞는 순간 확 밀려나며 찌그러졌다가(빠르게) 천천히 제자리로 (느리게)
+                const squash = Math.min(0.2, 0.06 + amt * 0.008) * (f.crit ? 1.4 : 1);
                 sprite.animate(
                     [
-                        { transform: 'translateX(0)', filter: toPlayer ? 'brightness(1.1) sepia(1) saturate(9) hue-rotate(-50deg)' : 'brightness(3) saturate(0)' },
-                        { transform: `translateX(${push}px) rotate(${toPlayer ? -4 : 4}deg)`, filter: toPlayer ? 'brightness(1) sepia(0.8) saturate(5) hue-rotate(-50deg)' : 'brightness(1.6)', offset: 0.25 },
-                        { transform: `translateX(${push * 0.6}px)`, filter: 'none', offset: 0.55 },
-                        { transform: 'translateX(0)', filter: 'none' },
+                        { transform: 'translateX(0) scale(1,1)', filter: toPlayer ? 'brightness(1.1) sepia(1) saturate(9) hue-rotate(-50deg)' : 'brightness(3) saturate(0)', easing: 'cubic-bezier(0.1,0.9,0.2,1)' },
+                        { transform: `translateX(${push}px) rotate(${toPlayer ? -4 : 4}deg) scale(${1 + squash},${1 - squash})`, filter: toPlayer ? 'brightness(1) sepia(0.8) saturate(5) hue-rotate(-50deg)' : 'brightness(1.6)', offset: 0.18, easing: 'cubic-bezier(0.3,0,0.3,1)' },
+                        { transform: `translateX(${push * 0.75}px) rotate(${toPlayer ? -1 : 1}deg) scale(${1 - squash * 0.4},${1 + squash * 0.4})`, filter: 'none', offset: 0.45, easing: 'cubic-bezier(0.4,0,0.2,1)' },
+                        { transform: 'translateX(0) scale(1,1)', filter: 'none' },
                     ],
-                    { duration: toPlayer ? 420 : 320, delay: at, easing: 'steps(6, end)', composite: 'add' },
+                    { duration: (toPlayer ? 460 : 380) + Math.min(160, amt * 6), delay: at, composite: 'add' },
                 );
             }
             if (toPlayer) {
@@ -394,6 +402,13 @@ function useJuice(
             const start = now + f.delay * 1000;
             const hold = (dmg >= 15 ? 170 : dmg >= 7 ? 120 : 80) + (f.target === 'player' ? 40 : 0);
             clock.current.windows.push([start, start + hold]);
+            // 히트스톱 동안 때린 쪽·맞은 쪽 몸 움직임도 멈춘다 (스프라이트만 멈추면 몸이 미끄러져 보임)
+            const bodies = [field.querySelector<HTMLElement>('[data-body="player"]'), ...(f.target === 'player' ? [] : [field.querySelector<HTMLElement>(`[data-body="${f.target}"]`)])];
+            window.setTimeout(() => {
+                const anims = bodies.flatMap((b) => b?.getAnimations() ?? []).filter((a) => a.playState === 'running');
+                anims.forEach((a) => a.pause());
+                window.setTimeout(() => anims.forEach((a) => a.play()), hold);
+            }, f.delay * 1000);
             const amp = (dmg >= 15 ? 3 : dmg >= 7 ? 2 : 1) * (f.target === 'player' ? 4 : 3);
             field.animate(
                 [
@@ -702,7 +717,10 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 {drag?.moved && drag.target && <DragArrow d={drag} />}
                 <div className="hand-right">
                     <button className={`btn btn-end ${!locked && !c.hand.some((h) => canPlay(c, h)) ? 'no-plays' : ''}`} onClick={doEndTurn} disabled={locked}>
-                        턴 종료
+                        <span className="end-face">
+                            <span className="end-arrow" aria-hidden>➜</span>
+                            <span className="end-label">{locked && !c.result ? '적의 차례' : '턴 종료'}</span>
+                        </span>
                     </button>
                     <button className="pile" onClick={() => setPile('discard')} title="버린 카드">
                         버림 {c.discard.length}

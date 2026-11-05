@@ -114,6 +114,9 @@ export function SpriteActor({
         cv.height = info.h;
         const ctx = cv.getContext('2d')!;
         ctx.imageSmoothingEnabled = false;
+        // 동작 그림을 처음 쓸 때 불러오면 그동안 캐릭터가 사라진다 → 미리 다 불러 둔다
+        for (const a of Object.keys(info.anims)) spriteImage(name, a);
+        const ready = (im: HTMLImageElement) => im.complete && im.naturalWidth > 0;
         let raf = 0;
         let prev = performance.now();
         const idleStart = Math.random() * 1000;
@@ -152,9 +155,16 @@ export function SpriteActor({
                 frame = Math.floor(((t + idleStart) / 1000) * animFps(anim)) % n;
             }
             if (!info.anims[anim]) anim = 'idle';
-            const im = spriteImage(name, anim);
-            ctx.clearRect(0, 0, info.w, info.h);
-            if (im.complete && im.naturalWidth) ctx.drawImage(im, frame * info.w, 0, info.w, info.h, 0, 0, info.w, info.h);
+            let im = spriteImage(name, anim);
+            // 아직 안 불러왔으면 대기 동작으로, 그것도 없으면 지난 그림을 그대로 둔다
+            if (!ready(im)) {
+                im = spriteImage(name, 'idle');
+                frame = frame % (info.anims.idle?.frames ?? 1);
+            }
+            if (ready(im)) {
+                ctx.clearRect(0, 0, info.w, info.h);
+                ctx.drawImage(im, frame * info.w, 0, info.w, info.h, 0, 0, info.w, info.h);
+            }
             // 그림 틀이 공격 범위만큼 넓어도 몸통이 자리 한가운데 오도록 옮긴다 (뒤집혀도 같은 자리)
             const mirrored = flipRef.current !== turn;
             const off = (info.w / 2 - (info.bodyX ?? info.w / 2)) * scaleRef.current * (mirrored ? -1 : 1);

@@ -3367,3 +3367,159 @@ kbd {
     background: #2a4a8a;
     color: #fff6c8;
 }
+
+/* ═════════ 지도 다시 정리: 더 크게, 더 또렷하게 ═════════ */
+.map-scene {
+    /* 일지(오른쪽 240px)를 뺀 공간과 화면 높이에 맞춰 칸을 최대한 크게 */
+    --cell: clamp(60px, min(calc((100vw - 340px) / 7), calc((100vh - 250px) / 5)), 128px);
+}
+.map-layout {
+    gap: 18px;
+    align-items: flex-start;
+}
+.map-frame {
+    padding: 12px;
+    background: rgba(16, 20, 44, 0.92);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.1), 0 8px 0 var(--ui-ink), 0 24px 50px rgba(0, 0, 0, 0.45);
+}
+.map-scene .map-board {
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.05) 2px, transparent 2px) 0 0 / var(--cell) var(--cell),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 2px, transparent 2px) 0 0 / var(--cell) var(--cell),
+        #1a2048;
+    box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4);
+}
+.map-journal {
+    width: 240px;
+}
+
+/* 방: 칸을 거의 다 채우는 밝은 돌판 */
+.map-scene .room {
+    --size: calc(var(--cell) * 0.8);
+}
+.map-scene .room-top {
+    border-width: 4px;
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.35) 0 4px, transparent 4px),
+        #5a6aa8;
+    box-shadow: 0 6px 0 -2px #2a3260, 0 6px 0 2px var(--ui-ink);
+}
+.map-scene .room.visited .room-top {
+    background:
+        linear-gradient(rgba(255, 255, 255, 0.25) 0 4px, transparent 4px),
+        #3c4678;
+    filter: none;
+}
+.map-scene .room.seen:not(.visited) .room-top {
+    filter: none;
+}
+/* 아직 모르는 방은 지도에 그리지 않는다. 바로 옆이라 갈 수 있는 곳만 안개 칸으로 */
+.map-scene .room.hidden {
+    visibility: hidden;
+}
+.map-scene .room.hidden.reachable {
+    visibility: visible;
+}
+.map-scene .room.hidden.reachable .room-top {
+    background: repeating-linear-gradient(45deg, #343c70 0 8px, #2c3462 8px 16px);
+    border-style: dashed;
+}
+.map-scene .room.hidden.reachable .room-top::after {
+    content: '?';
+    font-family: var(--font-head);
+    font-size: calc(var(--cell) * 0.32);
+    color: #ffe9a0;
+    text-shadow: 0 3px 0 var(--ui-ink);
+}
+/* 갈 수 있는 방: 금빛 테두리가 숨 쉬듯 */
+.map-scene .room.reachable .room-top {
+    border-color: #ffcf3e;
+    animation: room-ready 1s steps(2, end) infinite alternate;
+}
+@keyframes room-ready {
+    from { box-shadow: 0 6px 0 -2px #2a3260, 0 6px 0 2px var(--ui-ink), 0 0 0 3px rgba(255, 207, 62, 0.25); }
+    to { box-shadow: 0 6px 0 -2px #2a3260, 0 6px 0 2px var(--ui-ink), 0 0 0 7px rgba(255, 207, 62, 0.45); }
+}
+.map-scene .room.current .room-top {
+    border-color: #fff6c8;
+    background: linear-gradient(rgba(255, 255, 255, 0.35) 0 4px, transparent 4px), #7a88c8;
+}
+/* 방 종류 보석: 범례와 같은 색으로 왼쪽 위 모서리에 */
+.map-scene .room.seen:not(.cleared):not(.room-start) .room-top::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: -7px;
+    width: 16px;
+    height: 16px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 4px;
+    background: var(--gem, #9aa6d0);
+    z-index: 2;
+}
+.map-scene .room-combat { --gem: #ff4d4d; }
+.map-scene .room-elite { --gem: #ff8a2a; }
+.map-scene .room-event { --gem: #6ab8ff; }
+.map-scene .room-treasure { --gem: #ffd84a; }
+.map-scene .room-rest { --gem: #5ad87a; }
+.map-scene .room-shop { --gem: #ff6bd0; }
+.map-scene .room-boss { --gem: #ff2a4a; }
+.map-scene .room.room-boss.seen .room-top {
+    background: linear-gradient(rgba(255, 255, 255, 0.3) 0 4px, transparent 4px), #8a3050;
+}
+/* 아이콘도 칸 크기에 맞춰 크게 */
+.map-scene .room-enemy {
+    transform: scale(1.9);
+}
+.map-scene .room-enemy-boss {
+    transform: scale(1.8);
+}
+.map-scene .room-glyph,
+.map-scene .room-fire {
+    transform: scale(1.5);
+}
+
+/* 통로: 굵고 외곽선 있게 */
+.map-scene .corridor {
+    background: #46508a;
+    opacity: 1;
+    box-shadow: 0 0 0 3px var(--ui-ink);
+    border-radius: 0;
+}
+.map-scene .corridor.walked {
+    background: #ffd56a;
+}
+.map-scene .corridor.h {
+    height: 12px;
+    top: calc(var(--y) * var(--cell) + var(--cell) / 2 - 6px);
+}
+.map-scene .corridor.v {
+    width: 12px;
+    left: calc(var(--x) * var(--cell) + var(--cell) / 2 - 6px);
+}
+.map-scene .map-player .hero-canvas {
+    transform: scale(1.6);
+}
+
+@media (max-width: 760px) {
+    .map-scene {
+        --cell: calc((100vw - 44px) / 7);
+    }
+    .map-journal {
+        width: 100%;
+    }
+    .map-scene .room-enemy { transform: scale(1.2); }
+    .map-scene .room-enemy-boss { transform: scale(1.5); }
+    .map-scene .room.seen:not(.cleared):not(.room-start) .room-top::before {
+        width: 10px;
+        height: 10px;
+        left: -5px;
+        top: -5px;
+        border-width: 2px;
+    }
+    .map-scene .corridor.h { height: 8px; top: calc(var(--y) * var(--cell) + var(--cell) / 2 - 4px); }
+    .map-scene .corridor.v { width: 8px; left: calc(var(--x) * var(--cell) + var(--cell) / 2 - 4px); }
+    .map-scene .map-player .hero-canvas { transform: scale(1.1); }
+}

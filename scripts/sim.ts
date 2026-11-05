@@ -93,6 +93,7 @@ export function playRun(cls: ClassId): Result {
     let st: GameState = reducer({ run: null }, { type: 'new', cls });
     const hpAtBoss: number[] = [];
     let lastFight = '';
+    const sideSteps = new Map<number, number>();
     let lastKind = '';
     for (let steps = 0; steps < 20000; steps++) {
         const run = st.run!;
@@ -155,19 +156,32 @@ export function playRun(cls: ClassId): Result {
                 st = reducer(st, { type: 'nextFloor' });
                 break;
             case 'map': {
+                // 사람처럼 갈림길을 고른다: 위로 나아가되, 체력이 낮으면 모닥불, 여유 있으면 강적·보물
                 const cells = run.map.cells;
-                const low = run.hp < run.maxHp * 0.5;
-                let path = bfsPath(run, (id) => {
+                const here = cells[run.pos]!;
+                const hp = run.hp / run.maxHp;
+                const side = (sideSteps.get(here.y) ?? 0) >= 2;
+                let best: { id: number; v: number } | null = null;
+                for (const id of here.links) {
                     const r = cells[id]!;
-                    if (r.cleared || r.type === 'start' || r.type === 'boss') return false;
-                    if (r.type === 'shop') return !r.visited && run.gold >= 70;
-                    if (r.type === 'elite' && low) return false;
-                    return true;
-                });
-                // 보스 가는 길에 있는 미정리 방도 어차피 지나간다
-                if (!path) path = bfsPath(run, (id) => cells[id]!.type === 'boss');
-                if (!path) return { win: false, floor: run.floor, diedTo: 'stuck', hpAtBoss, deck: run.deck.length };
-                st = reducer(st, { type: 'move', to: path[0] });
+                    if (r.y > here.y) continue;
+                    if (r.y === here.y && side) continue;
+                    let v = r.y < here.y ? 2 : -1;
+                    if (r.cleared || r.visited) v -= 3;
+                    else if (r.type === 'rest') v += hp < 0.55 ? 6 : 1;
+                    else if (r.type === 'shop') v += run.gold >= 75 ? 3 : -1;
+                    else if (r.type === 'treasure') v += 4;
+                    else if (r.type === 'event') v += 2;
+                    else if (r.type === 'elite') v += hp > 0.7 ? 2 : -5;
+                    else if (r.type === 'combat') v += hp < 0.4 ? -2 : 1;
+                    else if (r.type === 'boss') v += 10;
+                    v += Math.random() * 0.5;
+                    if (!best || v > best.v) best = { id, v };
+                }
+                if (!best) return { win: false, floor: run.floor, diedTo: 'stuck', hpAtBoss, deck: run.deck.length };
+                if (cells[best.id]!.y === here.y) sideSteps.set(here.y, (sideSteps.get(here.y) ?? 0) + 1);
+                else sideSteps.clear();
+                st = reducer(st, { type: 'move', to: best.id });
                 break;
             }
         }

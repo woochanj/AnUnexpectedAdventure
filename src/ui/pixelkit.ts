@@ -1,5 +1,7 @@
-// 다크 판타지 픽셀 캐릭터 공통 도구 (64×64).
-// 부위를 도형으로 칠하면서 5단 음영 + 2×2 디더링으로 질감을 내고, 앞 부위 경계에 안쪽 윤곽선, 바깥에 진한 외곽선을 두른다.
+// 픽셀 캐릭터 공통 도구 (64×64) — 하이비트(데이브 더 다이버 풍) 방식.
+// 부위를 도형으로 칠하면서 디더링 없이 깔끔한 5단 음영 띠를 넣고,
+// 외곽선은 검정 대신 맞닿은 색을 어둡게 한 '색 외곽선'(빛 받는 위·왼쪽은 옅게, 그늘진 아래·오른쪽은 진하게),
+// 앞 부위가 뒤 부위와 겹치는 경계에는 그 부위 색을 어둡게 한 안쪽 윤곽선을 둔다.
 
 export const PX = 64;
 
@@ -13,8 +15,13 @@ export const u32 = (hex: string) => {
 export const R = (...h: string[]) => h.map(u32) as Ramp;
 
 export const INK = u32('#08070c');
-export const CONTOUR = u32('#0e0c14');
-const BAYER = [0, 2, 3, 1]; // 2×2
+
+/** 색을 어둡게 (살짝 푸른 쪽으로 기울여 그늘색처럼) */
+export function darken(c: number, k: number): number {
+    const r = c & 255, g = (c >>> 8) & 255, b = (c >>> 16) & 255;
+    const nr = Math.round(r * k * 0.92), ng = Math.round(g * k * 0.95), nb = Math.min(255, Math.round(b * k + 14 * (1 - k)));
+    return ((0xff << 24) | (nb << 16) | (ng << 8) | nr) >>> 0;
+}
 
 export class Buf {
     d = new Uint32Array(PX * PX);
@@ -43,17 +50,14 @@ export class Buf {
                 const me = p[i];
                 if (!me || me & 1) continue;
                 const behind = (j: number) => p[j] && p[j] < me && !(p[j] & 1);
-                if ((x > 0 && behind(i - 1)) || (x < W - 1 && behind(i + 1)) || (y > 0 && behind(i - W)) || (y < PX - 1 && behind(i + W))) out[i] = CONTOUR;
+                if ((x > 0 && behind(i - 1)) || (x < W - 1 && behind(i + 1)) || (y > 0 && behind(i - W)) || (y < PX - 1 && behind(i + W))) out[i] = darken(this.d[i], 0.55);
             }
         this.d = out;
     }
-    /** 밝기 l(0~1)을 5단 음영으로. 단계 사이는 디더링 */
+    /** 밝기 l(0~1)을 5단 음영 띠로 (디더링 없이 깔끔하게) */
     shade(x: number, y: number, l: number, r: Ramp) {
         const v = Math.max(0, Math.min(1, l)) * 4;
-        const i = Math.floor(v);
-        const frac = v - i;
-        const th = (BAYER[(x & 1) + (y & 1) * 2] + 0.5) / 4;
-        this.set(x, y, r[Math.min(4, frac > th ? i + 1 : i)]);
+        this.set(x, y, r[Math.min(4, Math.round(v))]);
     }
     /** 타원: 법선 방향으로 왼쪽 위 빛 */
     ellipse(cx: number, cy: number, rx: number, ry: number, r: Ramp, bias = 0) {
@@ -108,6 +112,7 @@ export class Buf {
         const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2) + 1;
         for (let i = 0; i <= n; i++) this.set(x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n, c);
     }
+    /** 색 외곽선: 그늘진 쪽(아래·오른쪽)은 진하게, 빛 받는 쪽(위·왼쪽)은 옅게 */
     outline() {
         const s = this.d.slice();
         const W = PX;
@@ -115,7 +120,11 @@ export class Buf {
             for (let x = 0; x < W; x++) {
                 const i = y * W + x;
                 if (s[i]) continue;
-                if ((x > 0 && s[i - 1]) || (x < W - 1 && s[i + 1]) || (y > 0 && s[i - W]) || (y < PX - 1 && s[i + W])) this.d[i] = INK;
+                // 이 빈칸의 아래/오른쪽에 그림이 있으면 그림의 위·왼쪽 가장자리 = 빛 받는 쪽
+                const lit = (y < PX - 1 ? s[i + W] : 0) || (x < W - 1 ? s[i + 1] : 0);
+                const shadow = (y > 0 ? s[i - W] : 0) || (x > 0 ? s[i - 1] : 0);
+                if (shadow) this.d[i] = darken(shadow, 0.32);
+                else if (lit) this.d[i] = darken(lit, 0.5);
             }
     }
 }

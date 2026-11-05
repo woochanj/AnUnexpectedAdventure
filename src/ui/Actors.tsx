@@ -134,27 +134,51 @@ export const HEROES: { id: string; name: string; desc: string }[] = [
     { id: 'cat-knight', name: '고양이 기사', desc: '작지만 용감하다' },
     { id: 'wizard', name: '마법사', desc: '지팡이와 주문' },
     { id: 'martial-hero', name: '날랜 검객', desc: '바람처럼 빠른 칼' },
+    { id: 'adventurer', name: '모험가', desc: '검 한 자루로 떠난 여행자' },
+    { id: 'adventurer-fist', name: '맨손 모험가', desc: '주먹과 발차기' },
+    { id: 'adventurer-bow', name: '활 모험가', desc: '모든 공격을 활로 쏜다' },
+    { id: 'water-priestess', name: '물의 사제', desc: '물결을 다루는 주문' },
+    { id: 'wind-hashashin', name: '바람 암살자', desc: '바람처럼 베고 사라진다' },
+    { id: 'ground-monk', name: '대지 수도승', desc: '대지를 울리는 주먹' },
 ];
+
+/** 모습별 동작 설정 */
+const LOOK: Record<string, { caster?: boolean; ranged?: boolean; cast?: string; block?: string; power?: string }> = {
+    wizard: { caster: true, cast: 'attack2' },
+    'water-priestess': { caster: true, cast: 'special', block: 'defend', power: 'special' },
+    adventurer: { cast: 'cast', power: 'cast' },
+    'adventurer-bow': { ranged: true },
+    'wind-hashashin': { block: 'defend', power: 'special' },
+    'ground-monk': { block: 'defend', power: 'special' },
+};
+/** 이 모습은 모든 공격을 제자리에서 쓴다 (활 등) */
+export const lookIsRanged = (id: string) => !!LOOK[id]?.ranged || !!LOOK[id]?.caster;
 
 const ATTACK_ACTS = new Set(['slash', 'double', 'dagger', 'cleave', 'smash', 'reap', 'thrust', 'spin']);
 
 /** 카드 동작 → 스프라이트 재생 단계 */
 function heroSteps(char: string, a: HeroAction): SpriteStep[] {
     const fk = char.startsWith('fantasy-knight');
-    const caster = char === 'wizard';
-    if (ATTACK_ACTS.has(a.act) && (a.ranged || caster)) {
-        // 제자리에서 휘둘러 주문/투척 — 무기가 닿는 프레임을 피해 순간에 맞춘다
-        const anim = a.act === 'cleave' || a.act === 'smash' ? 'attack2' : 'attack';
+    const cfg = LOOK[char] ?? {};
+    const caster = !!cfg.caster;
+    const multi0 = a.act === 'double' || a.act === 'dagger' || a.act === 'spin';
+    if (ATTACK_ACTS.has(a.act) && (a.ranged || caster || cfg.ranged)) {
+        // 제자리에서 휘둘러 주문/투척/활 — 무기가 닿는 프레임을 피해 순간에 맞춘다
+        const anim = multi0 && hasAnim(char, 'combo') && !cfg.ranged ? 'combo' : (a.act === 'cleave' || a.act === 'smash') && hasAnim(char, 'attack2') && !cfg.ranged ? 'attack2' : 'attack';
         const hitMs = ((a.windup ?? 0.3) + 0.08) * 1000;
         const lead = (hitFrame(char, anim) / animFps(anim)) * 1000;
         return [{ anim: 'idle', ms: Math.max(0, hitMs - lead) }, { anim }];
     }
-    if (caster && (a.act === 'cast' || a.act === 'heal' || a.act === 'charge' || a.act === 'rage')) return [{ anim: 'attack2' }];
+    if ((a.act === 'cast' || a.act === 'heal' || a.act === 'charge') && cfg.cast && hasAnim(char, cfg.cast)) return [{ anim: cfg.cast }];
+    if (a.act === 'rage' && cfg.power && hasAnim(char, cfg.power)) return [{ anim: cfg.power }];
+    if (a.act === 'block' && cfg.block && hasAnim(char, cfg.block)) return [{ anim: cfg.block }];
     if (ATTACK_ACTS.has(a.act)) {
         const heavy = a.act === 'cleave' || a.act === 'smash' || a.act === 'reap';
         const multi = a.act === 'double' || a.act === 'dagger' || a.act === 'spin';
-        const first = fk ? (multi ? 'combo' : heavy ? 'attack2' : 'attack') : heavy ? 'attack2' : 'attack';
-        const second = !fk && multi ? 'attack2' : null;
+        const hasCombo = hasAnim(char, 'combo');
+        const first = multi && hasCombo ? 'combo' : heavy && hasAnim(char, 'attack2') ? 'attack2' : 'attack';
+        const second = !hasCombo && multi && hasAnim(char, 'attack2') ? 'attack2' : null;
+        void fk;
         // 무기가 닿는 프레임이 피해 순간(예비동작 + 접촉)에 오도록 달리기 시간을 맞춘다
         const hitMs = ((a.windup ?? 0.3) + 0.08) * 1000;
         const lead = (hitFrame(char, first) / animFps(first)) * 1000;
@@ -202,7 +226,11 @@ export function HeroView(props: {
 }
 
 /** 고양이 기사(64px 캔버스)를 기준으로 한 상대 배율 */
-const HERO_SCALE: Record<string, number> = { 'hero-knight': 0.62, 'fantasy-knight-1': 0.8, 'fantasy-knight-2': 0.8, wizard: 0.5, 'martial-hero': 0.62 };
+const HERO_SCALE: Record<string, number> = {
+    'hero-knight': 0.62, 'fantasy-knight-1': 0.8, 'fantasy-knight-2': 0.8, wizard: 0.5, 'martial-hero': 0.62,
+    adventurer: 1.05, 'adventurer-fist': 1.05, 'adventurer-bow': 1.05,
+    'water-priestess': 0.85, 'wind-hashashin': 0.8, 'ground-monk': 0.85,
+};
 
 function CatKnightView({
     action, scale = 3, clock, flip = false, walking = false, className,

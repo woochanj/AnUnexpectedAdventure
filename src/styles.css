@@ -3248,3 +3248,14 @@ kbd {
 .map-scene.biome-forest { --floor: #4a8a5a; --floor-hi: #64a874; --glow: 255, 255, 220; }
 .map-scene.biome-ruins { --floor: #b07e4c; --floor-hi: #cc9a62; --glow: 255, 250, 220; }
 .map-scene.biome-ice { --floor: #6a98c8; --floor-hi: #8ab4e0; --glow: 255, 255, 255; }
+
+.title-credits {
+    margin: 4px 0 0;
+    font-size: 0.7rem;
+    line-height: 1.7;
+    color: #b8a8d8;
+    text-align: center;
+}
+.title-credits a {
+    color: #ffd27a;
+}

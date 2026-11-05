@@ -6,7 +6,7 @@ import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
 import type { CardInst, CombatState, EnemyState, Fx, Intent } from '../game/types';
 import { CardGrid, CardView, HpBar, Modal, StatusList } from './common';
-import { HeroView, MonsterView, PROJECTILE_MS, SceneryView, type HeroAction, type MonsterAttack } from './Actors';
+import { HeroView, lookIsRanged, MonsterView, PROJECTILE_MS, SceneryView, type HeroAction, type MonsterAttack } from './Actors';
 import { PROJECTILES } from './spriteManifest';
 import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
@@ -120,6 +120,7 @@ function throwProjectile(field: HTMLElement, name: string, from: Element, to: El
 }
 
 function useJuice(
+    heroLook: string,
     c: CombatState,
     fieldRef: React.RefObject<HTMLDivElement | null>,
     clock: React.RefObject<HitStopClock>,
@@ -161,9 +162,10 @@ function useJuice(
                 const card = CARDS[q.card ?? ''];
                 const attack = card?.type === 'attack';
                 const act = CARD_ACT[q.card ?? ''] ?? (attack ? 'slash' : 'cast');
-                setHeroAction({ id: q.id, act, windup: attack ? ATTACK_WINDUP : 0.05, ranged: !!card?.ranged });
+                const inPlace = !!card?.ranged || lookIsRanged(heroLook);
+                setHeroAction({ id: q.id, act, windup: attack ? ATTACK_WINDUP : 0.05, ranged: inPlace });
                 const hero = field.querySelector<HTMLElement>('[data-body="player"]');
-                if (attack && hero && !card?.ranged) {
+                if (attack && hero && !inPlace) {
                     // 대상(광역 공격이면 적들 가운데) 바로 앞까지
                     const all = card.effects.some((e) => e.kind === 'damageAll');
                     const targets = all
@@ -238,7 +240,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
     // 적마다 가장 최근에 맞은 순간 → 피격 동작
     const hurts: Record<string, { id: number; delay: number }> = {};
     for (const f of c.fx) if (f.kind === 'dmg' && f.target !== 'player') hurts[f.target] = { id: f.id, delay: f.delay };
-    useJuice(c, fieldRef, clock, setHeroAction);
+    useJuice(hero, c, fieldRef, clock, setHeroAction);
 
     const play = useCallback(
         (idx: number, target: string | null) => {

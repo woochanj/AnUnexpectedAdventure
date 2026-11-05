@@ -10,6 +10,24 @@ from PIL import Image
 
 SRC, OUT, MANIFEST = sys.argv[1:4]
 
+
+def frames_of(path, fw, fh):
+    # 낱장 프레임 목록이면 그대로, 가로 띠 파일이면 잘라서
+    if isinstance(path, list):
+        return [Image.open(p).convert('RGBA') for p in path]
+    im = Image.open(path).convert('RGBA')
+    n = im.width // fw
+    return [im.crop((i * fw, 0, (i + 1) * fw, fh)) for i in range(n)]
+
+
+def seq(folder, prefix):
+    """'adventurer-run-00.png', '-01' ... 처럼 번호 붙은 낱장 프레임을 순서대로"""
+    if not os.path.isdir(folder):
+        return []
+    names = sorted(f for f in os.listdir(folder) if f.startswith(prefix + '-') and f[len(prefix) + 1:-4].isdigit())
+    return [os.path.join(folder, f) for f in names]
+
+
 LM = os.path.join(SRC, 'monsters-full')
 LM13 = os.path.join(SRC, 'monsters', 'Monster_Creatures_Fantasy(Version 1.3)')
 HK = os.path.join(SRC, 'heroknight', 'Hero Knight', 'Sprites')
@@ -33,6 +51,43 @@ CHARS['martial-hero'] = (200, 200, True, {
     'idle': f'{MH}/Idle.png', 'run': f'{MH}/Run.png', 'attack': f'{MH}/Attack1.png', 'attack2': f'{MH}/Attack2.png',
     'hurt': f'{MH}/Take Hit.png', 'death': f'{MH}/Death.png', 'jump': f'{MH}/Jump.png', 'fall': f'{MH}/Fall.png',
 })
+# rvros Animated Pixel Adventurer (검 / 활 / 맨손)
+RV = os.path.join(SRC, 'rvros')
+A15 = os.path.join(RV, 'Adventurer-1.5', 'Individual Sprites')
+ABOW = os.path.join(RV, 'Adventurer-Bow', 'Individual Sprites')
+AHC = os.path.join(RV, 'Adventurer-Hand-Combat', 'Individual Sprites')
+if os.path.isdir(A15):
+    CHARS['adventurer'] = (50, 37, True, {
+        'idle': seq(A15, 'adventurer-idle-2'), 'run': seq(A15, 'adventurer-run'),
+        'attack': seq(A15, 'adventurer-attack1'), 'attack2': seq(A15, 'adventurer-attack2'), 'attack3': seq(A15, 'adventurer-attack3'),
+        'combo': seq(A15, 'adventurer-attack1') + seq(A15, 'adventurer-attack2') + seq(A15, 'adventurer-attack3'),
+        'cast': seq(A15, 'adventurer-cast') + seq(A15, 'adventurer-cast-loop'),
+        'hurt': seq(A15, 'adventurer-hurt'), 'death': seq(A15, 'adventurer-die'), 'jump': seq(A15, 'adventurer-jump'), 'fall': seq(A15, 'adventurer-fall'),
+    })
+    CHARS['adventurer-bow'] = (50, 37, True, {
+        'idle': seq(A15, 'adventurer-idle'), 'run': seq(A15, 'adventurer-run'),
+        'attack': seq(ABOW, 'adventurer-bow'), 'attack2': seq(ABOW, 'adventurer-bow-jump'),
+        'hurt': seq(A15, 'adventurer-hurt'), 'death': seq(A15, 'adventurer-die'), 'jump': seq(A15, 'adventurer-jump'), 'fall': seq(A15, 'adventurer-fall'),
+    })
+    CHARS['adventurer-fist'] = (50, 37, True, {
+        'idle': seq(A15, 'adventurer-idle'), 'run': seq(AHC, 'adventurer-run2'),
+        'attack': seq(AHC, 'adventurer-run-punch'), 'attack2': seq(AHC, 'adventurer-kick'), 'combo': seq(AHC, 'adventurer-punch'),
+        'hurt': seq(A15, 'adventurer-hurt'), 'death': seq(AHC, 'adventurer-knock-dwn'), 'jump': seq(A15, 'adventurer-jump'), 'fall': seq(A15, 'adventurer-fall'),
+    })
+
+# chierit Elementals 무료판 (CC-BY 4.0) — fetch 스크립트가 동작별 띠로 미리 합쳐 둔 것
+EL = os.path.join(SRC, 'elementals')
+for name in ('water-priestess', 'wind-hashashin', 'ground-monk'):
+    d = os.path.join(EL, name)
+    if not os.path.isdir(d):
+        continue
+    m = {'idle': 'idle', 'run': 'run', 'attack': '1_atk', 'attack2': '2_atk', 'combo': '3_atk', 'special': 'sp_atk',
+         'airAttack': 'air_atk', 'defend': 'defend', 'hurt': 'take_hit', 'death': 'death', 'roll': 'roll'}
+    anims = {k: f'{d}/{v}.png' for k, v in m.items() if os.path.exists(f'{d}/{v}.png')}
+    if 'run' not in anims:
+        anims['run'] = f'{d}/idle.png'
+    CHARS[name] = (288, 128, True, anims)
+
 for c in (1, 2):
     d = f'{FK}/Colour{c}/Outline/120x80_PNGSheets'
     CHARS[f'fantasy-knight-{c}'] = (120, 80, True, {
@@ -64,15 +119,9 @@ PROJECTILES = {
 }
 
 
-def frames_of(path, fw, fh):
-    im = Image.open(path).convert('RGBA')
-    n = im.width // fw
-    return [im.crop((i * fw, 0, (i + 1) * fw, fh)) for i in range(n)]
-
-
 manifest = {}
 for name, (fw, fh, faces_right, anims) in CHARS.items():
-    loaded = {a: frames_of(p, fw, fh) for a, p in anims.items() if os.path.exists(p)}
+    loaded = {a: frames_of(p, fw, fh) for a, p in anims.items() if (p if isinstance(p, list) else os.path.exists(p))}
     # 모든 프레임을 겹친 테두리
     box = None
     for fr in loaded.values():
@@ -98,7 +147,7 @@ for name, (fw, fh, faces_right, anims) in CHARS.items():
             reach.append(bb[2] if bb else 0)
         strip.save(os.path.join(OUT, name, f'{a}.png'), optimize=True)
         entry = {'frames': len(fr)}
-        if a.startswith('attack') or a in ('combo', 'crouchAttack'):
+        if a.startswith('attack') or a in ('combo', 'crouchAttack', 'special', 'airAttack', 'cast'):
             entry['hit'] = max(range(len(reach)), key=lambda i: reach[i])
         info['anims'][a] = entry
     manifest[name] = info

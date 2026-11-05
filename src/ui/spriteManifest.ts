@@ -99,6 +99,253 @@ export const SPRITES = {
         },
         "bodyX": 28
     },
+    "adventurer": {
+        "w": 50,
+        "h": 36,
+        "anims": {
+            "idle": {
+                "frames": 4
+            },
+            "run": {
+                "frames": 6
+            },
+            "attack": {
+                "frames": 5,
+                "hit": 2
+            },
+            "attack2": {
+                "frames": 6,
+                "hit": 3
+            },
+            "attack3": {
+                "frames": 6,
+                "hit": 2
+            },
+            "combo": {
+                "frames": 17,
+                "hit": 13
+            },
+            "cast": {
+                "frames": 8,
+                "hit": 3
+            },
+            "hurt": {
+                "frames": 3
+            },
+            "death": {
+                "frames": 7
+            },
+            "jump": {
+                "frames": 4
+            },
+            "fall": {
+                "frames": 2
+            }
+        },
+        "bodyX": 22
+    },
+    "adventurer-bow": {
+        "w": 37,
+        "h": 35,
+        "anims": {
+            "idle": {
+                "frames": 4
+            },
+            "run": {
+                "frames": 6
+            },
+            "attack": {
+                "frames": 9,
+                "hit": 7
+            },
+            "attack2": {
+                "frames": 6,
+                "hit": 4
+            },
+            "hurt": {
+                "frames": 3
+            },
+            "death": {
+                "frames": 7
+            },
+            "jump": {
+                "frames": 4
+            },
+            "fall": {
+                "frames": 2
+            }
+        },
+        "bodyX": 14
+    },
+    "adventurer-fist": {
+        "w": 44,
+        "h": 35,
+        "anims": {
+            "idle": {
+                "frames": 4
+            },
+            "run": {
+                "frames": 6
+            },
+            "attack": {
+                "frames": 7,
+                "hit": 3
+            },
+            "attack2": {
+                "frames": 8,
+                "hit": 5
+            },
+            "combo": {
+                "frames": 13,
+                "hit": 6
+            },
+            "hurt": {
+                "frames": 3
+            },
+            "death": {
+                "frames": 7
+            },
+            "jump": {
+                "frames": 4
+            },
+            "fall": {
+                "frames": 2
+            }
+        },
+        "bodyX": 22
+    },
+    "water-priestess": {
+        "w": 138,
+        "h": 89,
+        "anims": {
+            "idle": {
+                "frames": 8
+            },
+            "attack": {
+                "frames": 7,
+                "hit": 3
+            },
+            "attack2": {
+                "frames": 21,
+                "hit": 17
+            },
+            "combo": {
+                "frames": 27,
+                "hit": 26
+            },
+            "special": {
+                "frames": 32,
+                "hit": 30
+            },
+            "airAttack": {
+                "frames": 8,
+                "hit": 6
+            },
+            "defend": {
+                "frames": 12
+            },
+            "hurt": {
+                "frames": 7
+            },
+            "death": {
+                "frames": 16
+            },
+            "run": {
+                "frames": 8
+            }
+        },
+        "bodyX": 32
+    },
+    "wind-hashashin": {
+        "w": 209,
+        "h": 112,
+        "anims": {
+            "idle": {
+                "frames": 8
+            },
+            "run": {
+                "frames": 8
+            },
+            "attack": {
+                "frames": 8,
+                "hit": 0
+            },
+            "attack2": {
+                "frames": 18,
+                "hit": 8
+            },
+            "combo": {
+                "frames": 26,
+                "hit": 21
+            },
+            "special": {
+                "frames": 30,
+                "hit": 14
+            },
+            "airAttack": {
+                "frames": 7,
+                "hit": 6
+            },
+            "defend": {
+                "frames": 8
+            },
+            "hurt": {
+                "frames": 6
+            },
+            "death": {
+                "frames": 19
+            },
+            "roll": {
+                "frames": 6
+            }
+        },
+        "bodyX": 103
+    },
+    "ground-monk": {
+        "w": 139,
+        "h": 61,
+        "anims": {
+            "idle": {
+                "frames": 6
+            },
+            "run": {
+                "frames": 8
+            },
+            "attack": {
+                "frames": 6,
+                "hit": 4
+            },
+            "attack2": {
+                "frames": 12,
+                "hit": 10
+            },
+            "combo": {
+                "frames": 23,
+                "hit": 17
+            },
+            "special": {
+                "frames": 25,
+                "hit": 3
+            },
+            "airAttack": {
+                "frames": 7,
+                "hit": 5
+            },
+            "defend": {
+                "frames": 13
+            },
+            "hurt": {
+                "frames": 6
+            },
+            "death": {
+                "frames": 18
+            },
+            "roll": {
+                "frames": 6
+            }
+        },
+        "bodyX": 47
+    },
     "fantasy-knight-1": {
         "w": 87,
         "h": 43,

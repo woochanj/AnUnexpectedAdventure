@@ -95,6 +95,14 @@ function Title({ onNew, onContinue, canContinue }: { onNew: (cls: ClassId, hero:
                 <li>카드는 일반 · 고급 · 희귀 · 유니크 등급이 있고, 모닥불에서 Lv.3까지 강화할 수 있어요.</li>
                 <li>지역 가장 깊은 곳의 수호자를 쓰러뜨리면 다음 지역으로 떠납니다.</li>
             </ul>
+            <p className="title-credits">
+                캐릭터: <a href="https://chierit.itch.io/" target="_blank" rel="noreferrer">chierit</a> (Elementals, CC-BY 4.0) ·{' '}
+                <a href="https://rvros.itch.io/animated-pixel-hero" target="_blank" rel="noreferrer">rvros</a> ·{' '}
+                <a href="https://luizmelo.itch.io/" target="_blank" rel="noreferrer">LuizMelo</a> ·{' '}
+                <a href="https://aamatniekss.itch.io/" target="_blank" rel="noreferrer">aamatniekss</a> · SpritePilot
+                <br />
+                이펙트: <a href="https://github.com/patch-gg/pixelfx" target="_blank" rel="noreferrer">pixelfx</a> · 글꼴: 갈무리
+            </p>
         </div>
     );
 }

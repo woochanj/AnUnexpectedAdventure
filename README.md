@@ -54,6 +54,8 @@ src/ui/        화면
 ## 크레딧
 
 - 픽셀 이펙트: [pixelfx](https://github.com/patch-gg/pixelfx) (MIT, © Patch, Hugo Duprez 외 — 패키지의 NOTICE 참고)
+- 주인공 "물의 사제", "바람 암살자", "대지 수도승": [Elementals](https://chierit.itch.io/) by chierit (무료판, CC-BY 4.0 — 크레딧 표기 필요, 게임 타이틀 화면에도 표기)
+- 주인공 "모험가", "맨손 모험가", "활 모험가": [Animated Pixel Adventurer](https://rvros.itch.io/animated-pixel-hero) by rvros (사용 가능, 에셋 단독 재배포 금지)
 - 주인공 "방랑 기사": [Hero Knight](https://luizmelo.itch.io/hero-knight) by LuizMelo (CC0)
 - 몬스터 해골·고블린·버섯·날아다니는 눈: [Monsters Creatures Fantasy](https://luizmelo.itch.io/monsters-creatures-fantasy) by LuizMelo (CC0)
 - 주인공 "마법사": [Wizard Pack](https://luizmelo.itch.io/wizard-pack) by LuizMelo (CC0)

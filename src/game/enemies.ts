@@ -90,13 +90,13 @@ const LIST: EnemyDef[] = [
         moves: [{ attack: 9, hits: 2 }, { buff: { status: 'strength', amount: 3 }, block: 12 }, { attack: 16, drain: true }, { debuff: { status: 'weak', amount: 2 }, attack: 9 }],
     },
     {
-        id: 'endless_shadow', name: '끝없는 그림자', look: { kind: 'knight', variant: 'shadow', crown: true, scale: 5 }, hp: [178, 178], size: 'huge', enrage: 3,
+        id: 'endless_shadow', name: '끝없는 그림자', look: { kind: 'knight', variant: 'shadow', crown: true, scale: 5 }, hp: [165, 165], size: 'huge', enrage: 3,
         moves: [
             { attack: 11, hits: 2 },
             { block: 18, buff: { status: 'strength', amount: 2 }, curse: 2 },
             { debuff: { status: 'vulnerable', amount: 2 }, attack: 9 },
-            { attack: 5, hits: 5 },
-            { attack: 26 },
+            { attack: 4, hits: 5 },
+            { attack: 23 },
         ],
     },
 

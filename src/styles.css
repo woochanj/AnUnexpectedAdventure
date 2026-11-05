@@ -2901,3 +2901,122 @@ kbd {
     align-self: stretch;
     width: 100%;
 }
+
+/* ═════════ 카드 등급 · 레벨 ═════════ */
+.card.rarity-starter { box-shadow: inset 0 0 0 2px #8a8494, 0 4px 0 var(--ui-ink); }
+.card.rarity-common { box-shadow: inset 0 0 0 2px #f2ecdf, 0 4px 0 var(--ui-ink); }
+.card.rarity-uncommon { box-shadow: inset 0 0 0 2px #5ab4ff, 0 4px 0 var(--ui-ink), 0 0 10px rgba(90, 180, 255, 0.35); }
+.card.rarity-rare { box-shadow: inset 0 0 0 2px #c07aff, 0 4px 0 var(--ui-ink), 0 0 14px rgba(192, 122, 255, 0.5); }
+.card.rarity-unique {
+    box-shadow: inset 0 0 0 3px var(--ui-yellow), 0 4px 0 var(--ui-ink), 0 0 18px rgba(255, 200, 60, 0.7);
+    animation: uniqueGlow 2.2s ease-in-out infinite;
+}
+@keyframes uniqueGlow {
+    50% { box-shadow: inset 0 0 0 3px #fff1a8, 0 4px 0 var(--ui-ink), 0 0 26px rgba(255, 210, 80, 0.95); }
+}
+.card.rarity-unique .card-art::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 240, 180, 0.45) 45%, transparent 60%) -120% 0 / 220% 100% no-repeat;
+    animation: sheen 2.6s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes sheen {
+    to { background-position: 120% 0; }
+}
+.card-art {
+    position: relative;
+}
+.card-type em {
+    font-style: normal;
+}
+.rar-starter { color: #b8b2c4; }
+.rar-common { color: #f2ecdf; }
+.rar-uncommon { color: #7ac4ff; }
+.rar-rare { color: #d4a0ff; }
+.rar-unique { color: var(--ui-yellow); }
+.card-level {
+    position: absolute;
+    top: 30px;
+    right: 6px;
+    z-index: 2;
+    padding: 1px 5px 2px;
+    border: 2px solid var(--ui-ink);
+    border-radius: 4px;
+    font-family: var(--font-head);
+    font-size: 0.7rem;
+    background: #7ae08a;
+    color: #0a2a10;
+}
+.card-level.lv3 {
+    background: var(--ui-yellow);
+    color: #3a1e00;
+}
+.card-up .card-name {
+    color: #fff;
+}
+
+/* ═════════ 직업 고르기 ═════════ */
+.class-pick {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    width: min(680px, 100%);
+}
+.class-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 12px 14px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 6px;
+    background: var(--ui-parch);
+    color: #3a2416;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: inset 0 -3px 0 var(--ui-parch-dark), 0 4px 0 var(--ui-ink);
+}
+.class-option b {
+    font-family: var(--font-head);
+    font-weight: 400;
+    font-size: 1.2rem;
+}
+.class-option span {
+    font-size: 0.75rem;
+    color: #7a5838;
+    line-height: 1.45;
+}
+.class-option .class-hp {
+    color: #b0303a;
+    font-size: 0.8rem;
+}
+.class-option.on {
+    background: var(--ui-yellow);
+    box-shadow: inset 0 0 0 2px #fff4b0, inset 0 -3px 0 #d8901c, 0 4px 0 var(--ui-ink);
+}
+.look-pick {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.look-option {
+    padding: 5px 12px 6px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 999px;
+    background: var(--ui-panel-2);
+    color: var(--ui-cream);
+    font-size: 0.8rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--ui-ink);
+}
+.look-option.on {
+    background: var(--ui-orange);
+    color: #3a1400;
+}
+@media (max-width: 560px) {
+    .class-pick {
+        grid-template-columns: 1fr;
+    }
+}

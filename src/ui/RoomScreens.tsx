@@ -1,4 +1,5 @@
 import { useState, type Dispatch, type ReactNode } from 'react';
+import { cardLevel, MAX_LEVEL } from '../game/cards';
 import { FLOORS } from '../game/enemies';
 import { EVENTS } from '../game/events';
 import { RELICS } from '../game/relics';
@@ -75,7 +76,7 @@ export function RestScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'r
                         <button className="choice" onClick={() => dispatch({ type: 'rest' })}>
                             <b>휴식</b> <span>체력 {heal} 회복</span>
                         </button>
-                        <button className="choice" onClick={() => dispatch({ type: 'restUpgrade' })} disabled={run.deck.every((c) => c.upgraded)}>
+                        <button className="choice" onClick={() => dispatch({ type: 'restUpgrade' })} disabled={run.deck.every((c) => cardLevel(c) >= MAX_LEVEL)}>
                             <b>수련</b> <span>카드 1장 강화</span>
                         </button>
                     </div>
@@ -182,7 +183,7 @@ export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'p
     const [chosen, setChosen] = useState<CardInst | null>(null);
     return (
         <Panel title={up ? '강화할 카드를 고르세요' : '지울 카드를 고르세요'} className="pick">
-            <CardGrid cards={run.deck} isDisabled={up ? (c) => c.upgraded : undefined} onPick={setChosen} />
+            <CardGrid cards={run.deck} isDisabled={up ? (c) => cardLevel(c) >= MAX_LEVEL : undefined} onPick={setChosen} />
             <button className="btn btn-ghost" onClick={() => dispatch({ type: 'pickCancel' })}>
                 취소
             </button>
@@ -190,7 +191,7 @@ export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'p
                 <Modal title={up ? '이 카드를 강화할까요?' : '이 카드를 덱에서 지울까요?'} onClose={() => setChosen(null)}>
                     <div className="confirm-cards">
                         <div className="confirm-col">
-                            <span className="confirm-label">{up ? '지금' : '지울 카드'}</span>
+                            <span className="confirm-label">{up ? `지금 · Lv.${cardLevel(chosen)}` : '지울 카드'}</span>
                             <CardView card={chosen} />
                         </div>
                         {up && (
@@ -199,8 +200,8 @@ export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'p
                                     ▶
                                 </span>
                                 <div className="confirm-col">
-                                    <span className="confirm-label up">강화 후</span>
-                                    <CardView card={{ ...chosen, upgraded: true }} />
+                                    <span className="confirm-label up">강화 후 · Lv.{cardLevel(chosen) + 1}</span>
+                                    <CardView card={{ ...chosen, upgraded: true, level: cardLevel(chosen) + 1 }} />
                                 </div>
                             </>
                         )}

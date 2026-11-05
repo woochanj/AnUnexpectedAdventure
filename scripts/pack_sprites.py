@@ -23,6 +23,16 @@ CHARS = {
         'hurt': f'{HK}/Take Hit.png', 'death': f'{HK}/Death.png', 'jump': f'{HK}/Jump.png', 'fall': f'{HK}/Fall.png',
     }),
 }
+WZ = os.path.join(SRC, 'wizard')
+MH = os.path.join(SRC, 'martial2')
+CHARS['wizard'] = (231, 190, True, {
+    'idle': f'{WZ}/Idle.png', 'run': f'{WZ}/Run.png', 'attack': f'{WZ}/Attack1.png', 'attack2': f'{WZ}/Attack2.png',
+    'hurt': f'{WZ}/Hit.png', 'death': f'{WZ}/Death.png', 'jump': f'{WZ}/Jump.png', 'fall': f'{WZ}/Fall.png',
+})
+CHARS['martial-hero'] = (200, 200, True, {
+    'idle': f'{MH}/Idle.png', 'run': f'{MH}/Run.png', 'attack': f'{MH}/Attack1.png', 'attack2': f'{MH}/Attack2.png',
+    'hurt': f'{MH}/Take Hit.png', 'death': f'{MH}/Death.png', 'jump': f'{MH}/Jump.png', 'fall': f'{MH}/Fall.png',
+})
 for c in (1, 2):
     d = f'{FK}/Colour{c}/Outline/120x80_PNGSheets'
     CHARS[f'fantasy-knight-{c}'] = (120, 80, True, {

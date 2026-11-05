@@ -118,6 +118,8 @@ export function FxView({
 
 export interface HeroAction {
     id: number;
+    /** 원거리 공격이면 제자리에서 쓴다 */
+    ranged?: boolean;
     /** knight.ts MOVES의 키 */
     act: string;
     /** 공격이 닿는 순간(t=0)까지 남길 예비동작 시간 */
@@ -126,10 +128,12 @@ export interface HeroAction {
 
 /** 고를 수 있는 주인공 */
 export const HEROES: { id: string; name: string; desc: string }[] = [
-    { id: 'hero-knight', name: '방랑 기사', desc: '묵직한 두 손 검. 크게 휘두른다' },
-    { id: 'fantasy-knight-1', name: '붉은 기사', desc: '날렵한 한 손 검과 연속 베기' },
+    { id: 'hero-knight', name: '방랑 기사', desc: '묵직한 두 손 검' },
+    { id: 'fantasy-knight-1', name: '붉은 기사', desc: '날렵한 연속 베기' },
     { id: 'fantasy-knight-2', name: '푸른 기사', desc: '붉은 기사의 다른 갑옷' },
-    { id: 'cat-knight', name: '고양이 기사', desc: '투구 쓴 고양이. 작지만 용감하다' },
+    { id: 'cat-knight', name: '고양이 기사', desc: '작지만 용감하다' },
+    { id: 'wizard', name: '마법사', desc: '지팡이와 주문' },
+    { id: 'martial-hero', name: '날랜 검객', desc: '바람처럼 빠른 칼' },
 ];
 
 const ATTACK_ACTS = new Set(['slash', 'double', 'dagger', 'cleave', 'smash', 'reap', 'thrust', 'spin']);
@@ -137,6 +141,15 @@ const ATTACK_ACTS = new Set(['slash', 'double', 'dagger', 'cleave', 'smash', 're
 /** 카드 동작 → 스프라이트 재생 단계 */
 function heroSteps(char: string, a: HeroAction): SpriteStep[] {
     const fk = char.startsWith('fantasy-knight');
+    const caster = char === 'wizard';
+    if (ATTACK_ACTS.has(a.act) && (a.ranged || caster)) {
+        // 제자리에서 휘둘러 주문/투척 — 무기가 닿는 프레임을 피해 순간에 맞춘다
+        const anim = a.act === 'cleave' || a.act === 'smash' ? 'attack2' : 'attack';
+        const hitMs = ((a.windup ?? 0.3) + 0.08) * 1000;
+        const lead = (hitFrame(char, anim) / animFps(anim)) * 1000;
+        return [{ anim: 'idle', ms: Math.max(0, hitMs - lead) }, { anim }];
+    }
+    if (caster && (a.act === 'cast' || a.act === 'heal' || a.act === 'charge' || a.act === 'rage')) return [{ anim: 'attack2' }];
     if (ATTACK_ACTS.has(a.act)) {
         const heavy = a.act === 'cleave' || a.act === 'smash' || a.act === 'reap';
         const multi = a.act === 'double' || a.act === 'dagger' || a.act === 'spin';
@@ -189,7 +202,7 @@ export function HeroView(props: {
 }
 
 /** 고양이 기사(64px 캔버스)를 기준으로 한 상대 배율 */
-const HERO_SCALE: Record<string, number> = { 'hero-knight': 0.62, 'fantasy-knight-1': 0.8, 'fantasy-knight-2': 0.8 };
+const HERO_SCALE: Record<string, number> = { 'hero-knight': 0.62, 'fantasy-knight-1': 0.8, 'fantasy-knight-2': 0.8, wizard: 0.5, 'martial-hero': 0.62 };
 
 function CatKnightView({
     action, scale = 3, clock, flip = false, walking = false, className,

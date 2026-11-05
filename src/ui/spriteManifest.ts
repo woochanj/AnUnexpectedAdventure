@@ -33,6 +33,72 @@ export const SPRITES = {
         },
         "bodyX": 50
     },
+    "wizard": {
+        "w": 186,
+        "h": 136,
+        "anims": {
+            "idle": {
+                "frames": 6
+            },
+            "run": {
+                "frames": 8
+            },
+            "attack": {
+                "frames": 8,
+                "hit": 7
+            },
+            "attack2": {
+                "frames": 8,
+                "hit": 7
+            },
+            "hurt": {
+                "frames": 4
+            },
+            "death": {
+                "frames": 7
+            },
+            "jump": {
+                "frames": 2
+            },
+            "fall": {
+                "frames": 2
+            }
+        },
+        "bodyX": 66
+    },
+    "martial-hero": {
+        "w": 128,
+        "h": 69,
+        "anims": {
+            "idle": {
+                "frames": 8
+            },
+            "run": {
+                "frames": 8
+            },
+            "attack": {
+                "frames": 6,
+                "hit": 4
+            },
+            "attack2": {
+                "frames": 6,
+                "hit": 4
+            },
+            "hurt": {
+                "frames": 4
+            },
+            "death": {
+                "frames": 6
+            },
+            "jump": {
+                "frames": 2
+            },
+            "fall": {
+                "frames": 2
+            }
+        },
+        "bodyX": 28
+    },
     "fantasy-knight-1": {
         "w": 87,
         "h": 43,

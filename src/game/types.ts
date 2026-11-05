@@ -11,7 +11,8 @@ export type Effect =
     | { kind: 'apply'; status: Status; amount: number; to: 'target' | 'all' | 'self' }
     | { kind: 'doublePoison' };
 
-export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare';
+export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'unique';
+export type ClassId = 'knight' | 'mage' | 'rogue';
 export type CardType = 'attack' | 'skill' | 'power';
 
 export interface CardDef {
@@ -22,6 +23,10 @@ export interface CardDef {
     cost: number;
     effects: Effect[];
     exhaust?: boolean;
+    /** 어느 직업 카드인지 (neutral = 모두) */
+    cls: ClassId | 'neutral';
+    /** 원거리 공격 (주인공이 달려가지 않음) */
+    ranged?: boolean;
     /** 강화 시 바뀌는 값 */
     up: { cost?: number; effects?: Effect[]; exhaust?: boolean };
 }
@@ -29,7 +34,10 @@ export interface CardDef {
 export interface CardInst {
     uid: string;
     id: string;
+    /** 레벨 2 이상이면 true (예전 저장과의 호환) */
     upgraded: boolean;
+    /** 카드 레벨 1~3 */
+    level?: number;
 }
 
 export interface Intent {
@@ -171,7 +179,9 @@ export type Screen =
     | { kind: 'victory' };
 
 export interface RunState {
-    /** 고른 주인공 (ui/Actors.tsx HEROES의 id) */
+    /** 직업 */
+    cls: ClassId;
+    /** 주인공 모습 (ui/Actors.tsx HEROES의 id) */
     hero: string;
     floor: number;
     hp: number;

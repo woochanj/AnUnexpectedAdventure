@@ -13,6 +13,8 @@ export const spriteInfo = (name: string) => SPRITES[name as SpriteName] as unkno
 /** 자동 계산이 맞지 않는 타격 프레임 보정 */
 const HIT_OVERRIDE: Record<string, Record<string, number>> = {
     'flying-eye': { attack: 5 },
+    // 마법사는 지팡이를 내지르는 순간 주문이 나간다
+    wizard: { attack: 4, attack2: 4 },
 };
 
 export const hasAnim = (name: string, anim: string) => !!spriteInfo(name)?.anims[anim];

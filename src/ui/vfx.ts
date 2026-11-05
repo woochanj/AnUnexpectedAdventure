@@ -23,6 +23,21 @@ import * as manaBurst from 'pixelfx/fx/arcane/mana-burst';
 import * as spellCharge from 'pixelfx/fx/arcane/spell-charge';
 import * as poof from 'pixelfx/fx/spawn/poof';
 import * as poisoned from 'pixelfx/fx/status/poisoned';
+import * as smallExplosion from 'pixelfx/fx/explosions/small-explosion';
+import * as bigExplosion from 'pixelfx/fx/explosions/big-explosion';
+import * as iceShatter from 'pixelfx/fx/ice/ice-shatter';
+import * as iceSpikes from 'pixelfx/fx/ice/ice-spikes';
+import * as frostNova from 'pixelfx/fx/ice/frost-nova';
+import * as freeze from 'pixelfx/fx/ice/freeze';
+import * as zapHit from 'pixelfx/fx/lightning/zap-hit';
+import * as fireRing from 'pixelfx/fx/fire/fire-ring';
+import * as arcaneMissiles from 'pixelfx/fx/arcane/arcane-missiles';
+import * as blinkIn from 'pixelfx/fx/arcane/blink-in';
+import * as blinkOut from 'pixelfx/fx/arcane/blink-out';
+import * as smite from 'pixelfx/fx/holy/smite';
+import * as divineShield from 'pixelfx/fx/holy/divine-shield';
+import * as shadowTendrils from 'pixelfx/fx/shadow/shadow-tendrils';
+import * as thrustFx from 'pixelfx/fx/melee/thrust';
 import type { Cue } from '../game/types';
 import { CARDS } from '../game/cards';
 import { ATTACK_WINDUP } from '../game/combat';
@@ -77,6 +92,32 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     frenzy: [{ mod: manaBurst, at: 'self', speed: 1.2 }],
     toxic_bloom: [{ mod: sporeBurst, at: 'target', speed: 1.8 }],
     blade_storm: [{ mod: spinSlash, at: 'all' }, { mod: spinSlash, at: 'all', delay: 0.25 }, { mod: spinSlash, at: 'all', delay: 0.5 }],
+
+    // 기사
+    cleave_line: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.8 }, { mod: heavyCleave, at: 'target', dx: -32, speed: 1.8, delay: 0.3 }],
+    oath_blade: [{ mod: smite, at: 'target', speed: 1.8 }, { ...BLOCK, delay: 0.2 }],
+    // 마법사 (모두 대상 위치에서 터진다)
+    spark: [{ mod: smallExplosion, at: 'target', speed: 3, stopAfter: 1.2, opts: { palette: FIRE } }],
+    ward: [{ mod: divineShield, at: 'self', stopAfter: 0.9, opts: { palette: ['#0a1440', '#14286a', '#2448a8', '#4a7ad8', '#8ab4f8', '#d0e4ff', '#ffffff'] } }],
+    frost_bolt: [{ mod: iceShatter, at: 'target', speed: 2.2 }],
+    chain_lightning: [{ mod: zapHit, at: 'all' }],
+    fireball: [{ mod: bigExplosion, at: 'target', speed: 3.2, stopAfter: 1.6 }],
+    ice_lance: [{ mod: iceSpikes, at: 'target', speed: 2.2 }],
+    arcane_shield: [{ mod: divineShield, at: 'self', stopAfter: 0.9 }],
+    focus: [{ mod: spellCharge, at: 'self', stopAfter: 0.7, speed: 1.4 }],
+    arcane_missiles: [{ mod: arcaneMissiles, at: 'target', dx: -60, speed: 1.4 }],
+    fire_ring: [{ mod: fireRing, at: 'all', speed: 2.4 }],
+    frost_armor: [{ mod: freeze, at: 'self', speed: 2.5, stopAfter: 1.2 }],
+    blizzard: [{ mod: frostNova, at: 'all', speed: 2 }],
+    archmage: [{ mod: manaBurst, at: 'self', speed: 1.2 }],
+    // 도적
+    stab: [{ mod: thrustFx, at: 'target', dx: -30 }],
+    dodge: [{ mod: blinkOut, at: 'self', speed: 1.8 }],
+    poison_stab: [{ mod: thrustFx, at: 'target', dx: -30, opts: { palette: VENOM } }],
+    dagger_throw: [{ mod: hitSpark, at: 'target', opts: { seed: 3 } }],
+    shadow_step: [{ mod: blinkIn, at: 'self', speed: 1.8 }],
+    backstab: [{ mod: critHit, at: 'target' }],
+    shadow_dance: [{ mod: shadowTendrils, at: 'target', speed: 2 }, { mod: daggerFlurry, at: 'target', dx: -28, delay: 0.1, opts: { palette: VENOM } }],
 };
 
 const HEAL: VfxSpec = { mod: heal, at: 'target', speed: 1.4 };

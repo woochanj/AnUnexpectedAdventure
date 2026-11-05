@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { describeCard, cardStats, STATUS_INFO } from '../game/cards';
+import { describeCard, cardStats, RARITY_INFO, STATUS_INFO } from '../game/cards';
 import { RELICS } from '../game/relics';
 import type { CardInst, StatusMap, Status } from '../game/types';
 import { cardArt } from './cardArt';
@@ -9,7 +9,7 @@ const TYPE_LABEL = { attack: '공격', skill: '기술', power: '지속' } as con
 export function CardView({
     card, onClick, disabled, selected, cost, small, footer,
 }: {
-    card: Pick<CardInst, 'id' | 'upgraded'>;
+    card: Pick<CardInst, 'id' | 'upgraded' | 'level'>;
     onClick?: () => void;
     disabled?: boolean;
     selected?: boolean;
@@ -24,7 +24,7 @@ export function CardView({
             type="button"
             className={[
                 'card', `card-${s.def.type}`, `rarity-${s.def.rarity}`,
-                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', card.upgraded && 'card-up',
+                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', s.level > 1 && 'card-up',
             ].filter(Boolean).join(' ')}
             onClick={onClick}
             aria-disabled={disabled}
@@ -34,7 +34,10 @@ export function CardView({
             <span className="card-art">
                 {art ? <img src={art} alt="" draggable={false} /> : <span className={`card-art-fallback art-${s.def.type}`} />}
             </span>
-            <span className="card-type">{TYPE_LABEL[s.def.type]}</span>
+            {s.level > 1 && <span className={`card-level lv${s.level}`}>Lv.{s.level}</span>}
+            <span className="card-type">
+                {TYPE_LABEL[s.def.type]} · <em className={`rar rar-${s.def.rarity}`}>{RARITY_INFO[s.def.rarity].name}</em>
+            </span>
             <span className="card-desc">
                 {describeCard(card).map((l, i) => (
                     <span key={i}>{l}</span>
@@ -106,7 +109,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
 }
 
 export function CardGrid({ cards, onPick, isDisabled }: { cards: CardInst[]; onPick?: (c: CardInst) => void; isDisabled?: (c: CardInst) => boolean }) {
-    const sorted = [...cards].sort((a, b) => a.id.localeCompare(b.id) || Number(a.upgraded) - Number(b.upgraded));
+    const sorted = [...cards].sort((a, b) => a.id.localeCompare(b.id) || (a.level ?? (a.upgraded ? 2 : 1)) - (b.level ?? (b.upgraded ? 2 : 1)));
     if (!sorted.length) return <p className="muted">카드가 없습니다.</p>;
     return (
         <div className="card-grid">

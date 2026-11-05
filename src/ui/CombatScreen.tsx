@@ -160,9 +160,9 @@ function useJuice(
                 const card = CARDS[q.card ?? ''];
                 const attack = card?.type === 'attack';
                 const act = CARD_ACT[q.card ?? ''] ?? (attack ? 'slash' : 'cast');
-                setHeroAction({ id: q.id, act, windup: attack ? ATTACK_WINDUP : 0.05 });
+                setHeroAction({ id: q.id, act, windup: attack ? ATTACK_WINDUP : 0.05, ranged: !!card?.ranged });
                 const hero = field.querySelector<HTMLElement>('[data-body="player"]');
-                if (attack && hero) {
+                if (attack && hero && !card?.ranged) {
                     // 대상(광역 공격이면 적들 가운데) 바로 앞까지
                     const all = card.effects.some((e) => e.kind === 'damageAll');
                     const targets = all

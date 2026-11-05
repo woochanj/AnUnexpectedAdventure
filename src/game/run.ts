@@ -1,16 +1,17 @@
-import { CARDS, cardPool, STARTER_DECK } from './cards';
+import { CARDS, cardLevel, cardPool, MAX_LEVEL } from './cards';
+import { CLASSES } from './classes';
 import { endTurn, playCard, startCombat } from './combat';
 import { EVENTS, type EventApi } from './events';
 import { generateFloor, reveal, revealAll } from './map';
 import { BOSS_RELICS, RELIC_IDS, RELICS } from './relics';
-import type { CardInst, CombatKind, Dir, Room, RunState, ShopScreen } from './types';
+import type { CardInst, ClassId, CombatKind, Dir, Room, RunState, ShopScreen } from './types';
 import { pick, rand, shuffle } from './util';
 
 export const FLOOR_COUNT = 3;
 const SAVE_KEY = 'aua-run-v3';
 
 export type Action =
-    | { type: 'new'; hero?: string }
+    | { type: 'new'; cls?: ClassId; hero?: string }
     | { type: 'load'; run: RunState }
     | { type: 'quit' }
     | { type: 'move'; to: number }
@@ -92,27 +93,41 @@ function randomRelic(run: RunState, boss = false): string | null {
     return pick(pool);
 }
 
-function rollRarity(kind: CombatKind | 'shop'): 'common' | 'uncommon' | 'rare' {
+type Drop = 'common' | 'uncommon' | 'rare' | 'unique';
+
+/** 보상 카드 등급 굴리기. 유니크는 강적에서 드물게, 보스에서 자주 */
+function rollRarity(kind: CombatKind): Drop {
     const r = Math.random() * 100;
-    if (kind === 'boss') return 'rare';
-    const [c, u] = kind === 'elite' ? [45, 85] : [62, 94];
-    return r < c ? 'common' : r < u ? 'uncommon' : 'rare';
+    if (kind === 'boss') return r < 30 ? 'unique' : 'rare';
+    if (kind === 'elite') return r < 40 ? 'common' : r < 80 ? 'uncommon' : r < 96 ? 'rare' : 'unique';
+    return r < 62 ? 'common' : r < 94 ? 'uncommon' : 'rare';
 }
 
-function cardChoices(kind: CombatKind): string[] {
+function cardChoices(run: RunState, kind: CombatKind): string[] {
     const out: string[] = [];
     let guard = 0;
-    while (out.length < 3 && guard++ < 50) {
-        const id = pick(cardPool(rollRarity(kind)));
+    while (out.length < 3 && guard++ < 60) {
+        const pool = cardPool(rollRarity(kind), run.cls);
+        if (!pool.length) continue;
+        const id = pick(pool);
         if (!out.includes(id)) out.push(id);
     }
     return out;
 }
 
+/** 카드 레벨 올리기 (최대 Lv.3) */
+export function levelUp(c: CardInst): boolean {
+    const lv = cardLevel(c);
+    if (lv >= MAX_LEVEL) return false;
+    c.level = lv + 1;
+    c.upgraded = true;
+    return true;
+}
+
 function upgradeRandom(run: RunState, n: number): string[] {
-    const cands = shuffle(run.deck.filter((c) => !c.upgraded)).slice(0, n);
-    for (const c of cands) c.upgraded = true;
-    return cands.map((c) => CARDS[c.id].name);
+    const cands = shuffle(run.deck.filter((c) => cardLevel(c) < MAX_LEVEL)).slice(0, n);
+    for (const c of cands) levelUp(c);
+    return cands.map((c) => `${CARDS[c.id].name} Lv.${cardLevel(c)}`);
 }
 
 function makeApi(run: RunState): EventApi {
@@ -125,7 +140,7 @@ function makeApi(run: RunState): EventApi {
             run.hp += n;
         },
         addRandomCard: (rarity) => {
-            const id = pick(cardPool(rarity));
+            const id = pick(cardPool(rarity, run.cls));
             run.deck.push(newCard(run, id));
             return CARDS[id].name;
         },
@@ -152,13 +167,15 @@ function makeApi(run: RunState): EventApi {
 
 // ───────────────────────── 진행 ─────────────────────────
 
-export function newRun(hero = 'hero-knight'): RunState {
+export function newRun(cls: ClassId = 'knight', hero?: string): RunState {
     const map = generateFloor(0);
+    const def = CLASSES[cls];
     const run: RunState = {
-        hero,
+        cls,
+        hero: hero && def.looks.includes(hero) ? hero : def.looks[0],
         floor: 0,
-        hp: 70,
-        maxHp: 70,
+        hp: def.hp,
+        maxHp: def.hp,
         gold: 99,
         deck: [],
         relics: [],
@@ -169,7 +186,7 @@ export function newRun(hero = 'hero-knight'): RunState {
         uidSeq: 0,
         stats: { kills: 0, rooms: 1, turns: 0 },
     };
-    run.deck = STARTER_DECK.map((id) => newCard(run, id));
+    run.deck = def.deck.map((id) => newCard(run, id));
     reveal(map, map.start, visionRadius(run));
     return run;
 }
@@ -210,12 +227,14 @@ function enterRoom(run: RunState) {
 
 function makeShop(run: RunState): ShopScreen {
     const ids = new Set<string>();
-    const want: ('common' | 'uncommon' | 'rare')[] = ['common', 'common', 'uncommon', 'uncommon', 'rare'];
+    // 마지막 칸은 가끔 유니크
+    const want: Drop[] = ['common', 'common', 'uncommon', 'uncommon', Math.random() < 0.2 ? 'unique' : 'rare'];
     const cards = want.map((rar) => {
-        let id = pick(cardPool(rar));
-        for (let i = 0; i < 10 && ids.has(id); i++) id = pick(cardPool(rar));
+        const pool = cardPool(rar, run.cls);
+        let id = pick(pool);
+        for (let i = 0; i < 10 && ids.has(id); i++) id = pick(pool);
         ids.add(id);
-        const base = rar === 'common' ? 50 : rar === 'uncommon' ? 75 : 140;
+        const base = { common: 50, uncommon: 75, rare: 140, unique: 220 }[rar];
         return { id, price: base + rand(-6, 12) + run.floor * 5, sold: false };
     });
     return { kind: 'shop', cards, removePrice: 75 + run.floor * 15, removed: false };
@@ -247,7 +266,7 @@ function finishCombat(run: RunState) {
         combatKind: c.kind,
         gold,
         goldTaken: false,
-        cards: cardChoices(c.kind),
+        cards: cardChoices(run, c.kind),
         cardsDone: false,
         relic,
         relicTaken: false,
@@ -281,7 +300,7 @@ function move(run: RunState, to: number) {
 // ───────────────────────── 리듀서 ─────────────────────────
 
 export function reducer(state: GameState, action: Action): GameState {
-    if (action.type === 'new') return { run: newRun(action.hero) };
+    if (action.type === 'new') return { run: newRun(action.cls, action.hero) };
     if (action.type === 'quit') return { run: null };
     if (action.type === 'load') return { run: action.run };
     if (!state.run) return state;
@@ -356,9 +375,8 @@ export function reducer(state: GameState, action: Action): GameState {
                 const name = CARDS[card.id].name;
                 let msg: string;
                 if (sc.purpose === 'upgrade') {
-                    if (card.upgraded) break;
-                    card.upgraded = true;
-                    msg = `[${name}] 카드를 강화했다.`;
+                    if (!levelUp(card)) break;
+                    msg = `[${name}] 카드를 Lv.${cardLevel(card)}(으)로 강화했다.`;
                 } else {
                     if (sc.cost) gainGold(run, -sc.cost);
                     run.deck = run.deck.filter((c) => c.uid !== action.uid);

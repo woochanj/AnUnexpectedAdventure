@@ -1,4 +1,4 @@
-export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize' | 'frost' | 'burn' | 'evade';
+export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize' | 'frost' | 'burn' | 'evade' | 'grit';
 export type StatusMap = Partial<Record<Status, number>>;
 
 export type Effect =
@@ -23,7 +23,14 @@ export type Effect =
     /** 대상에게 status가 있으면 피해 +amount */
     | { kind: 'bonusVs'; status: Status; amount: number }
     /** 대상의 독/화상 수치 × mult 만큼 즉시 피해 */
-    | { kind: 'detonate'; status: 'poison' | 'burn'; mult: number };
+    | { kind: 'detonate'; status: 'poison' | 'burn'; mult: number }
+    /** 기사 투지를 얻는다 */
+    | { kind: 'grit'; amount: number }
+    /** 기사 투지를 모두 써서 1당 피해 per */
+    | { kind: 'unleash'; per: number };
+
+/** 마법사 주문의 원소 (공명·반응) */
+export type SpellElement = 'fire' | 'frost' | 'lightning' | 'earth';
 
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'unique';
 export type ClassId = 'knight' | 'mage' | 'rogue';
@@ -45,6 +52,8 @@ export interface CardDef {
     charge?: boolean;
     /** 궁극기: 더 길게 모으고 화면 전체 연출 */
     ultimate?: boolean;
+    /** 마법사 주문의 원소 */
+    el?: SpellElement;
     /** 낼 수 없는 카드 (저주). 턴이 끝날 때 손에 있으면 사라진다 */
     unplayable?: boolean;
     /** 강화 시 바뀌는 값 */
@@ -178,6 +187,10 @@ export interface CombatState {
     played?: number;
     attacksPlayed?: number;
     lastType?: 'attack' | 'skill' | 'power' | null;
+    /** 기사: 막아 낸 공격마다 투지가 쌓인다 */
+    gritOn?: boolean;
+    /** 마법사: 이번 턴 마지막으로 쓴 원소 */
+    lastEl?: SpellElement | null;
     /** 지금 발생하는 fx/cue에 붙일 지연 시간 */
     delay: number;
     result?: 'win' | 'lose';

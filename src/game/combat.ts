@@ -1,6 +1,6 @@
-import { cardStats, CURSE_CARD } from './cards';
+import { cardStats, CURSE_CARD, ELEMENT_NAME } from './cards';
 import { ENEMIES } from './enemies';
-import type { Affix, CardInst, CombatKind, Effect, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, Status } from './types';
+import type { Affix, CardInst, CombatKind, Effect, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, SpellElement, Status } from './types';
 import { CLASSES } from './classes';
 import { ENERGY_RELICS } from './relics';
 import { pick, rand, shuffle } from './util';
@@ -123,6 +123,7 @@ export function startCombat(run: RunState, kind: CombatKind, enemyIds: string[])
         cueSeq: 0,
         critChance: CLASSES[run.cls]?.crit ?? 0.1,
         delay: 0,
+        gritOn: run.cls === 'knight',
     };
     // 정예와 보스는 무작위 성향을 하나 가진다 (같은 적이라도 매번 다르게)
     if (kind !== 'normal') {
@@ -194,11 +195,34 @@ function attack(c: CombatState, aKey: string, attacker: Fighter, dKey: string, d
     }
     const crit = Math.random() < chance;
     const d = attackDamage(base, attacker, defender);
+    const blockBefore = defender.block;
     const lost = hit(c, dKey, defender, crit ? Math.floor(d * 1.5) : d, crit);
+    // 기사의 투지: 방어도로 공격을 막아 낼 때마다 1
+    if (dKey === 'player' && c.gritOn && d > 0 && defender.block < blockBefore) gainGrit(c, 1);
     const thorns = defender.status.thorns ?? 0;
     if (thorns > 0 && attacker.hp > 0) hit(c, aKey, attacker, thorns);
     return lost;
 }
+
+/** 투지는 10까지 */
+export const GRIT_MAX = 10;
+function gainGrit(c: CombatState, n: number) {
+    const before = c.player.status.grit ?? 0;
+    const next = Math.min(GRIT_MAX, before + n);
+    if (next === before) return;
+    c.player.status.grit = next;
+    fx(c, 'player', `투지 +${next - before}`, 'status');
+}
+
+/** 원소 반응: 직전과 다른 원소를 쓰면 새 원소에 따라 덤이 붙는다 */
+function reaction(el: SpellElement, all: boolean): Effect[] {
+    if (el === 'fire') return [{ kind: 'apply', status: 'burn', amount: 3, to: all ? 'all' : 'target' }];
+    if (el === 'frost') return [{ kind: 'apply', status: 'frost', amount: 1, to: all ? 'all' : 'target' }];
+    if (el === 'lightning') return [{ kind: 'draw', amount: 1 }];
+    return [{ kind: 'block', amount: 5 }];
+}
+/** 같은 원소를 연달아 쓰면 공명: 피해 +3 */
+export const RESONANCE = 3;
 
 function loseHp(c: CombatState, key: string, f: Fighter, n: number, label: string) {
     f.hp = Math.max(0, f.hp - n);
@@ -222,6 +246,7 @@ function startPlayerTurn(c: CombatState, run: RunState) {
     c.played = 0;
     c.attacksPlayed = 0;
     c.lastType = null;
+    c.lastEl = null;
     run.stats.turns++;
     c.player.block = 0;
     delete c.player.status.evade; // 회피는 적 턴 한 번만
@@ -270,7 +295,19 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
         } else flat.push(e);
     }
     if (triggered) fx(c, 'player', '연계!', 'status');
-    const comboBonus = flat.reduce((n, e) => n + (e.kind === 'combo' ? e.per * before : 0), 0);
+    let comboBonus = flat.reduce((n, e) => n + (e.kind === 'combo' ? e.per * before : 0), 0);
+    // 마법사 원소: 같은 원소를 연달아 쓰면 공명(피해 +3), 다른 원소로 바꾸면 반응(새 원소의 덤)
+    const el = s.def.el;
+    if (el && c.lastEl) {
+        if (c.lastEl === el) {
+            comboBonus += RESONANCE;
+            fx(c, 'player', `${ELEMENT_NAME[el]} 공명!`, 'status');
+        } else {
+            fx(c, 'player', `${ELEMENT_NAME[c.lastEl]}+${ELEMENT_NAME[el]} 반응!`, 'status');
+            flat.push(...reaction(el, flat.some((e) => e.kind === 'damageAll') || !target));
+        }
+    }
+    if (el) c.lastEl = el;
     const strike = (amount: number) => {
         if (target) attack(c, 'player', c.player, target.uid, target, amount);
     };
@@ -335,6 +372,18 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
                     loseHp(c, target.uid, target, n, statusShort(e.status));
                 }
                 break;
+            case 'grit':
+                gainGrit(c, e.amount);
+                break;
+            case 'unleash': {
+                const n = c.player.status.grit ?? 0;
+                if (n > 0 && target) {
+                    delete c.player.status.grit;
+                    fx(c, 'player', `투지 폭발 ×${n}`, 'status');
+                    strike(n * e.per);
+                }
+                break;
+            }
             case 'combo':
                 break;
         }
@@ -362,7 +411,7 @@ function markDead(c: CombatState, e: EnemyState, run: RunState) {
 }
 
 function statusShort(s: Status): string {
-    return { strength: '힘', vulnerable: '취약', weak: '약화', poison: '독', thorns: '가시', regen: '재생', energize: '활력', frost: '냉기', burn: '화상', evade: '회피' }[s];
+    return { strength: '힘', vulnerable: '취약', weak: '약화', poison: '독', thorns: '가시', regen: '재생', energize: '활력', frost: '냉기', burn: '화상', evade: '회피', grit: '투지' }[s];
 }
 
 export function endTurn(c: CombatState, run: RunState) {

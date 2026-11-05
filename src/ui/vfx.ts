@@ -127,6 +127,10 @@ import * as graspingHands from 'pixelfx/fx/shadow/grasping-hands';
 import * as potion from 'pixelfx/fx/pickups/potion';
 import * as whipCrack from 'pixelfx/fx/melee/whip-crack';
 import * as ricochet from 'pixelfx/fx/impacts/ricochet';
+import * as boulderFx from 'pixelfx/fx/nature/boulder';
+import * as earthSpike from 'pixelfx/fx/nature/earth-spike';
+import * as quakeFx from 'pixelfx/fx/nature/quake';
+import * as rootSnare from 'pixelfx/fx/nature/root-snare';
 import { cardElement, type Element } from './cardElement';
 import { CARD_MOVE } from './heroMoves';
 import { ENEMIES } from '../game/enemies';
@@ -245,6 +249,13 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     rally: [{ ...BLOCK, speed: 1 }, { mod: blessing, at: 'self', stopAfter: 0.9, speed: 1.4 }],
     rising_slash: [{ mod: uppercut, at: 'target', dx: -26, speed: 1.3 }],
     momentum: [{ mod: swordSlash, at: 'target', dx: SLASH_DX, opts: { angle: 0.4 } }],
+    // 투지를 터뜨리는 내려치기: 망치처럼 내려찍고 폭발
+    grit_breaker: [{ mod: nuke, at: 'target', speed: 2.4, stopAfter: 1.1 }, { mod: hammerSmash, at: 'target', dx: -24, speed: 1.5 }],
+    // 대지 마법
+    stone_spike: [{ mod: earthSpike, at: 'target', speed: 1.6 }],
+    earth_wall: [{ mod: rootSnare, at: 'self', dx: 30, speed: 1.6, opts: { palette: ['#1a0e06', '#3a2410', '#6a4420', '#9a6a34', '#c89a5a', '#ecd2a0', '#ffffff'] } }, { ...BLOCK, delay: 0.15 }],
+    quake: [{ mod: quakeFx, at: 'all', speed: 1.4 }],
+    boulder: [{ mod: boulderFx, at: 'target', speed: 1.4 }],
     frost_touch: [{ mod: icicleFall, at: 'target', speed: 2 }],
     shatter: [{ mod: iceSpikes, at: 'target', speed: 2 }, { mod: iceShatter, at: 'target', delay: 0.15, speed: 2 }],
     glacier: [{ mod: iceCrystal, at: 'all', stopAfter: 0.9, speed: 1.4 }, { ...BLOCK, delay: 0.1 }],

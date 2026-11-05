@@ -39,6 +39,7 @@ export const CARD_MOVE: Record<string, HeroMove> = {
     chain_strike: M(['combo', 'attack'], 'lunge'),
     execution: M(['attack2', 'attack'], 'leap'),
     rising_slash: M(['attack2', 'attack'], 'uppercut'),
+    grit_breaker: M(['attack3'], 'zigzag'),
     titan_strike: M(['combo', 'attack3'], 'leap'),
     guard: M(['defend', 'cast'], 'crouch'),
     crouch: M(['defend', 'idle'], 'kneel'),
@@ -75,6 +76,10 @@ export const CARD_MOVE: Record<string, HeroMove> = {
     archmage: M(['special', 'cast'], 'twirl'),
     glacier: M(['defend', 'cast'], 'kneel'),
     mana_flow: M(['special', 'cast'], 'sway'),
+    stone_spike: M(['airAttack'], 'lean'),
+    earth_wall: M(['defend'], 'crouch'),
+    quake: M(['attack2'], 'stomp'),
+    boulder: M(['combo'], 'recoil'),
 
     // ── 도적 (바람 암살자) ──
     stab: M(['attack'], 'slide'),

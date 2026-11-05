@@ -5757,3 +5757,42 @@ body {
         display: none;
     }
 }
+
+/* 마법사 주문 원소 표시 (그림 창 왼쪽 아래) */
+.card .card-el {
+    position: absolute;
+    left: 6px;
+    top: calc(var(--card-w) * 0.62);
+    z-index: 3;
+    padding: 0 4px 1px;
+    border: 1px solid #0c0818;
+    border-radius: 3px;
+    font-family: var(--font-head);
+    font-size: calc(var(--card-w) * 0.07);
+    line-height: 1.3;
+    box-shadow: 0 1px 0 #0c0818;
+}
+.card .el-fire { background: linear-gradient(#ffb060, #d0441a); color: #2a0800; }
+.card .el-frost { background: linear-gradient(#d8f4ff, #5ab0e8); color: #06243a; }
+.card .el-lightning { background: linear-gradient(#fff6a0, #e0b020); color: #2a2000; }
+.card .el-earth { background: linear-gradient(#e8c890, #8a5a28); color: #1e0e02; }
+.card .card-el {
+    top: calc(var(--card-w) * 0.25);
+    left: 8px;
+}
+/* 기사 투지: 차오르는 주황 막대 */
+.status.st-grit {
+    min-width: 64px;
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 0 1px 0 #3a1400;
+    border: 2px solid #120a06;
+    background: linear-gradient(90deg, #ffb030, #e8501a var(--g), #3a2418 var(--g));
+    box-shadow: 0 2px 0 #120a06, 0 0 8px rgba(255, 140, 40, 0.5);
+}
+.status.st-grit.full {
+    animation: grit-full 0.9s ease-in-out infinite;
+}
+@keyframes grit-full {
+    50% { box-shadow: 0 2px 0 #120a06, 0 0 16px 3px rgba(255, 170, 60, 0.95); }
+}

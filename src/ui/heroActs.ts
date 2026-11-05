@@ -34,6 +34,7 @@ export const CARD_ACT: Record<string, string> = {
     archmage: 'rage',
     shield_slam: 'smash',
     chain_strike: 'double',
+    grit_breaker: 'cleave',
     execution: 'cleave',
     rising_slash: 'slash',
     momentum: 'slash',

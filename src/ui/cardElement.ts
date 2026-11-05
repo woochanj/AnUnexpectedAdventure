@@ -24,6 +24,7 @@ const BY_CARD: Record<string, Element> = {
     quick_slash: 'wind', finisher: 'wind', venom_burst: 'poison', shred: 'steel', smoke_bomb: 'shadow', assassinate: 'shadow', shadow_chain: 'shadow',
     bandage: 'nature', adrenaline: 'blood', momentum: 'steel',
     titan_strike: 'blood', last_stand: 'guard', meteor: 'fire', absolute_zero: 'ice', thousand_cuts: 'wind', death_mark: 'shadow',
+    grit_breaker: 'blood', stone_spike: 'nature', earth_wall: 'nature', quake: 'nature', boulder: 'nature',
     sun_judgment: 'guard', iron_fortress: 'steel', thunder_god: 'lightning', earth_rupture: 'nature', shadow_clones: 'shadow', venom_storm: 'poison',
 };
 

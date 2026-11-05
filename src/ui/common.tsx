@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { describeCard, cardStats, RARITY_INFO, STATUS_INFO } from '../game/cards';
+import { describeCard, cardStats, ELEMENT_NAME, RARITY_INFO, STATUS_INFO } from '../game/cards';
 import { RELICS } from '../game/relics';
 import type { CardInst, Fx, StatusMap, Status } from '../game/types';
 
@@ -71,6 +71,11 @@ export function CardView({
                 {art ? <img src={art} alt="" draggable={false} /> : <span className={`card-art-fallback art-${s.def.type}`} />}
             </span>
             {s.level > 1 && <span className={`card-level lv${s.level}`}>Lv.{s.level}</span>}
+            {s.def.el && (
+                <span className={`card-el el-${s.def.el}`} title={`${ELEMENT_NAME[s.def.el]} 주문: 같은 원소를 연달아 쓰면 공명, 다른 원소로 바꾸면 반응`}>
+                    {ELEMENT_NAME[s.def.el]}
+                </span>
+            )}
             <span className="card-type">
                 {s.def.unplayable ? '저주' : s.def.ultimate ? '궁극기' : TYPE_LABEL[s.def.type]} · <em className={`rar rar-${s.def.rarity}`}>{RARITY_INFO[s.def.rarity].name}</em>
             </span>
@@ -136,7 +141,7 @@ export function StatusList({ status }: { status: StatusMap }) {
     return (
         <div className="statuses">
             {entries.map(([k, v]) => (
-                <span key={k} className={`status ${STATUS_INFO[k].debuff ? 'debuff' : 'buff'} st-${k}`} title={`${STATUS_INFO[k].name}: ${STATUS_INFO[k].desc}`}>
+                <span key={k} className={`status ${STATUS_INFO[k].debuff ? 'debuff' : 'buff'} st-${k} ${k === 'grit' && v >= 10 ? 'full' : ''}`} style={k === 'grit' ? { ['--g' as string]: `${v * 10}%` } : undefined} title={`${STATUS_INFO[k].name}: ${STATUS_INFO[k].desc}`}>
                     {STATUS_INFO[k].name} {v}
                 </span>
             ))}

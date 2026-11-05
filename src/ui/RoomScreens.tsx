@@ -9,6 +9,7 @@ import { CardGrid, CardView, Modal } from './common';
 import { FxView, HeroView } from './Actors';
 import { FX } from './creatures';
 import { sfx } from './sfx';
+import { ForgeOverlay } from './Forge';
 
 type D = Dispatch<Action>;
 
@@ -221,6 +222,8 @@ export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'p
     const up = s.purpose === 'upgrade';
     // 고른 카드는 바로 바꾸지 않고, 강화 전/후(또는 지울 카드)를 보여준 뒤 확인을 받는다
     const [chosen, setChosen] = useState<CardInst | null>(null);
+    // 강화를 누르면 바로 바꾸지 않고 대장간 연출을 보여 준 뒤에 반영한다
+    const [forging, setForging] = useState<CardInst | null>(null);
     return (
         <Panel title={up ? '강화할 카드를 고르세요' : '지울 카드를 고르세요'} className="pick">
             <CardGrid cards={run.deck} isDisabled={up ? (c) => cardLevel(c) >= MAX_LEVEL : undefined} onPick={setChosen} />
@@ -255,9 +258,11 @@ export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'p
                             className="btn btn-primary"
                             autoFocus
                             onClick={() => {
-                                if (up) sfx.upgrade();
-                                else sfx.debuff();
-                                dispatch({ type: 'pick', uid: chosen.uid });
+                                if (up) setForging(chosen);
+                                else {
+                                    sfx.debuff();
+                                    dispatch({ type: 'pick', uid: chosen.uid });
+                                }
                                 setChosen(null);
                             }}
                         >
@@ -266,6 +271,7 @@ export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'p
                     </div>
                 </Modal>
             )}
+            {forging && <ForgeOverlay card={forging} onDone={() => dispatch({ type: 'pick', uid: forging.uid })} />}
         </Panel>
     );
 }

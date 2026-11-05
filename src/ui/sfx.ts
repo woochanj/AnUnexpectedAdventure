@@ -189,6 +189,12 @@ export const sfx = {
     step() {
         noise(0.05, 500, 0.08);
     },
+    /** 강화 망치질: 쇠가 부딪는 소리 */
+    forge() {
+        noise(0.08, 3200, 0.16, 0, 'bandpass');
+        tone(1480, 1100, 0.09, 'square', 0.05);
+        tone(220, 140, 0.12, 'triangle', 0.12);
+    },
     upgrade() {
         [523, 784, 1047, 1568].forEach((f, i) => tone(f, f, 0.12, 'square', 0.06, i * 0.06));
     },

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode, useMemo } from 'react';
 import { cardStats, needsTarget, STATUS_INFO } from '../game/cards';
-import { AFFIXES, ATTACK_WINDUP, FREEZE_AT, chargeOf, windupOf, canPlay, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
+import { AFFIXES, ATTACK_WINDUP, FREEZE_AT, chargeOf, windupOf, canPlay, ENEMY_LEAD, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
 import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
 import type { CardInst, CombatState, EnemyState, Fx, Intent } from '../game/types';
-import { CardGrid, CardView, HpBar, Modal, StatusList } from './common';
+import { CardGrid, CardView, LandedHpBar, Modal, StatusList } from './common';
 import { HeroView, lookIsRanged, MonsterView, PROJECTILE_MS, SceneryView, type HeroAction, type MonsterAttack } from './Actors';
 import { PROJECTILES } from './spriteManifest';
 import { CARD_ACT } from './heroActs';
@@ -137,8 +137,11 @@ function heroSay(field: HTMLElement, cls: ClassId, kind: keyof HeroBarks, delayM
             const feet = field.querySelector('[data-anchor="player"]')?.getBoundingClientRect();
             const box = field.getBoundingClientRect();
             if (!feet) return;
+            // 달려가 있는 중이면 그만큼 빼서 원래 자리 머리 위에 띄운다 (말풍선이 화면 가운데에 남지 않게)
+            const body = field.querySelector<HTMLElement>('[data-body="player"]');
+            const m = body ? new DOMMatrixReadOnly(getComputedStyle(body).transform === 'none' ? undefined : getComputedStyle(body).transform) : null;
             const head = Math.min(150, box.height * 0.42);
-            Object.assign(b.style, { position: 'absolute', left: `${feet.left + feet.width / 2 - box.left}px`, top: `${Math.max(4, feet.bottom - box.top - head - 34)}px`, bottom: 'auto' });
+            Object.assign(b.style, { position: 'absolute', left: `${feet.left + feet.width / 2 - box.left - (m?.m41 ?? 0)}px`, top: `${Math.max(4, feet.bottom - box.top - (m?.m42 ?? 0) - head - 34)}px`, bottom: 'auto' });
             field.appendChild(b);
         });
 }
@@ -438,7 +441,8 @@ function useJuice(
             const hold = (dmg >= 10 ? 180 : dmg >= 8 ? 150 : dmg >= 6 ? 120 : dmg >= 3 ? 90 : 60) + (f.target === 'player' ? 40 : 0);
             clock.current.windows.push([start, start + hold]);
             // 히트스톱 동안 때린 쪽·맞은 쪽 몸 움직임도 멈춘다 (스프라이트만 멈추면 몸이 미끄러져 보임)
-            const bodies = [field.querySelector<HTMLElement>('[data-body="player"]'), ...(f.target === 'player' ? [] : [field.querySelector<HTMLElement>(`[data-body="${f.target}"]`)])];
+            // 장면 전체가 멈춘다: 때린 쪽(주인공 또는 달려든 몬스터)과 맞은 쪽 모두
+            const bodies = Array.from(field.querySelectorAll<HTMLElement>('[data-body]'));
             window.setTimeout(() => {
                 const anims = bodies.flatMap((b) => b?.getAnimations() ?? []).filter((a) => a.playState === 'running');
                 anims.forEach((a) => a.pause());
@@ -616,7 +620,12 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
         window.addEventListener('pointercancel', onCancel);
+        // 휴대폰에서 손을 뗀 신호가 사라지면(알림·앱 전환·스크롤) 카드가 집힌 채로 남는다 → 창을 벗어나면 놓는다
+        window.addEventListener('blur', onCancel);
+        document.addEventListener('visibilitychange', onCancel);
         return () => {
+            window.removeEventListener('blur', onCancel);
+            document.removeEventListener('visibilitychange', onCancel);
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
             window.removeEventListener('pointercancel', onCancel);
@@ -636,8 +645,8 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
         const acting = living.length;
         setTimeout(() => {
             dispatch({ type: 'endTurn' });
-            setTimeout(() => setEnemyTurn(false), 300 + acting * ENEMY_STEP * 1000);
-        }, 1000); // "적의 차례" 배너를 보여 준 뒤 적이 움직인다
+            setTimeout(() => setEnemyTurn(false), 300 + (ENEMY_LEAD + acting * ENEMY_STEP) * 1000);
+        }, 500); // "적의 차례" 배너를 잠깐 보여 준 뒤 (적은 ENEMY_LEAD 동안 기를 모으고 달려든다)
     }, [dispatch, locked, living.length]);
 
     useEffect(() => {
@@ -674,7 +683,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                         </Shake>
                     </div>
                     <FxLayer fx={c.fx} target="player" />
-                    <HpBar hp={c.player.hp} max={c.player.maxHp} block={c.player.block} />
+                    <LandedHpBar fx={c.fx} target="player" hp={c.player.hp} max={c.player.maxHp} block={c.player.block} />
                     <StatusList status={c.player.status} />
                 </div>
 
@@ -714,7 +723,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                                     )}
                                     {def.name}
                                 </div>
-                                <HpBar hp={e.hp} max={e.maxHp} block={e.block} />
+                                <LandedHpBar fx={c.fx} target={e.uid} hp={e.hp} max={e.maxHp} block={e.block} />
                                 <StatusList status={e.status} />
                             </div>
                         );

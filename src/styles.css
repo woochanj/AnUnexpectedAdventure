@@ -4557,3 +4557,37 @@ body {
         height: 5px;
     }
 }
+/* 카드 뽑기: 왼쪽 아래 뽑을 더미에서 날아와 손에 자리 잡는다 (빠르게 출발, 부드럽게 멈춤).
+   새로 생긴 카드만 (React가 카드마다 key로 유지하므로 기존 카드는 다시 재생되지 않는다) */
+.hand-slot > .card {
+    /* backwards: 끝난 뒤에는 애니메이션 값이 남지 않아 hover·선택 들림이 그대로 동작 */
+    animation: card-draw 0.5s cubic-bezier(0.16, 0.84, 0.3, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 70ms);
+}
+@keyframes card-draw {
+    0% {
+        opacity: 0;
+        transform: translate(-46vw, 40px) rotate(-24deg) scale(0.45);
+    }
+    55% {
+        opacity: 1;
+    }
+    80% {
+        transform: translate(0, -10px) rotate(2deg) scale(1.02);
+    }
+    100% {
+        transform: none;
+    }
+}
+/* 카드 수가 바뀌어 자리가 옮겨질 때도 미끄러지듯 */
+.hand-slot {
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1), margin 0.25s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.hand-slot.dragging {
+    transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .hand-slot > .card {
+        animation: none;
+    }
+}

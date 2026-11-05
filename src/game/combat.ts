@@ -36,6 +36,8 @@ export const FREEZE_AT = 3;
 
 /** 적 한 명의 행동 사이 간격(초) */
 export const ENEMY_STEP = 1.0;
+/** 적 턴 첫 행동까지(초): 몬스터가 웅크렸다 달려드는 시간보다 길어야 타격이 도착과 맞는다 */
+export const ENEMY_LEAD = 0.75;
 
 function addStatus(f: Fighter, s: Status, n: number) {
     f.status[s] = (f.status[s] ?? 0) + n;
@@ -372,8 +374,9 @@ export function endTurn(c: CombatState, run: RunState) {
     addStatus(c.player, 'weak', c.player.status.weak ? -1 : 0);
     addStatus(c.player, 'vulnerable', c.player.status.vulnerable ? -1 : 0);
 
-    // 적 턴: 행동마다 지연을 늘려 화면에서 한 명씩 움직이게 한다
-    c.delay = 0.1;
+    // 적 턴: 행동마다 지연을 늘려 화면에서 한 명씩 움직이게 한다.
+    // 첫 적도 달려드는 동작(최대 0.64초)을 마친 뒤 맞도록 ENEMY_LEAD만큼 늦게 시작한다
+    c.delay = ENEMY_LEAD;
     for (const e of c.enemies) {
         if (e.hp <= 0) continue;
         e.block = 0;

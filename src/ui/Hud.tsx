@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { regionOf } from '../game/biomes';
 import type { RunState } from '../game/types';
-import { CardGrid, Modal, RelicIcon } from './common';
+import { CardGrid, Modal, RelicIcon, useLandedHp } from './common';
+import type { Fx } from '../game/types';
 import { setSound, sfx, soundOn } from './sfx';
 
-export function Hud({ run, hp, onQuit }: { run: RunState; hp?: number; onQuit: () => void }) {
+export function Hud({ run, hp, fx, onQuit }: { run: RunState; hp?: number; fx?: Fx[]; onQuit: () => void }) {
     const [deckOpen, setDeckOpen] = useState(false);
     const [sound, setSoundState] = useState(soundOn());
-    const curHp = hp ?? run.hp;
+    // 전투 중에는 일격이 닿는 순간에 줄어든다
+    const curHp = useLandedHp(fx, 'player', hp ?? run.hp, run.maxHp);
     return (
         <header className="hud">
             <div className="hud-stats">

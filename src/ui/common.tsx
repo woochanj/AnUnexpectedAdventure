@@ -1,7 +1,43 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { describeCard, cardStats, RARITY_INFO, STATUS_INFO } from '../game/cards';
 import { RELICS } from '../game/relics';
-import type { CardInst, StatusMap, Status } from '../game/types';
+import type { CardInst, Fx, StatusMap, Status } from '../game/types';
+
+/**
+ * 체력은 카드를 내거나 턴을 넘기는 순간 계산되지만, 화면에는 일격이 '닿는 순간' 줄어야 한다.
+ * 아직 닿지 않은 피해·회복(fx.delay가 남은 것)을 되돌려 보여 준다.
+ */
+export function useLandedHp(fx: Fx[] | undefined, target: string, hp: number, max: number): number {
+    const land = useRef<Map<number, number> | null>(null);
+    const [, tick] = useState(0);
+    const now = performance.now();
+    if (!land.current) {
+        // 처음 그릴 때 이미 있던 신호는 다 닿은 것으로 본다 (이어하기·새로고침)
+        land.current = new Map((fx ?? []).map((f) => [f.id, 0]));
+    }
+    for (const f of fx ?? []) if (!land.current.has(f.id)) land.current.set(f.id, now + f.delay * 1000);
+    // 닿는 순간 다시 그리도록 타이머를 건다. 그리기와 분리해야 개발 모드의 두 번 그리기에도 빠지지 않는다.
+    // 새 신호가 와도 앞서 건 타이머는 지우지 않는다 (지우면 그 일격이 닿아도 숫자가 안 바뀐다)
+    const timers = useRef<number[]>([]);
+    const scheduled = useRef(new Set<number>());
+    useEffect(() => {
+        const t = performance.now();
+        for (const f of fx ?? []) {
+            const at = land.current!.get(f.id) ?? 0;
+            if (f.target !== target || at <= t || scheduled.current.has(f.id)) continue;
+            scheduled.current.add(f.id);
+            timers.current.push(window.setTimeout(() => tick((x) => x + 1), at - t + 10));
+        }
+    }, [fx, target]);
+    useEffect(() => () => timers.current.forEach(clearTimeout), []);
+    let pending = 0;
+    for (const f of fx ?? []) {
+        if (f.target !== target || (land.current.get(f.id) ?? 0) <= now) continue;
+        if (f.kind === 'dmg') pending += f.amount ?? 0;
+        else if (f.kind === 'heal') pending -= Number(/\+(\d+)/.exec(f.text)?.[1] ?? 0);
+    }
+    return Math.max(0, Math.min(max, hp + pending));
+}
 import { cardArt } from './cardArt';
 
 const TYPE_LABEL = { attack: '공격', skill: '기술', power: '지속' } as const;
@@ -46,6 +82,11 @@ export function CardView({
             {footer && <span className="card-footer">{footer}</span>}
         </button>
     );
+}
+
+/** 일격이 닿는 순간에 줄어드는 체력 막대 */
+export function LandedHpBar({ fx, target, hp, max, block }: { fx: Fx[]; target: string; hp: number; max: number; block?: number }) {
+    return <HpBar hp={useLandedHp(fx, target, hp, max)} max={max} block={block} />;
 }
 
 export function HpBar({ hp, max, block = 0 }: { hp: number; max: number; block?: number }) {

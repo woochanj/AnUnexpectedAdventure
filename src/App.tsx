@@ -174,7 +174,7 @@ export default function App() {
 
     return (
         <div className="app">
-            <Hud run={run} hp={sc.kind === 'combat' ? sc.combat.player.hp : undefined} onQuit={quit} />
+            <Hud run={run} hp={sc.kind === 'combat' ? sc.combat.player.hp : undefined} fx={sc.kind === 'combat' ? sc.combat.fx : undefined} onQuit={quit} />
             <main className="stage">{body}</main>
         </div>
     );

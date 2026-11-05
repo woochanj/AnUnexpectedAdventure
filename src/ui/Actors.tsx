@@ -359,7 +359,7 @@ export const PROJECTILE_MS = 320;
 
 /** 받은 스프라이트로 그린 적: 공격(달려가기 또는 던지기) / 피격 / 사망 */
 function SpriteMonster({
-    look, scale, clock, attack, hurt, dead,
+    look, scale, clock, attack, hurt, dead, deadIn = 0,
 }: {
     look: MonsterLook;
     scale: number;
@@ -367,10 +367,12 @@ function SpriteMonster({
     attack?: MonsterAttack | null;
     hurt?: { id: number; delay: number } | null;
     dead?: boolean;
+    deadIn?: number;
 }) {
     const name = look.sprite ?? 'slime';
     let play: SpritePlay | null = null;
-    if (dead) play = { id: -999, steps: hasAnim(name, 'death') ? [{ anim: 'death', hold: true }] : [] };
+    // playDeath(번쩍임·쓰러짐)와 같은 순간(+40ms)에 시작
+    if (dead) play = { id: -999, steps: hasAnim(name, 'death') ? [{ anim: 'death', hold: true }] : [], delay: deadIn * 1000 + 40 };
     else {
         const cands: SpritePlay[] = [];
         if (attack) {
@@ -396,7 +398,7 @@ function SpriteMonster({
 }
 
 export function MonsterView({
-    look, scale = 3, clock, seed = 1, attack, hurt, dead,
+    look, scale = 3, clock, seed = 1, attack, hurt, dead, deadIn,
 }: {
     look: MonsterLook;
     scale?: number;
@@ -405,8 +407,10 @@ export function MonsterView({
     attack?: MonsterAttack | null;
     hurt?: { id: number; delay: number } | null;
     dead?: boolean;
+    /** 쓰러지는 동작을 시작할 때까지(초) */
+    deadIn?: number;
 }) {
-    if (look.kind === 'sprite') return <SpriteMonster look={look} scale={scale} clock={clock} attack={attack} hurt={hurt} dead={dead} />;
+    if (look.kind === 'sprite') return <SpriteMonster look={look} scale={scale} clock={clock} attack={attack} hurt={hurt} dead={dead} deadIn={deadIn} />;
     return <DrawnMonster look={look} scale={scale} clock={clock} seed={seed} attack={attack} />;
 }
 

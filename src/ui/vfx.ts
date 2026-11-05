@@ -43,7 +43,6 @@ import * as uppercut from 'pixelfx/fx/melee/uppercut';
 import * as spearSweep from 'pixelfx/fx/melee/spear-sweep';
 import * as hammerSmash from 'pixelfx/fx/melee/hammer-smash';
 import * as groundSlam from 'pixelfx/fx/impacts/ground-slam';
-import * as impactFrame from 'pixelfx/fx/impacts/impact-frame';
 import * as burning from 'pixelfx/fx/status/burning';
 import * as bleeding from 'pixelfx/fx/status/bleeding';
 import * as snowflakeBurst from 'pixelfx/fx/ice/snowflake-burst';
@@ -58,6 +57,41 @@ import * as dirtExplosion from 'pixelfx/fx/explosions/dirt-explosion';
 import * as poisonCloud from 'pixelfx/fx/nature/poison-cloud';
 import * as tornado from 'pixelfx/fx/nature/tornado';
 import * as sunburst from 'pixelfx/fx/holy/sunburst';
+import * as impactFrameMod from 'pixelfx/fx/impacts/impact-frame';
+const rawImpactFrame = impactFrameMod as unknown as {
+    meta: typeof impactFrameMod.meta;
+    create: (o: object) => { update(dt: number): void; draw(p: object): void };
+};
+
+/** impactFrame은 320x180 사각형을 통째로 칠해 적 위에서 네모로 보인다. 가장자리를 타원으로 흐리게 한다. */
+const impactFrame = {
+    meta: rawImpactFrame.meta,
+    create(o: object) {
+        const inner = rawImpactFrame.create(o);
+        return {
+            update: (dt: number) => inner.update(dt),
+            draw(p: { shade: (x0: number, y0: number, x1: number, y1: number, fn: (x: number, y: number, out: { a: number }) => unknown) => void }) {
+                const soft = new Proxy(p, {
+                    get(t, k) {
+                        if (k !== 'shade') {
+                            const v = Reflect.get(t, k);
+                            return typeof v === 'function' ? v.bind(t) : v;
+                        }
+                        return (x0: number, y0: number, x1: number, y1: number, fn: (x: number, y: number, out: { a: number }) => unknown) =>
+                            t.shade(x0, y0, x1, y1, (x, y, out) => {
+                                const r = Math.hypot(x / 110, y / 62); // 가운데 0, 타원 가장자리 1
+                                if (r >= 1) return 0;
+                                const c = fn(x, y, out);
+                                out.a *= Math.min(1, (1 - r) / 0.45); // 바깥 45%에서 서서히 사라짐
+                                return c;
+                            });
+                    },
+                });
+                inner.draw(soft);
+            },
+        };
+    },
+};
 import * as waterSplash from 'pixelfx/fx/water/splash';
 import * as ripples from 'pixelfx/fx/water/ripples';
 import * as waveCrash from 'pixelfx/fx/water/wave-crash';

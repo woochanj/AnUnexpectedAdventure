@@ -794,6 +794,7 @@ h3 {
     font-family: var(--font-head);
     pointer-events: none;
     z-index: 6;
+    white-space: nowrap;
 }
 .turn-banner {
     top: 40%;
@@ -3347,13 +3348,14 @@ kbd {
 .enemy-row .fighter.enemy.dead {
     opacity: 0;
     transform: none;
-    transition: opacity 0.4s linear 1.5s;
+    /* --die: 일격이 닿아 쓰러지기 시작하는 순간 */
+    transition: opacity 0.4s linear calc(var(--die, 0s) + 1.5s);
 }
 .enemy-row .fighter.enemy.dead .enemy-name,
 .enemy-row .fighter.enemy.dead .hp-bar,
 .enemy-row .fighter.enemy.dead .status-list {
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.3s var(--die, 0s);
 }
 
 /* 대상이 없는 카드(방어·강화)를 끄는 동안: 주인공이 받는다는 표시 */
@@ -3851,6 +3853,17 @@ kbd {
     background: radial-gradient(circle at 50% 70%, #5a6aa8, #1e2448);
     overflow: hidden;
 }
+/* 스프라이트 캔버스가 칸보다 커도 가운데 아래에 맞춘다 (transform은 스프라이트가 쓰므로 translate/scale 속성 사용) */
+.dialogue-portrait {
+    position: relative;
+}
+.dialogue-portrait > * {
+    position: absolute;
+    left: 50%;
+    bottom: 4px;
+    translate: -50% 0;
+    transform-origin: 50% 100%;
+}
 .dialogue-portrait:empty {
     display: none;
 }
@@ -3904,6 +3917,9 @@ kbd {
         width: 96px;
         height: 96px;
         margin-top: -60px;
+    }
+    .dialogue-portrait > * {
+        scale: 0.78;
     }
     .dialogue-text {
         font-size: 0.98rem;
@@ -4080,7 +4096,7 @@ kbd {
 }
 .enemy-row .fighter.enemy.dead .hp2 {
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.3s var(--die, 0s);
 }
 @media (max-width: 640px) {
     .hp2 {

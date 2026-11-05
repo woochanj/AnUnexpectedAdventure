@@ -452,6 +452,9 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
     // 적마다 가장 최근에 맞은 순간 → 피격 동작
     const hurts: Record<string, { id: number; delay: number }> = {};
     for (const f of c.fx) if (f.kind === 'dmg' && f.target !== 'player') hurts[f.target] = { id: f.id, delay: f.delay };
+    // 쓰러지는 순간(초): 상태는 카드를 내자마자 바뀌지만, 연출은 일격이 닿을 때 시작한다
+    const dies: Record<string, number> = {};
+    for (const q of c.cues) if (q.kind === 'death' && q.target) dies[q.target] = q.delay;
     useJuice(hero, c, fieldRef, clock, setHeroAction);
 
     const play = useCallback(
@@ -562,7 +565,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
         setTimeout(() => {
             dispatch({ type: 'endTurn' });
             setTimeout(() => setEnemyTurn(false), 300 + acting * ENEMY_STEP * 1000);
-        }, 350);
+        }, 1000); // "적의 차례" 배너를 보여 준 뒤 적이 움직인다
     }, [dispatch, locked, living.length]);
 
     useEffect(() => {
@@ -608,6 +611,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                                 data-alive={e.hp > 0 ? '1' : '0'}
                                 data-uid={e.uid}
                                 className={`fighter enemy ${e.hp <= 0 ? 'dead' : ''} ${selected !== null && e.hp > 0 ? 'targetable' : ''} ${drag?.aim === e.uid ? 'aimed' : ''}`}
+                                style={{ ['--die' as string]: `${dies[e.uid] ?? 0}s` }}
                                 onClick={() => clickEnemy(e)}
                             >
                                 {e.hp > 0 && <IntentBadge e={e} c={c} />}
@@ -621,6 +625,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                                             attack={attacks[e.uid]}
                                             hurt={hurts[e.uid]}
                                             dead={e.hp <= 0}
+                                            deadIn={dies[e.uid]}
                                         />
                                     </Shake>
                                 </div>

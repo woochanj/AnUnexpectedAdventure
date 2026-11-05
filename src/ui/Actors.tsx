@@ -215,12 +215,14 @@ export function HeroView(props: {
     flip?: boolean;
     walking?: boolean;
     dead?: boolean;
+    /** 쓰러지기까지(초): 마지막 일격이 닿고 움찔한 다음에 쓰러진다 */
+    deadIn?: number;
     className?: string;
 }) {
-    const { char = 'hero-knight', action, clock, flip = false, walking = false, dead, className } = props;
+    const { char = 'hero-knight', action, clock, flip = false, walking = false, dead, deadIn = 0, className } = props;
     if (char === 'cat-knight') return <CatKnightView {...props} />;
     const play: SpritePlay | null = dead
-        ? { id: -999, steps: [{ anim: 'death', hold: true }] }
+        ? { id: -999, steps: [...heroSteps(char, { id: -999, act: 'hurt', windup: 0 }), { anim: 'death', hold: true }], delay: deadIn * 1000 }
         : action
           ? { id: action.id, steps: heroSteps(char, action) }
           : null;

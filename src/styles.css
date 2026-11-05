@@ -5063,3 +5063,13 @@ body {
         repeating-linear-gradient(17deg, rgba(120, 80, 40, 0.05) 0 2px, transparent 2px 7px),
         linear-gradient(160deg, #f0dba6, #e2c285 55%, #cfa765);
 }
+
+/* 주인공이 쓰러지는 마지막 일격의 번쩍임 */
+.lethal-flash {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 25% 60%, #fff, rgba(255, 220, 200, 0.6) 40%, rgba(120, 0, 0, 0.4));
+    pointer-events: none;
+    z-index: 30;
+    opacity: 0;
+}

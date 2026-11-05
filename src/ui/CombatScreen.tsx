@@ -446,7 +446,9 @@ function useJuice(
             const dmg = dmgOf(f);
             const start = now + f.delay * 1000;
             // 히트스톱도 피해 단계를 따라 길어진다
-            const hold = (dmg >= 10 ? 180 : dmg >= 8 ? 150 : dmg >= 6 ? 120 : dmg >= 3 ? 90 : 60) + (f.target === 'player' ? 40 : 0);
+            // 주인공을 쓰러뜨린 마지막 일격은 오래 멈춘다
+            const lethal = f.target === 'player' && c.result === 'lose' && f === c.fx.filter((g) => g.kind === 'dmg' && g.target === 'player').at(-1);
+            const hold = lethal ? 420 : (dmg >= 10 ? 180 : dmg >= 8 ? 150 : dmg >= 6 ? 120 : dmg >= 3 ? 90 : 60) + (f.target === 'player' ? 40 : 0);
             clock.current.windows.push([start, start + hold]);
             // 히트스톱 동안 때린 쪽·맞은 쪽 몸 움직임도 멈춘다 (스프라이트만 멈추면 몸이 미끄러져 보임)
             // 장면 전체가 멈춘다: 때린 쪽(주인공 또는 달려든 몬스터)과 맞은 쪽 모두
@@ -457,7 +459,16 @@ function useJuice(
                 window.setTimeout(() => anims.forEach((a) => a.play()), hold);
             }, f.delay * 1000);
             // 화면 흔들림은 피해 4부터, 6·8·10에서 한 단계씩 커진다 (하스스톤 미니언 타격 단계)
-            const amp = (dmg >= 10 ? 9 : dmg >= 8 ? 7 : dmg >= 6 ? 5 : dmg >= 4 ? 2 : 0) * (f.target === 'player' ? 1.3 : 1);
+            const amp = lethal ? 12 : (dmg >= 10 ? 9 : dmg >= 8 ? 7 : dmg >= 6 ? 5 : dmg >= 4 ? 2 : 0) * (f.target === 'player' ? 1.3 : 1);
+            if (lethal) {
+                // 마지막 일격: 화면이 하얗게 번쩍이고 흑백으로 가라앉는다
+                const flash = document.createElement('div');
+                flash.className = 'lethal-flash';
+                field.appendChild(flash);
+                const a = flash.animate([{ opacity: 0 }, { opacity: 0.85, offset: 0.08 }, { opacity: 0 }], { duration: 700, delay: f.delay * 1000, fill: 'both' });
+                a.finished.then(() => flash.remove()).catch(() => flash.remove());
+                field.animate([{ filter: 'none' }, { filter: 'grayscale(0.85) brightness(0.8)' }], { duration: 900, delay: f.delay * 1000 + 300, fill: 'forwards', easing: 'ease-out' });
+            }
             if (amp > 0)
                 field.animate(
                     [
@@ -539,6 +550,8 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
     // 쓰러지는 순간(초): 상태는 카드를 내자마자 바뀌지만, 연출은 일격이 닿을 때 시작한다
     const dies: Record<string, number> = {};
     for (const q of c.cues) if (q.kind === 'death' && q.target) dies[q.target] = q.delay;
+    // 주인공이 쓰러지는 순간: 마지막으로 맞은 때
+    const heroDieIn = c.result === 'lose' ? Math.max(0, ...c.fx.filter((f) => f.kind === 'dmg' && f.target === 'player').map((f) => f.delay)) : 0;
     // 카드별 무기 스프라이트 (바꿔 들 때 그림이 없어 깜박이지 않게 미리 불러 둔다)
     const [skin, setSkin] = useState<string | null>(null);
     useEffect(() => {
@@ -724,7 +737,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                 <div className={`fighter player-side ${drag?.moved && !drag.target ? `self-aim ${drag.release ? "ready" : ""}` : ""}`}>
                     <div data-body="player">
                         <Shake fx={c.fx} target="player">
-                            <HeroView char={skin ?? hero} action={heroAction} clock={clock} scale={4} dead={c.result === 'lose'} />
+                            <HeroView char={skin ?? hero} action={heroAction} clock={clock} scale={4} dead={c.result === 'lose'} deadIn={heroDieIn} />
                         </Shake>
                     </div>
                     <FxLayer fx={c.fx} target="player" />

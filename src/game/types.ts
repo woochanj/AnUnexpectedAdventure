@@ -94,6 +94,12 @@ export interface Fx {
     kind: 'dmg' | 'block' | 'heal' | 'status';
     /** 연출 지연(초). 적의 턴 행동을 순서대로 보여주기 위해 사용 */
     delay: number;
+    /** 치명타 피해 */
+    crit?: boolean;
+    /** 독처럼 공격이 아닌 피해 */
+    dot?: boolean;
+    /** 숫자만 (피해량) */
+    amount?: number;
 }
 
 export type CueKind = 'card' | 'enemyAttack' | 'enemyBlock' | 'enemyBuff' | 'enemyDebuff' | 'enemyHeal' | 'death' | 'poison';
@@ -128,6 +134,8 @@ export interface CombatState {
     fxSeq: number;
     cues: Cue[];
     cueSeq: number;
+    /** 주인공 공격의 치명타 확률 (0~1) */
+    critChance: number;
     /** 지금 발생하는 fx/cue에 붙일 지연 시간 */
     delay: number;
     result?: 'win' | 'lose';

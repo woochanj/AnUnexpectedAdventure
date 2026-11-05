@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { describeCard, cardStats, RARITY_INFO, STATUS_INFO } from '../game/cards';
 import { RELICS } from '../game/relics';
 import type { CardInst, StatusMap, Status } from '../game/types';
@@ -49,8 +49,21 @@ export function CardView({
 }
 
 export function HpBar({ hp, max, block = 0 }: { hp: number; max: number; block?: number }) {
+    // 깎인 만큼 흰 조각을 잠깐 남겼다가 줄인다
+    const [lag, setLag] = useState(hp);
+    const [hitKey, setHitKey] = useState(0);
+    useEffect(() => {
+        if (hp < lag) {
+            setHitKey((k) => k + 1);
+            const t = setTimeout(() => setLag(hp), 520);
+            return () => clearTimeout(t);
+        }
+        setLag(hp);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hp]);
     return (
-        <div className={`hpbar ${block > 0 ? 'has-block' : ''}`}>
+        <div key={hitKey} className={`hpbar ${block > 0 ? 'has-block' : ''} ${hitKey ? 'hpbar-hit' : ''}`}>
+            <div className="hpbar-lag" style={{ width: `${(Math.max(lag, hp) / max) * 100}%` }} />
             <div className="hpbar-fill" style={{ width: `${(hp / max) * 100}%` }} />
             <span className="hpbar-text">
                 {hp} / {max}

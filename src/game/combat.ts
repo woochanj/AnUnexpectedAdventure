@@ -1,13 +1,14 @@
 import { cardStats } from './cards';
 import { ENEMIES } from './enemies';
-import type { CardInst, CombatKind, CombatState, Cue, EnemyState, Fighter, Intent, RunState, Status } from './types';
+import type { CardInst, CombatKind, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, Status } from './types';
+import { CLASSES } from './classes';
 import { pick, rand, shuffle } from './util';
 
 const HAND_SIZE = 5;
 const MAX_HAND = 10;
 
-function fx(c: CombatState, target: string, text: string, kind: 'dmg' | 'block' | 'heal' | 'status') {
-    c.fx.push({ id: ++c.fxSeq, target, text, kind, delay: c.delay });
+function fx(c: CombatState, target: string, text: string, kind: 'dmg' | 'block' | 'heal' | 'status', extra: Partial<Fx> = {}) {
+    c.fx.push({ id: ++c.fxSeq, target, text, kind, delay: c.delay, ...extra });
     if (c.fx.length > 24) c.fx.splice(0, c.fx.length - 24);
 }
 
@@ -72,6 +73,7 @@ export function startCombat(run: RunState, kind: CombatKind, enemyIds: string[])
         fxSeq: 0,
         cues: [],
         cueSeq: 0,
+        critChance: CLASSES[run.cls]?.crit ?? 0.1,
         delay: 0,
     };
     if (run.relics.includes('whetstone')) addStatus(c.player, 'strength', 1);
@@ -113,25 +115,32 @@ export function attackDamage(base: number, attacker: Fighter, defender: Fighter 
 }
 
 /** 방어도를 먼저 깎고 남은 만큼 체력 감소 */
-function hit(c: CombatState, key: string, f: Fighter, amount: number) {
+function hit(c: CombatState, key: string, f: Fighter, amount: number, crit = false) {
     const absorbed = Math.min(f.block, amount);
     f.block -= absorbed;
     const lost = amount - absorbed;
     f.hp = Math.max(0, f.hp - lost);
-    fx(c, key, lost > 0 ? `-${lost}` : '막음', lost > 0 ? 'dmg' : 'block');
+    fx(c, key, lost > 0 ? `-${lost}` : '막음', lost > 0 ? 'dmg' : 'block', { crit: crit && lost > 0, amount: lost });
     return lost;
 }
 
+/** 적의 치명타 확률 */
+const ENEMY_CRIT = 0.05;
+
 function attack(c: CombatState, aKey: string, attacker: Fighter, dKey: string, defender: Fighter, base: number) {
     if (attacker.hp <= 0 || defender.hp <= 0) return;
-    hit(c, dKey, defender, attackDamage(base, attacker, defender));
+    // 치명타: 피해 1.5배
+    const chance = aKey === 'player' ? c.critChance : ENEMY_CRIT;
+    const crit = Math.random() < chance;
+    const d = attackDamage(base, attacker, defender);
+    hit(c, dKey, defender, crit ? Math.floor(d * 1.5) : d, crit);
     const thorns = defender.status.thorns ?? 0;
     if (thorns > 0 && attacker.hp > 0) hit(c, aKey, attacker, thorns);
 }
 
 function loseHp(c: CombatState, key: string, f: Fighter, n: number, label: string) {
     f.hp = Math.max(0, f.hp - n);
-    fx(c, key, `${label} -${n}`, 'dmg');
+    fx(c, key, `${label} -${n}`, 'dmg', { dot: true, amount: n });
 }
 
 function checkEnd(c: CombatState) {

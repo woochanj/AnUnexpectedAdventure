@@ -13,7 +13,8 @@ import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { FLOOR_AMBIENT } from './vfx';
 
 function FxLayer({ fx, target }: { fx: Fx[]; target: string }) {
-    const mine = fx.filter((f) => f.target === target);
+    // 피해 숫자는 pixelfx 캔버스가 그린다. 여기서는 방어·회복·상태이상 글자만
+    const mine = fx.filter((f) => f.target === target && !(f.kind === 'dmg' && f.amount));
     return (
         <div className="fx-layer">
             {mine.map((f, i) => (
@@ -340,7 +341,7 @@ export function CombatScreen({ combat: c, floor, hero, dispatch }: { combat: Com
                 </div>
 
                 <div className="bd-front" aria-hidden />
-                <FxCanvas cues={c.cues} container={fieldRef} className="fx-front" clock={clock} />
+                <FxCanvas cues={c.cues} numbers={c.fx} container={fieldRef} className="fx-front" clock={clock} />
                 {enemyTurn && !c.result && <div className="turn-banner">적의 차례</div>}
                 {selectedCard && <div className="target-hint">[{cardStats(selectedCard).name}] 대상을 고르세요 · Esc 취소</div>}
             </div>

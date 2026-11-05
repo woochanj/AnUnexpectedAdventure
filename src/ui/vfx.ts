@@ -160,7 +160,6 @@ export function cueVfx(c: Cue): VfxSpec[] {
 import * as spiritFlame from 'pixelfx/fx/fire/spirit-flame';
 import * as fog from 'pixelfx/fx/weather/fog';
 import * as bubbles from 'pixelfx/fx/water/bubbles';
-import * as fishSchool from 'pixelfx/fx/critters/fish-school';
 import * as bat from 'pixelfx/fx/critters/bat';
 import * as wisp from 'pixelfx/fx/critters/wisp';
 
@@ -174,13 +173,15 @@ export interface Ambient {
     tile?: number;
 }
 
-const VIOLET_FOG = ['#0e0a18', '#1c1430', '#2c1f48', '#43306a', '#5f4890', '#8468b4', '#ad94d6', '#e2d4f6'];
+const VIOLET_FOG = ['#140608', '#2a0c12', '#42141e', '#5e1e2a', '#7e2c38', '#a04650', '#c8707a', '#ecc4c8'];
+const BLOOD_FLAME = ['#1a0406', '#3a080c', '#6a1014', '#a01c1a', '#d8361e', '#ff6a2a', '#ffb070', '#ffe0c0', '#ffffff'];
 
 export const FLOOR_AMBIENT: Ambient[][] = [
     [
-        { mod: bubbles, fx: 0.12, fy: 0.7 },
-        { mod: bubbles, fx: 0.88, fy: 0.7, opts: { seed: 6 } },
-        { mod: fishSchool, fx: 0.55, fy: 0.2 },
+        { mod: bubbles, fx: 0.1, fy: 0.75 },
+        { mod: wisp, fx: 0.22, fy: 0.5, opts: { seed: 6 } },
+        { mod: wisp, fx: 0.8, fy: 0.42, opts: { seed: 11 } },
+        { mod: bat, fx: 0.55, fy: 0.16, opts: { seed: 4 } },
     ],
     [
         { mod: fog, fx: 0.5, fy: 1.02, tile: 320, opts: { light: 0.7 } },
@@ -188,8 +189,8 @@ export const FLOOR_AMBIENT: Ambient[][] = [
         { mod: wisp, fx: 0.86, fy: 0.5, opts: { seed: 4 } },
     ],
     [
-        { mod: spiritFlame, fx: 0.07, fy: 0.42, opts: { palette: ['#10041a', '#2a0838', '#4a1060', '#6e1c8a', '#9a34b8', '#c264de', '#e6a8f6', '#f8e0ff', '#ffffff'] } },
-        { mod: spiritFlame, fx: 0.93, fy: 0.42, opts: { seed: 3, palette: ['#10041a', '#2a0838', '#4a1060', '#6e1c8a', '#9a34b8', '#c264de', '#e6a8f6', '#f8e0ff', '#ffffff'] } },
+        { mod: spiritFlame, fx: 0.07, fy: 0.42, opts: { palette: BLOOD_FLAME } },
+        { mod: spiritFlame, fx: 0.93, fy: 0.42, opts: { seed: 3, palette: BLOOD_FLAME } },
         { mod: bat, fx: 0.4, fy: 0.15, opts: { seed: 2 } },
         { mod: fog, fx: 0.5, fy: 1.02, tile: 320, opts: { palette: VIOLET_FOG, light: 0.6 } },
     ],
@@ -198,10 +199,10 @@ export const FLOOR_AMBIENT: Ambient[][] = [
 /** 지도 화면 배경 앰비언트 (전투보다 잔잔하게) */
 export const MAP_AMBIENT: Ambient[][] = [
     [
-        { mod: fishSchool, fx: 0.8, fy: 0.22 },
-        { mod: fishSchool, fx: 0.18, fy: 0.62, opts: { seed: 4 } },
+        { mod: wisp, fx: 0.12, fy: 0.62, opts: { seed: 4 } },
+        { mod: wisp, fx: 0.86, fy: 0.4, opts: { seed: 7 } },
         { mod: bubbles, fx: 0.06, fy: 1.0 },
-        { mod: bubbles, fx: 0.95, fy: 0.9, opts: { seed: 9 } },
+        { mod: bat, fx: 0.8, fy: 0.14, opts: { seed: 9 } },
     ],
     [
         { mod: fog, fx: 0.5, fy: 1.02, tile: 320, opts: { light: 0.6 } },

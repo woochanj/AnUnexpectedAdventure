@@ -52,7 +52,6 @@ import * as curseFx from 'pixelfx/fx/shadow/curse';
 import * as shadowFlames from 'pixelfx/fx/shadow/shadow-flames';
 import * as fireballFx from 'pixelfx/fx/fire/fireball';
 import * as splash from 'pixelfx/fx/water/splash';
-import * as magicMissile from 'pixelfx/fx/projectiles/magic-missile';
 import * as dirtExplosion from 'pixelfx/fx/explosions/dirt-explosion';
 import * as poisonCloud from 'pixelfx/fx/nature/poison-cloud';
 import * as tornado from 'pixelfx/fx/nature/tornado';
@@ -109,6 +108,9 @@ import * as thunderclap from 'pixelfx/fx/lightning/thunderclap';
 import * as arcaneOrb from 'pixelfx/fx/arcane/arcane-orb';
 import * as runeCircle from 'pixelfx/fx/arcane/rune-circle';
 import * as waterOrb from 'pixelfx/fx/water/water-orb';
+import * as iceLanceFly from 'pixelfx/fx/ice/ice-lance';
+import * as plasmaShot from 'pixelfx/fx/projectiles/plasma-shot';
+import * as energyDisc from 'pixelfx/fx/projectiles/energy-disc';
 import * as haste from 'pixelfx/fx/status/haste';
 import * as featherBurst from 'pixelfx/fx/holy/feather-burst';
 import * as powerStar from 'pixelfx/fx/pickups/power-star';
@@ -137,6 +139,12 @@ import * as nuke from 'pixelfx/fx/explosions/nuke';
 import * as chargeUp from 'pixelfx/fx/lightning/charge-up';
 
 export interface VfxSpec {
+    /** 시전자에서 대상으로 날아간다: ms 동안, 처음엔 느리게 떴다가 가속 (arc: 포물선 높이 도트) */
+    fly?: { ms: number; arc?: number };
+    /** 발밑이 아니라 보이는 몸 높이의 이 비율 지점에 (0 발밑 · 0.5 몸 가운데 · 1 머리) */
+    body?: number;
+    /** 캐릭터 뒤에 그린다 (큰 폭발·충격파·마법진이 맞는 몸을 가리지 않게) */
+    behind?: boolean;
     mod: FxModule;
     /** 어디에 그릴지: 카드 대상, 살아 있는 모든 적, 플레이어 자신 */
     at: 'target' | 'all' | 'self';
@@ -264,12 +272,13 @@ const HEAL: VfxSpec = { mod: heal, at: 'target', speed: 1.4 };
 export function impactTier(amount: number, toPlayer: boolean): VfxSpec[] {
     const flip = toPlayer; // 흙은 맞은 쪽 뒤로 튄다
     const big = amount >= 6;
-    const out: VfxSpec[] = [{ mod: hitSpark, at: 'target', dy: -24, speed: big ? 1.2 : 1.6, opts: { flip } }];
-    if (amount >= 2) out.push({ mod: hitFlash, at: 'target', dy: -20, speed: big ? 1.2 : 1.6 });
-    if (amount >= 3) out.push({ mod: dirtExplosion, at: 'target', dx: toPlayer ? -10 : 10, speed: big ? 1.3 : 2, opts: { flip } });
+    const out: VfxSpec[] = [{ mod: hitSpark, at: 'target', body: 0.5, speed: big ? 1.2 : 1.6, opts: { flip } }];
+    if (amount >= 2) out.push({ mod: hitFlash, at: 'target', speed: big ? 1.2 : 1.6 });
+    // 흙·충격파·먼지는 캐릭터 뒤에 (맞는 몸이 가려지지 않게)
+    if (amount >= 3) out.push({ mod: dirtExplosion, at: 'target', dx: toPlayer ? -10 : 10, speed: big ? 1.3 : 2, behind: true, opts: { flip } });
     if (amount >= 8) {
-        out.push({ mod: groundSlam, at: 'target', delay: 0.03, speed: 1.3, opts: { flip } });
-        out.push({ mod: poof, at: 'target', delay: 0.25, speed: 0.9 });
+        out.push({ mod: groundSlam, at: 'target', delay: 0.03, speed: 1.3, behind: true, opts: { flip } });
+        out.push({ mod: poof, at: 'target', delay: 0.25, speed: 0.9, behind: true });
     }
     return out;
 }
@@ -308,6 +317,19 @@ export function artSpec(id: string): VfxSpec | undefined {
     return CARD_ART[id] ?? list.find((s) => s.mod !== shieldBlock) ?? list[0];
 }
 
+/** 크게 퍼지는 이펙트: 캐릭터 뒤에 그려서 맞는 몸이 가려지지 않게 (앞에는 칼날·불꽃 튐만) */
+const BEHIND = new Set<FxModule>([
+    bigExplosion, nuke, sunburst, impactFrame as unknown as FxModule, groundSlam, dirtExplosion, poof, waveCrash, frostNova, fireRing, thunderclap, implosion,
+    magicCircle, holyPillar, blizzardVortex, runeCircle, heavyLanding, iceCrystal, whirlpool, toxicPuddle, fireTornado, tornado, chargeUp, ripples, poisonCloud, healingBloom,
+]);
+/** 맞는 순간의 불꽃·섬광: 발밑이 아니라 몸 가운데에 (캐릭터에 입히는 이펙트는 제외) */
+const BODY_HIT = new Set<FxModule>([hitSpark, critHit, bluntHit, zapHit, sparkArc, snowflakeBurst, manaBurst, cartoonPow, parry, smallExplosion]);
+function layered(s: VfxSpec): VfxSpec {
+    const behind = s.behind ?? BEHIND.has(s.mod);
+    const body = s.body ?? (s.at !== 'self' && s.dy === undefined && BODY_HIT.has(s.mod) && !s.mod.meta.actor ? 0.5 : undefined);
+    return { ...s, behind, ...(body !== undefined ? { body } : {}) };
+}
+
 /** 카드가 아닌 신호에 대한 이펙트. 위치는 cue.target 기준 */
 export function cueVfx(c: Cue): VfxSpec[] {
     switch (c.kind) {
@@ -324,7 +346,7 @@ export function cueVfx(c: Cue): VfxSpec[] {
             // 강한 기술: 발밑에서 기를 모은다 (속성 색)
             if (def?.charge) for (const ch of chargeVfx(cardElement(id), chargeOf(def), !!def.ultimate)) out.push({ ...ch, delay: ch.delay ?? 0 });
             // 마법사(물 사제): 발밑 물의 마법진, 물방울이 모였다가 물줄기로 날아가 물보라
-            if (CARDS[id]?.cls === 'mage') for (const w of waterFlourish(id, c.id, attack, wait)) out.push({ ...w, delay: w.delay ?? 0 });
+            if (CARDS[id]?.cls === 'mage') for (const w of mageFlourish(id, c.id, attack, wait)) out.push({ ...w, delay: w.delay ?? 0 });
             // 기사(모험가): 금빛 칼날 궤적과 불꽃, 큰 기술은 땅이 갈라지는 충격파
             if (attack && CARDS[id].cls === 'knight') for (const k of knightFlourish(id, c.id)) out.push({ ...k, delay: wait + (k.delay ?? 0) });
             // 도적(바람 암살자): 바람 칼날이 덧붙는다
@@ -347,7 +369,7 @@ export function cueVfx(c: Cue): VfxSpec[] {
                 const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
                 for (const im of elementImpact(cardElement(id), c.id)) out.push({ ...im, at: all ? 'all' : 'target', delay: wait + 0.06 + (im.delay ?? 0) });
             }
-            return out;
+            return out.map(layered);
         }
         case 'enemyAttack': {
             const big = (c.amount ?? 0) >= 14;
@@ -359,7 +381,7 @@ export function cueVfx(c: Cue): VfxSpec[] {
             }
             // 큰 공격은 땅이 울린다
             if (big) out.push({ mod: groundSlam, at: 'target', delay: 0.1, speed: 1.6, opts: { flip: true } });
-            return out;
+            return out.map(layered);
         }
         case 'enemyBlock':
             return [{ ...BLOCK, at: 'target', dx: 6, opts: { flip: true } }];
@@ -502,12 +524,12 @@ const CARD_ALT: Record<string, VfxSpec[][]> = {
     ],
     spark: [
         [{ mod: smallExplosion, at: 'target', speed: 3, stopAfter: 1.2, opts: { palette: FIRE } }],
-        [{ mod: fireballFx, at: 'target', dx: -40, speed: 1.8, stopAfter: 0.8 }],
-        [{ mod: magicMissile, at: 'target', dx: -50, speed: 1.6, opts: { palette: FIRE } }, { mod: smallExplosion, at: 'target', delay: 0.12, speed: 3, stopAfter: 1, opts: { palette: FIRE } }],
+        [{ mod: burning, at: 'target', speed: 1.6, stopAfter: 0.7 }, { mod: smallExplosion, at: 'target', speed: 3, stopAfter: 0.8, opts: { palette: FIRE } }],
+        [{ mod: smallExplosion, at: 'target', speed: 2.4, stopAfter: 1, opts: { palette: FIRE } }, { mod: hitSpark, at: 'target', body: 0.5, opts: { palette: FIRE } }],
     ],
     frost_bolt: [
         [{ mod: iceShatter, at: 'target', speed: 2.2 }],
-        [{ mod: magicMissile, at: 'target', dx: -50, speed: 1.6, opts: { palette: ICE } }, { mod: iceShatter, at: 'target', delay: 0.1, speed: 2.4 }],
+        [{ mod: iceShatter, at: 'target', speed: 2.4 }, { mod: snowflakeBurst, at: 'target', body: 0.5, speed: 1.8 }],
     ],
     heavy_blow: [
         [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.6 }],
@@ -588,22 +610,55 @@ const WATER = ['#06142e', '#0c2c5a', '#14508c', '#2a86c8', '#5ac0ec', '#a8e6ff',
 const WATER_LIGHT = ['#1a5a9c', '#2a86c8', '#4aaee0', '#7ad0f4', '#b4ecff', '#e4faff', '#ffffff'];
 const BIG_MAGE = new Set(['fireball', 'thunder', 'blizzard', 'fire_ring', 'chain_lightning', 'ice_lance', 'archmage']);
 
-/** 물 사제 주문 연출. 시전(발밑) → 물방울 모임 → 대상에 물줄기·물보라, 큰 주문은 파도 */
-function waterFlourish(id: string, seed: number, attack: boolean, wait: number): VfxSpec[] {
-    const out: VfxSpec[] = [
-        { mod: magicCircle, at: 'self', speed: 1.6, stopAfter: wait + 0.5, opts: { palette: WATER } },
-        { mod: bubbles, at: 'self', speed: 1.6, stopAfter: wait + 0.4, opts: { palette: WATER } },
-    ];
+/** 번개 주문 색 (노랑·흰빛, 어두운 색은 보라) */
+const BOLT = ['#1a1040', '#3a2a80', '#8a70e0', '#e8d040', '#fff36a', '#fffbd0', '#ffffff'];
+/** 물로 싸우는 주문: 이 카드만 물빛 (해일·마나 흐름) */
+const WATER_SPELLS = new Set(['tidal_wave', 'mana_flow']);
+
+/**
+ * 마법사(물 사제) 주문 연출: 발밑 마법진 → 대상으로 날아가는 마력탄 → 맞는 자리 여운.
+ * 색은 주문 속성을 따른다 (화염은 주황, 냉기는 하늘, 번개는 노랑, 비전은 보라, 물 주문만 물빛).
+ * 예전에는 모든 주문에 물빛이 붙어 화염 주문에 얼음색이 섞여 보였다.
+ */
+function mageFlourish(id: string, seed: number, attack: boolean, wait: number): VfxSpec[] {
+    const el = cardElement(id);
+    const water = WATER_SPELLS.has(id);
+    const pal = water ? WATER_LIGHT : el === 'fire' ? FIRE : el === 'ice' ? ICE : el === 'lightning' ? BOLT : ARCANE;
+    const out: VfxSpec[] = [{ mod: magicCircle, at: 'self', speed: 1.6, stopAfter: wait + 0.5, opts: { palette: water ? WATER : pal } }];
+    // 물방울은 물·냉기 주문에만 (화염·번개 주문에 물방울이 뜨면 속성이 섞여 보인다)
+    if (water || el === 'ice') out.push({ mod: bubbles, at: 'self', speed: 1.6, stopAfter: wait + 0.4, opts: { palette: water ? WATER : ICE } });
     if (!attack) {
-        out.push({ mod: ripples, at: 'self', speed: 1.6, stopAfter: 0.8, opts: { palette: WATER_LIGHT } });
+        if (water) out.push({ mod: ripples, at: 'self', speed: 1.6, stopAfter: 0.8, opts: { palette: WATER_LIGHT } });
         return out;
     }
     const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
     const at = all ? ('all' as const) : ('target' as const);
-    out.push({ mod: magicMissile, at, dx: -60, dy: -6, delay: wait - 0.12, speed: 1.6, opts: { palette: WATER_LIGHT, seed } });
-    out.push({ mod: waterSplash, at, delay: wait + 0.02, speed: 1.4, opts: { palette: WATER_LIGHT, stone: false } });
-    out.push({ mod: ripples, at, delay: wait + 0.05, speed: 1.6, stopAfter: 0.8, opts: { palette: WATER } });
-    if (BIG_MAGE.has(id)) out.push({ mod: waveCrash, at, dx: -10, delay: wait + 0.04, speed: 1.4, opts: { palette: WATER_LIGHT } });
+    // 기를 모았다가 내보낸다: 손끝에 속성 기운이 빨려 들고 → 투사체가 느리게 떴다가 가속해 꽂힌다
+    const flyMs = el === 'fire' ? 340 : 280;
+    out.push({ mod: spellCharge, at: 'self', dx: 26, dy: -46, delay: Math.max(0, wait - flyMs / 1000 - 0.3), stopAfter: 0.3, speed: 2.2, opts: { palette: pal } });
+    const proj = water ? waterOrb : el === 'fire' ? fireballFx : el === 'ice' ? iceLanceFly : el === 'lightning' ? energyDisc : plasmaShot;
+    out.push({ mod: proj, at, fly: { ms: flyMs, arc: el === 'fire' ? 26 : el === 'lightning' ? 4 : 10 }, delay: wait - flyMs / 1000, stopAfter: flyMs / 1000, speed: 1.4, opts: { palette: pal, seed } });
+    const big = BIG_MAGE.has(id) || !!CARDS[id].charge;
+    if (water) {
+        out.push({ mod: waterSplash, at, delay: wait + 0.02, speed: 1.4, opts: { palette: WATER_LIGHT, stone: false } });
+        out.push({ mod: ripples, at, delay: wait + 0.05, speed: 1.6, stopAfter: 0.8, opts: { palette: WATER } });
+        out.push({ mod: waveCrash, at, dx: -10, delay: wait + 0.04, speed: 1.4, opts: { palette: WATER_LIGHT } });
+    } else if (el === 'lightning') {
+        // 뇌전: 맞는 자리에 전류가 튀고, 큰 주문은 천둥 충격파
+        out.push({ mod: sparkArc, at, dy: -14, delay: wait + 0.02, speed: 1.8, stopAfter: 0.5, opts: { palette: BOLT } });
+        if (big) out.push({ mod: thunderclap, at, delay: wait + 0.04, speed: 1.6, opts: { palette: BOLT } });
+    } else if (el === 'arcane') {
+        // 비전: 보랏빛 마력이 터지고, 큰 주문은 마력 구체와 룬
+        out.push({ mod: manaBurst, at, dy: -10, delay: wait + 0.02, speed: 1.8, opts: { palette: ARCANE } });
+        if (big) {
+            out.push({ mod: arcaneOrb, at, dy: -40, delay: wait, speed: 1.8, stopAfter: 0.6, opts: { palette: ARCANE } });
+            out.push({ mod: runeCircle, at, delay: wait + 0.05, speed: 1.8, stopAfter: 0.7, opts: { palette: ARCANE } });
+        }
+    } else if (el === 'ice') {
+        if (big) out.push({ mod: icicleFall, at, delay: wait - 0.1, speed: 2.4, opts: { palette: ICE } });
+    } else if (el === 'fire') {
+        if (big) out.push({ mod: fireTornado, at, delay: wait + 0.04, speed: 1.8, stopAfter: 0.5, opts: { palette: FIRE } });
+    }
     return out;
 }
 

@@ -26,7 +26,10 @@ export const CHARGE_TIME = 0.65;
 /** 궁극기는 이만큼 더 오래 모은다 */
 export const ULTIMATE_EXTRA = 0.55;
 export const chargeOf = (def: { charge?: boolean; ultimate?: boolean }) => (def.charge ? CHARGE_TIME : 0) + (def.ultimate ? ULTIMATE_EXTRA : 0);
-export const windupOf = (def: { type: string; charge?: boolean; ultimate?: boolean }) => (def.type === 'attack' ? ATTACK_WINDUP : 0) + chargeOf(def);
+/** 원거리 공격(주문·투척)은 손끝에 기를 모았다가 쏘아 보내는 만큼 준비가 길다 */
+export const RANGED_GATHER = 0.25;
+export const windupOf = (def: { type: string; charge?: boolean; ultimate?: boolean; ranged?: boolean }) =>
+    (def.type === 'attack' ? ATTACK_WINDUP + (def.ranged ? RANGED_GATHER : 0) : 0) + chargeOf(def);
 
 /** 공격 이펙트가 대상에 닿기까지 걸리는 시간(초) */
 export const IMPACT_DELAY = 0.08;
@@ -35,9 +38,9 @@ export const IMPACT_DELAY = 0.08;
 export const FREEZE_AT = 3;
 
 /** 적 한 명의 행동 사이 간격(초) */
-export const ENEMY_STEP = 1.0;
+export const ENEMY_STEP = 1.35;
 /** 적 턴 첫 행동까지(초): 몬스터가 웅크렸다 달려드는 시간보다 길어야 타격이 도착과 맞는다 */
-export const ENEMY_LEAD = 0.75;
+export const ENEMY_LEAD = 1.35;
 
 function addStatus(f: Fighter, s: Status, n: number) {
     f.status[s] = (f.status[s] ?? 0) + n;
@@ -375,7 +378,7 @@ export function endTurn(c: CombatState, run: RunState) {
     addStatus(c.player, 'vulnerable', c.player.status.vulnerable ? -1 : 0);
 
     // 적 턴: 행동마다 지연을 늘려 화면에서 한 명씩 움직이게 한다.
-    // 첫 적도 달려드는 동작(최대 0.64초)을 마친 뒤 맞도록 ENEMY_LEAD만큼 늦게 시작한다
+    // 첫 적도 예고(0.38초)와 달려드는 동작(최대 0.86초)을 마친 뒤 맞도록 ENEMY_LEAD만큼 늦게 시작한다
     c.delay = ENEMY_LEAD;
     for (const e of c.enemies) {
         if (e.hp <= 0) continue;

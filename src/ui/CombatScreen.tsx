@@ -763,7 +763,9 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                 </div>
 
                 <div className="bd-front" aria-hidden />
-                <FxCanvas cues={c.cues} impacts={c.fx} container={fieldRef} className="fx-front" clock={clock} />
+                {/* 이펙트 두 층: 큰 폭발·충격파는 캐릭터 뒤, 칼날·불꽃 튐은 앞 (맞는 몸이 가려지지 않게) */}
+                <FxCanvas cues={c.cues} impacts={c.fx} container={fieldRef} className="fx-mid" clock={clock} layer="behind" />
+                <FxCanvas cues={c.cues} impacts={c.fx} container={fieldRef} className="fx-front" clock={clock} layer="front" />
                 <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={4} numberKind="normal" />
                 {/* 치명타 숫자는 그림이 커서 한 단계 작은 도트로, 몬스터 머리 위 비스듬히 */}
                 <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={2} numberKind="crit" />

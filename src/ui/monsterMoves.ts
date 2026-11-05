@@ -38,18 +38,24 @@ export function pickDeath(look: Look, hasDeathAnim: boolean, bigHit: boolean): D
  * 공격 몸동작. el은 몬스터 몸, dx는 주인공 앞까지의 거리(왼쪽이 음수),
  * hitAt(ms 뒤)에 정확히 닿도록 앞뒤 시간을 맞춘다.
  */
+/** 적 공격 동작 배율: 너무 빠르면 맞는 맛이 없다 (예고 → 달려듦 → 타격의 리듬) */
+export const ENEMY_TEMPO = 1.35;
+/** 달려들기 전에 붉게 번쩍이며 기를 모으는 시간(ms) */
+export const TELEGRAPH_MS = 380;
+
 export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt: number, hits: number, heavy: boolean) {
-    const hold = hits * 140 + 160;
+    const S = ENEMY_TEMPO;
+    const hold = (hits * 140 + 160) * S;
     // 돌아가는 길은 느긋하게 (천천히 출발, 천천히 멈춤)
-    const back = 440;
-    let approach = 340;
+    const back = 440 * S;
+    let approach = 340 * S;
     let frames: Keyframe[];
     const t = (ms: number, total: number) => Math.min(1, Math.max(0, ms / total));
     switch (move) {
         case 'pounce': {
             // 웅크렸다가 포물선으로 덮친다
-            approach = 480;
-            const crouch = 150;
+            approach = 480 * S;
+            const crouch = 150 * S;
             const total = approach + hold + back;
             frames = [
                 { transform: 'translate(0,0) scale(1,1)', offset: 0 },
@@ -66,8 +72,8 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
         }
         case 'swoop': {
             // 높이 솟았다가 비스듬히 내리꽂는다
-            approach = 520;
-            const rise = 220;
+            approach = 520 * S;
+            const rise = 220 * S;
             const total = approach + hold + back;
             frames = [
                 { transform: 'translate(0,0) rotate(0deg)', offset: 0 },
@@ -82,8 +88,8 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
         }
         case 'charge': {
             // 뒤로 물러나 힘을 모았다가 몸통 박치기
-            approach = heavy ? 640 : 520;
-            const wind = approach - 160;
+            approach = (heavy ? 640 : 520) * S;
+            const wind = approach - 160 * S;
             const total = approach + hold + back;
             frames = [
                 { transform: 'translate(0,0) rotate(0deg) scale(1)', offset: 0 },
@@ -131,6 +137,15 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
 function run(el: HTMLElement, frames: Keyframe[], startIn: number, total: number) {
     const fighter = el.closest<HTMLElement>('.fighter');
     const delay = Math.max(0, startIn);
+    // 예고: 달려들기 직전 붉게 번쩍이며 몸을 부풀린다 (어떤 적이 칠지 미리 보인다)
+    el.animate(
+        [
+            { filter: 'brightness(1)', offset: 0 },
+            { filter: 'brightness(1.7) sepia(0.6) saturate(4) hue-rotate(-30deg) drop-shadow(0 0 6px #ff4a3a)', offset: 0.5 },
+            { filter: 'brightness(1)', offset: 1 },
+        ],
+        { duration: TELEGRAPH_MS, delay: Math.max(0, delay - TELEGRAPH_MS), easing: 'ease-in-out' },
+    );
     const anim = el.animate(frames, { duration: total, delay });
     // 덮치는 동안은 다른 캐릭터보다 앞에
     window.setTimeout(() => fighter && (fighter.style.zIndex = '4'), delay);

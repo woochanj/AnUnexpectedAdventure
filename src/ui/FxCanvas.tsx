@@ -67,6 +67,21 @@ interface Live {
     /** 이펙트가 대신 그리는 동안 숨길 진짜 캐릭터 */
     body?: HTMLElement;
     alphaOf?: (t: number, o: unknown) => number;
+    /** 날아가는 투사체: (x0,y0)에서 (x1,y1)까지 ms 동안 */
+    fly?: { x0: number; y0: number; x1: number; y1: number; ms: number; arc: number; t: number };
+}
+
+/** 투사체 비행 곡선: 살짝 뒤로 젖혔다가(발사 준비) 처음엔 느리게, 점점 빨라져 꽂힌다 */
+function flyEase(u: number): number {
+    if (u < 0.14) return -0.04 * Math.sin((u / 0.14) * Math.PI);
+    const v = (u - 0.14) / 0.86;
+    return Math.pow(v, 2.3);
+}
+
+/** 보이는 몸의 위치·크기(이펙트 도트 좌표). 그림판이 아니라 실제로 그려진 부분 기준 */
+function bodyBoxOf(body: Element | null, box: DOMRect, scale: number) {
+    const a = actorOf(body, box, scale, 0, 0);
+    return a ? { cx: a.x + a.w / 2, top: a.y, bottom: a.y + a.h, h: a.h } : null;
 }
 
 /** 화면 픽셀 하나가 몇 CSS 픽셀인지. 스프라이트(32px × 3)와 같은 배율이라 이펙트와 캐릭터의 픽셀 크기가 맞는다 */
@@ -86,8 +101,10 @@ export type HitStopClock = { windows: [number, number][] };
  * - cues: 전투 신호. 새 cue가 오면 data-anchor 요소(캐릭터 발밑) 위치에 이펙트를 띄운다.
  */
 export function FxCanvas({
-    cues = NO_CUES, container, ambient, className, clock, numbers, pixel, numberKind, impacts, ambientScale, ambientSpeed,
+    cues = NO_CUES, container, ambient, className, clock, numbers, pixel, numberKind, impacts, ambientScale, ambientSpeed, layer,
 }: {
+    /** 전투 이펙트 층: behind는 캐릭터 뒤(큰 폭발·충격파), front는 앞(칼날·불꽃 튐). 없으면 모두 */
+    layer?: 'behind' | 'front';
     /** 분위기 효과의 도트 크기 배율 (작을수록 멀어 보인다) */
     ambientScale?: number;
     /** 분위기 효과 재생 속도 배율 (먼 층은 느리게) */
@@ -131,6 +148,16 @@ export function FxCanvas({
             a.draw(st.frame);
         }
         for (const l of live.current) {
+            if (l.fly) {
+                // 히트스톱 동안은 투사체도 멈춘다 (dt가 0)
+                const f = l.fly;
+                f.t += dt * 1000;
+                const u = Math.min(1, f.t / f.ms);
+                const e = flyEase(u);
+                l.fx.options.x = Math.round(f.x0 + (f.x1 - f.x0) * e);
+                l.fx.options.y = Math.round(f.y0 + (f.y1 - f.y0) * e - f.arc * Math.sin(Math.PI * Math.max(0, e)));
+                if (u >= 1) l.fx.stop();
+            }
             l.fx.update(dt * l.speed);
             if (l.fx.t >= l.stopAt) l.fx.stop();
             l.fx.draw(st.frame);
@@ -247,6 +274,7 @@ export function FxCanvas({
         for (const f of fresh) {
             if (f.kind !== 'dmg' || f.dot || !f.amount) continue;
             for (const spec of impactTier(f.amount, f.target === 'player')) {
+                if (layer && !!spec.behind !== (layer === 'behind')) continue;
                 const run = () => spawn(spec, f.target);
                 const ms = (f.delay + (spec.delay ?? 0)) * 1000;
                 if (ms <= 0) run();
@@ -262,14 +290,32 @@ export function FxCanvas({
         const el = container.current?.querySelector<HTMLElement>(`[data-anchor="${anchor}"]`);
         if (!st || !box || !el) return;
         const r = el.getBoundingClientRect();
-        const x = Math.round((r.left + r.width / 2 - box.left) / st.scale + (spec.dx ?? 0));
-        const y = Math.round((r.bottom - box.top) / st.scale - 2 + (spec.dy ?? 0));
-        // 캐릭터에 거는 이펙트는 pixelfx 대역 캐릭터(다른 스킨) 대신 진짜 캐릭터 몸에 입힌다
         const body = container.current?.querySelector<HTMLElement>(`[data-body="${anchor}"]`) ?? undefined;
+        let x = Math.round((r.left + r.width / 2 - box.left) / st.scale + (spec.dx ?? 0));
+        let y = Math.round((r.bottom - box.top) / st.scale - 2 + (spec.dy ?? 0));
+        // 타격 지점: 그림판 크기와 상관없이 실제로 보이는 몸의 그 높이에 (작은 슬라임·큰 보스 모두 몸에 맞게)
+        const bb = spec.body !== undefined || spec.fly ? bodyBoxOf(body ?? null, box, st.scale) : null;
+        if (bb && spec.body !== undefined) {
+            x = Math.round(bb.cx + (spec.dx ?? 0));
+            y = Math.round(bb.bottom - bb.h * spec.body + (spec.dy ?? 0));
+        }
+        let fly: Live['fly'];
+        if (spec.fly) {
+            // 시전자 손끝(몸 가운데 앞쪽)에서 대상 몸 가운데로
+            const me = bodyBoxOf(container.current?.querySelector('[data-body="player"]') ?? null, box, st.scale);
+            const x1 = bb ? bb.cx - 6 : x;
+            const y1 = bb ? bb.bottom - bb.h * 0.45 : y - 20;
+            const x0 = me ? me.cx + 14 : x1 - 200;
+            const y0 = me ? me.bottom - me.h * 0.55 : y1;
+            fly = { x0, y0, x1, y1, ms: spec.fly.ms, arc: spec.fly.arc ?? 0, t: 0 };
+            x = x0;
+            y = y0;
+        }
+        // 캐릭터에 거는 이펙트는 pixelfx 대역 캐릭터(다른 스킨) 대신 진짜 캐릭터 몸에 입힌다
         const actor = spec.mod.meta.actor ? actorOf(body ?? null, box, st.scale, x, y) : null;
         const fx = createFx(spec.mod, { seed: Math.floor(Math.random() * 1e6), ...(actor ? { actor } : {}), ...spec.opts, x, y });
         const alphaOf = actor ? spec.mod.actorAlpha : undefined;
-        live.current.push({ fx, speed: (spec.speed ?? 1) * FX_TEMPO, stopAt: spec.stopAfter ?? Infinity, ...(alphaOf && body ? { body, alphaOf } : {}) });
+        live.current.push({ fx, speed: (spec.speed ?? 1) * FX_TEMPO, stopAt: fly ? Infinity : spec.stopAfter ?? Infinity, ...(alphaOf && body ? { body, alphaOf } : {}), ...(fly ? { fly } : {}) });
         kick();
     };
 
@@ -279,6 +325,7 @@ export function FxCanvas({
         seen.current = fresh[fresh.length - 1].id;
         for (const cue of fresh) {
             for (const spec of cueVfx(cue)) {
+                if (layer && !!spec.behind !== (layer === 'behind')) continue;
                 const run = () => {
                     let anchors: string[];
                     if (spec.at === 'self') anchors = ['player'];

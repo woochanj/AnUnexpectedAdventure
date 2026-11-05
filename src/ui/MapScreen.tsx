@@ -2,8 +2,7 @@ import { useEffect, useRef, useState, type Dispatch } from 'react';
 import { ENEMIES, FLOORS } from '../game/enemies';
 import { FLOOR_COUNT, type Action } from '../game/run';
 import type { Room, RoomType, RunState } from '../game/types';
-import { FxView, HeroView, SceneryView } from './Actors';
-import { stillOf } from './cardArt';
+import { FxView, HeroView, monsterStill, SceneryView } from './Actors';
 import { FX } from './creatures';
 import { FxCanvas } from './FxCanvas';
 import { MAP_AMBIENT } from './vfx';
@@ -17,8 +16,7 @@ const LEGEND: RoomType[] = ['combat', 'elite', 'event', 'treasure', 'rest', 'sho
 function RoomIcon({ room }: { room: Room }) {
     if ((room.type === 'combat' || room.type === 'elite' || room.type === 'boss') && room.encounter) {
         const def = ENEMIES[room.encounter[0]];
-        const url = stillOf(`enemy:${def.id}`, FX[def.look.fx], { palette: def.look.palette });
-        return url ? <img src={url} alt="" className={`room-enemy room-enemy-${room.type}`} draggable={false} /> : null;
+        return <img src={monsterStill(def.id, def.look)} alt="" className={`room-enemy room-enemy-${room.type}`} draggable={false} />;
     }
     // 모닥불은 지도에서도 실제로 타오른다
     if (room.type === 'rest') return <FxView mod={FX['fire/campfire']} scale={1} maxW={44} className="room-fire" />;

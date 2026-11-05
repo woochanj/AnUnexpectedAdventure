@@ -6,8 +6,7 @@ import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
 import type { CardInst, CombatState, EnemyState, Fx, Intent } from '../game/types';
 import { CardGrid, CardView, HpBar, Modal, StatusList } from './common';
-import { FxView, HeroView, SceneryView, type HeroAction } from './Actors';
-import { FX } from './creatures';
+import { HeroView, MonsterView, SceneryView, type HeroAction, type MonsterAttack } from './Actors';
 import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { FLOOR_AMBIENT } from './vfx';
@@ -166,6 +165,9 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
 
     useEffect(() => setSelected(null), [c.hand.length, c.turn]);
     const [heroAction, setHeroAction] = useState<HeroAction | null>(null);
+    // 적마다 가장 최근 공격 신호 → 몬스터 덮치기 동작
+    const attacks: Record<string, MonsterAttack> = {};
+    for (const q of c.cues) if (q.kind === 'enemyAttack' && q.source) attacks[q.source] = { id: q.id, hitIn: q.delay + IMPACT_DELAY };
     useJuice(c, fieldRef, clock, setHeroAction);
 
     const play = useCallback(
@@ -248,14 +250,12 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
                                 {e.hp > 0 && <IntentBadge e={e} c={c} />}
                                 <div data-body={e.uid}>
                                     <Shake fx={c.fx} target={e.uid}>
-                                        <FxView
-                                            mod={FX[def.look.fx]}
-                                            opts={{ palette: def.look.palette, flip: def.look.flip ?? true }}
-                                            scale={def.look.scale ?? 4}
-                                            maxW={64}
-                                            outline
+                                        <MonsterView
+                                            look={def.look}
+                                            scale={def.look.scale ?? 3}
                                             seed={Number(e.uid.slice(1)) + 1}
                                             clock={clock}
+                                            attack={attacks[e.uid]}
                                         />
                                     </Shake>
                                 </div>

@@ -44,8 +44,13 @@ export interface Intent {
 export interface EnemyDef {
     id: string;
     name: string;
-    /** pixelfx 이펙트 id와 색. 화면 쪽(ui/creatures.ts)에서 모듈로 바꿔 그린다 */
-    look: { fx: string; palette?: string[]; scale?: number; flip?: boolean };
+    /** 생김새. 화면 쪽(ui/monsters.ts)에서 픽셀 몬스터로 그린다 */
+    look: {
+        kind: 'ooze' | 'ghoul' | 'gargoyle' | 'rat' | 'skeleton' | 'flameskull' | 'cultist' | 'wraith' | 'eye' | 'knight';
+        variant?: string;
+        scale?: number;
+        crown?: boolean;
+    };
     hp: [number, number];
     moves: Intent[];
     /** true면 무작위 행동, 아니면 순서대로 반복 */

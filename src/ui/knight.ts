@@ -2,21 +2,19 @@
 // 부위를 도형으로 칠하면서 5단 음영 + 2×2 디더링으로 질감을 내고, 마지막에 진한 외곽선을 두른다.
 // 빛은 왼쪽 위에서 오고, 오른쪽 가장자리에는 차가운 반사광을 살짝 남긴다.
 
+import { blit, Buf, R, u32, INK, type Ramp } from './pixelkit';
+
 export const KNIGHT_W = 64;
 export const KNIGHT_H = 64;
 
-/** 어두움 → 밝음 5단 */
-type Ramp = [number, number, number, number, number];
 
-const u32 = (hex: string) => {
-    const n = parseInt(hex.slice(1), 16);
-    return ((0xff << 24) | ((n & 0xff) << 16) | (n & 0xff00) | (n >> 16)) >>> 0;
-};
-const R = (...h: string[]) => h.map(u32) as Ramp;
+const GLOW = u32('#ff4a3a');
+const GLOW_HOT = u32('#ffd0a0');
 
-const INK = u32('#08070c');
-const CONTOUR = u32('#0e0c14');
-const M = {
+export type KnightPalette = Record<'steel' | 'steelDark' | 'gold' | 'cape' | 'leather' | 'blade', Ramp>;
+
+export const KNIGHT_HERO: KnightPalette = {
+
     steel: R('#1c1a24', '#363441', '#5a5866', '#8e8e9e', '#d6dae6'),
     steelDark: R('#121119', '#22212b', '#363440', '#54525f', '#807f92'),
     gold: R('#221808', '#3e2c12', '#6a4e24', '#9a7a42', '#cbb27a'),
@@ -24,114 +22,6 @@ const M = {
     leather: R('#120c0a', '#231914', '#3a2a20', '#56402e', '#76604a'),
     blade: R('#2a2c36', '#565a68', '#8a90a0', '#c4cad8', '#f0f4ff'),
 };
-const GLOW = u32('#ff4a3a');
-const GLOW_HOT = u32('#ffd0a0');
-
-const BAYER = [0, 2, 3, 1]; // 2×2
-
-class Buf {
-    d = new Uint32Array(KNIGHT_W * KNIGHT_H);
-    /** 픽셀마다 어느 부위인지 (부위 경계에 안쪽 윤곽선을 넣기 위해) */
-    part = new Uint16Array(KNIGHT_W * KNIGHT_H);
-    cur = 1;
-    /** 새 부위 시작. contour=false면 이 부위에는 윤곽선을 넣지 않는다 (칼날 등 가는 것) */
-    begin(contour = true) {
-        // 짝수 = 윤곽선 넣는 부위, 홀수 = 넣지 않는 부위. 번호는 그리는 순서대로 커진다
-        this.cur = (this.cur & ~1) + 2 + (contour ? 0 : 1);
-    }
-    set(x: number, y: number, c: number) {
-        x = Math.round(x);
-        y = Math.round(y);
-        if (x >= 0 && y >= 0 && x < KNIGHT_W && y < KNIGHT_H) {
-            this.d[y * KNIGHT_W + x] = c;
-            this.part[y * KNIGHT_W + x] = this.cur;
-        }
-    }
-    /** 앞 부위가 뒤 부위와 맞닿은 가장자리를 어둡게 → 부위가 또렷하게 갈린다 */
-    contours() {
-        const W = KNIGHT_W, p = this.part, out = this.d.slice();
-        for (let y = 0; y < KNIGHT_H; y++)
-            for (let x = 0; x < W; x++) {
-                const i = y * W + x;
-                const me = p[i];
-                if (!me || me & 1) continue;
-                const behind = (j: number) => p[j] && p[j] < me && !(p[j] & 1);
-                if ((x > 0 && behind(i - 1)) || (x < W - 1 && behind(i + 1)) || (y > 0 && behind(i - W)) || (y < KNIGHT_H - 1 && behind(i + W))) out[i] = CONTOUR;
-            }
-        this.d = out;
-    }
-    /** 밝기 l(0~1)을 5단 음영으로. 단계 사이는 디더링 */
-    shade(x: number, y: number, l: number, r: Ramp) {
-        const v = Math.max(0, Math.min(1, l)) * 4;
-        const i = Math.floor(v);
-        const frac = v - i;
-        const th = (BAYER[(x & 1) + (y & 1) * 2] + 0.5) / 4;
-        this.set(x, y, r[Math.min(4, frac > th ? i + 1 : i)]);
-    }
-    /** 타원: 법선 방향으로 왼쪽 위 빛 */
-    ellipse(cx: number, cy: number, rx: number, ry: number, r: Ramp, bias = 0) {
-        for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++)
-            for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
-                const nx = (x + 0.5 - cx) / rx;
-                const ny = (y + 0.5 - cy) / ry;
-                const d = nx * nx + ny * ny;
-                if (d > 1) continue;
-                const nz = Math.sqrt(1 - d);
-                let l = 0.15 + (-nx * 0.45 - ny * 0.55 + nz * 0.55) * 0.75 + bias;
-                if (nx > 0.75 && d > 0.6) l += 0.25; // 반사광
-                this.shade(x, y, l, r);
-            }
-    }
-    /** 선분 둘레 두께 rad의 캡슐 (팔, 다리) */
-    capsule(x0: number, y0: number, x1: number, y1: number, rad: number, r: Ramp, bias = 0) {
-        const minX = Math.floor(Math.min(x0, x1) - rad), maxX = Math.ceil(Math.max(x0, x1) + rad);
-        const minY = Math.floor(Math.min(y0, y1) - rad), maxY = Math.ceil(Math.max(y0, y1) + rad);
-        const vx = x1 - x0, vy = y1 - y0, len2 = vx * vx + vy * vy || 1;
-        for (let y = minY; y <= maxY; y++)
-            for (let x = minX; x <= maxX; x++) {
-                const px = x + 0.5 - x0, py = y + 0.5 - y0;
-                const t = Math.max(0, Math.min(1, (px * vx + py * vy) / len2));
-                const dx = px - vx * t, dy = py - vy * t;
-                const dist = Math.hypot(dx, dy);
-                if (dist > rad) continue;
-                const nx = dx / rad, ny = dy / rad;
-                const l = 0.45 + (-nx * 0.5 - ny * 0.4) * 0.8 + bias - t * 0.12;
-                this.shade(x, y, l, r);
-            }
-    }
-    /** 볼록 다각형 (점은 시계/반시계 아무 순서) — 세로 그라디언트 + 왼쪽 빛 */
-    poly(pts: [number, number][], r: Ramp, bias = 0) {
-        const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-        const minX = Math.floor(Math.min(...xs)), maxX = Math.ceil(Math.max(...xs));
-        const minY = Math.floor(Math.min(...ys)), maxY = Math.ceil(Math.max(...ys));
-        for (let y = minY; y <= maxY; y++)
-            for (let x = minX; x <= maxX; x++) {
-                const px = x + 0.5, py = y + 0.5;
-                let inside = false;
-                for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-                    const [xi, yi] = pts[i], [xj, yj] = pts[j];
-                    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
-                }
-                if (!inside) continue;
-                const u = (px - minX) / (maxX - minX + 1), v = (py - minY) / (maxY - minY + 1);
-                this.shade(x, y, 0.7 - u * 0.45 - v * 0.35 + bias, r);
-            }
-    }
-    line(x0: number, y0: number, x1: number, y1: number, c: number) {
-        const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2) + 1;
-        for (let i = 0; i <= n; i++) this.set(x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n, c);
-    }
-    outline() {
-        const s = this.d.slice();
-        const W = KNIGHT_W;
-        for (let y = 0; y < KNIGHT_H; y++)
-            for (let x = 0; x < W; x++) {
-                const i = y * W + x;
-                if (s[i]) continue;
-                if ((x > 0 && s[i - 1]) || (x < W - 1 && s[i + 1]) || (y > 0 && s[i - W]) || (y < KNIGHT_H - 1 && s[i + W])) this.d[i] = INK;
-            }
-    }
-}
 
 export type Visor = 'dim' | 'glow' | 'flash';
 
@@ -150,7 +40,7 @@ export interface Pose {
 
 export const IDLE_POSE: Pose = { by: 0, lean: 0, ang: 0.62, hx: 0, hy: 0, legs: 0, cape: 0, visor: 'dim' };
 
-export function drawKnight(p: Pose, out: Uint32Array, flip = false) {
+export function drawKnight(p: Pose, out: Uint32Array, flip = false, M: KnightPalette = KNIGHT_HERO, crown = false) {
     const b = new Buf();
     const cx = 26;
     const by = Math.round(p.by);
@@ -240,6 +130,12 @@ export function drawKnight(p: Pose, out: Uint32Array, flip = false) {
         const y = head.y - 7 + t * t * 6 + Math.sin(i * 1.7) * 0.6;
         b.ellipse(x, y, 1.6 - t * 0.6, 1.4, M.cape, 0.2);
     }
+    // 왕관 (보스용)
+    if (crown) {
+        b.begin();
+        b.poly([[head.x - 5, head.y - 5], [head.x + 6, head.y - 5], [head.x + 6, head.y - 3], [head.x - 5, head.y - 3]], M.gold);
+        for (const ox of [-4, 0.5, 5]) b.poly([[head.x + ox - 2, head.y - 5], [head.x + ox, head.y - 11], [head.x + ox + 2, head.y - 5]], M.gold, 0.1);
+    }
     // 눈구멍
     b.begin(false);
     b.line(head.x + 1, head.y, head.x + 7, head.y, INK);
@@ -271,8 +167,7 @@ export function drawKnight(p: Pose, out: Uint32Array, flip = false) {
     b.contours();
     b.outline();
 
-    for (let y = 0; y < KNIGHT_H; y++)
-        for (let x = 0; x < KNIGHT_W; x++) out[y * KNIGHT_W + (flip ? KNIGHT_W - 1 - x : x)] = b.d[y * KNIGHT_W + x];
+    blit(b, out, flip);
 }
 
 // ───────────── 동작 (키프레임) ─────────────

@@ -3,6 +3,8 @@ import { clearFrame, composite, createFrame, createFx, type Frame, type FxInstan
 import type { HitStopClock } from './FxCanvas';
 import { drawKnight, IDLE_POSE, KNIGHT_H, KNIGHT_W, MOVES, moveSpan, samplePose, type Key, type Pose } from './knight';
 import { paintScenery } from './scenery';
+import { ATTACK_LEAD, attackCurve, drawMonster, type MonsterLook } from './monsters';
+import { PX } from './pixelkit';
 import { cleanOpts } from './creatures';
 
 const frozen = (clock?: RefObject<HitStopClock>) => {
@@ -220,4 +222,89 @@ export function SceneryView({ floor, ground = false, seed = 1, scale = 3 }: { fl
         return () => ro.disconnect();
     }, [floor, ground, seed, scale]);
     return <canvas ref={ref} className="pixel-canvas scenery-canvas" aria-hidden />;
+}
+
+// ───────────── 적: 다크 판타지 몬스터 ─────────────
+
+export interface MonsterAttack {
+    id: number;
+    /** 이 공격이 닿기까지 남은 시간(초) */
+    hitIn: number;
+}
+
+export function MonsterView({
+    look, scale = 3, clock, seed = 1, attack,
+}: {
+    look: MonsterLook;
+    scale?: number;
+    clock?: RefObject<HitStopClock>;
+    seed?: number;
+    attack?: MonsterAttack | null;
+}) {
+    const ref = useRef<HTMLCanvasElement>(null);
+    const startAt = useRef(-1);
+    const lastId = useRef(attack?.id ?? -1);
+
+    useEffect(() => {
+        if (!attack || attack.id === lastId.current) return;
+        lastId.current = attack.id;
+        // 덮치는 순간이 공격이 닿는 순간과 맞도록 미리 시작
+        startAt.current = performance.now() + (attack.hitIn - ATTACK_LEAD) * 1000;
+    }, [attack]);
+
+    useEffect(() => {
+        const cv = ref.current;
+        if (!cv) return;
+        cv.width = PX;
+        cv.height = PX;
+        const ctx = cv.getContext('2d')!;
+        const img = new ImageData(PX, PX);
+        const px = new Uint32Array(img.data.buffer);
+        let raf = 0;
+        let prev = performance.now();
+        let time = seed * 1.37;
+        const tick = (now: number) => {
+            const dt = Math.min(0.05, (now - prev) / 1000);
+            prev = now;
+            if (!frozen(clock)) time += dt;
+            const a = startAt.current > 0 ? attackCurve((now - startAt.current) / 1000) : 0;
+            px.fill(0);
+            drawMonster(look, time, a, px, true);
+            ctx.putImageData(img, 0, 0);
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [look, seed, clock]);
+
+    return <canvas ref={ref} className="pixel-canvas monster-canvas" style={{ width: PX * scale, height: PX * scale }} />;
+}
+
+const stills = new Map<string, string>();
+/** 지도 아이콘용: 몬스터 정지 이미지 (그려진 부분만 잘라서) */
+export function monsterStill(key: string, look: MonsterLook): string {
+    const hit = stills.get(key);
+    if (hit) return hit;
+    const px = new Uint32Array(PX * PX);
+    drawMonster(look, 0.4, 0, px, true);
+    let x0 = PX, y0 = PX, x1 = 0, y1 = 0;
+    for (let y = 0; y < PX; y++)
+        for (let x = 0; x < PX; x++)
+            if (px[y * PX + x]) {
+                x0 = Math.min(x0, x);
+                y0 = Math.min(y0, y);
+                x1 = Math.max(x1, x);
+                y1 = Math.max(y1, y);
+            }
+    const w = x1 - x0 + 1, h = y1 - y0 + 1;
+    const cv = document.createElement('canvas');
+    cv.width = w;
+    cv.height = h;
+    const img = new ImageData(w, h);
+    const out = new Uint32Array(img.data.buffer);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out[y * w + x] = px[(y + y0) * PX + x + x0];
+    cv.getContext('2d')!.putImageData(img, 0, 0);
+    const url = cv.toDataURL();
+    stills.set(key, url);
+    return url;
 }

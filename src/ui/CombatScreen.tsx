@@ -229,7 +229,7 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
                 <div className="fighter player-side">
                     <div data-body="player">
                         <Shake fx={c.fx} target="player">
-                            <HeroView action={heroAction} clock={clock} scale={3} />
+                            <HeroView action={heroAction} clock={clock} scale={4} />
                         </Shake>
                     </div>
                     <FxLayer fx={c.fx} target="player" />

@@ -1,7 +1,8 @@
 import { useEffect, useRef, type CSSProperties, type RefObject } from 'react';
 import { clearFrame, composite, createFrame, createFx, type Frame, type FxInstance, type FxModule } from 'pixelfx';
 import type { HitStopClock } from './FxCanvas';
-import { drawKnight, IDLE_POSE, KNIGHT_H, KNIGHT_W, MOVES, moveSpan, samplePose, type Key, type Pose } from './knight';
+import { drawCatKnight } from './catknight';
+import { IDLE_POSE, KNIGHT_H, KNIGHT_W, MOVES, moveSpan, samplePose, type Key, type Pose } from './knight';
 import { paintScenery } from './scenery';
 import { ATTACK_LEAD, attackCurve, drawMonster, type MonsterLook } from './monsters';
 import { PX } from './pixelkit';
@@ -112,7 +113,7 @@ export function FxView({
     return <canvas ref={ref} className={`pixel-canvas ${className ?? ''}`} style={{ width: w * scale, height: h * scale, ...style }} />;
 }
 
-// ───────────── 주인공: 다크 판타지 기사 렌더러로 그린다 ─────────────
+// ───────────── 주인공: 고양이 기사 (치비 + 다크 판타지 질감) ─────────────
 
 export interface HeroAction {
     id: number;
@@ -185,7 +186,7 @@ export function HeroView({
                 const cape = Math.round(Math.sin(time * 2.1) * 1.5);
                 pose = { ...IDLE_POSE, by: breathe, legs: step, cape, visor: glint ? 'glow' : 'dim' };
             }
-            drawKnight(pose, px, flip);
+            drawCatKnight(pose, px, flip);
             ctx.putImageData(img, 0, 0);
             raf = requestAnimationFrame(tick);
         };

@@ -14,7 +14,8 @@ import { sfx } from './sfx';
 import { DragArrow } from './DragArrow';
 import { barkFor, heroBark, type HeroBarks } from '../game/story';
 import type { ClassId } from '../game/types';
-import { CARD_MOVE, IN_PLACE, playHeroMotion, STILL_FOR } from './heroMoves';
+import { CARD_MOVE, CARD_SKIN, IN_PLACE, playHeroMotion, STILL_FOR } from './heroMoves';
+import { spriteImage, spriteInfo } from './SpriteActor';
 import { spawnAfterimages } from './afterimage';
 import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
 import { hasAnim } from './SpriteActor';
@@ -254,7 +255,9 @@ function useJuice(
     clock: React.RefObject<HitStopClock>,
     setHeroAction: (a: HeroAction) => void,
     cls: ClassId,
+    setSkin: (s: string | null) => void,
 ) {
+    const skinTimer = useRef(0);
     const saidLow = useRef(false);
     const seenFx = useRef(c.fx.length ? c.fx[c.fx.length - 1].id : 0);
     const seenCue = useRef(c.cues.length ? c.cues[c.cues.length - 1].id : 0);
@@ -310,6 +313,11 @@ function useJuice(
             if (q.kind === 'death' && Math.random() < 0.3) heroSay(field, cls, 'kill', q.delay * 1000 + 450);
             if (q.kind === 'card') {
                 const cd = CARDS[q.card ?? ''];
+                // 이 카드는 다른 무기로: 그 스프라이트로 잠깐 바꿔 들었다가 돌아온다
+                const skin = CARD_SKIN[heroLook]?.[q.card ?? ''];
+                window.clearTimeout(skinTimer.current);
+                setSkin(skin ?? null);
+                if (skin) skinTimer.current = window.setTimeout(() => setSkin(null), ((cd ? windupOf(cd) : 0.4) + 1.3) * 1000);
                 if (cd?.ultimate) heroSay(field, cls, 'ultimate', 60);
                 else if (cd?.charge && Math.random() < 0.6) heroSay(field, cls, 'skill', 60);
                 else if (cd?.type === 'skill' && cd.effects.some((e) => e.kind === 'block') && Math.random() < 0.25) heroSay(field, cls, 'guard', 60);
@@ -531,7 +539,12 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
     // 쓰러지는 순간(초): 상태는 카드를 내자마자 바뀌지만, 연출은 일격이 닿을 때 시작한다
     const dies: Record<string, number> = {};
     for (const q of c.cues) if (q.kind === 'death' && q.target) dies[q.target] = q.delay;
-    useJuice(hero, c, fieldRef, clock, setHeroAction, cls);
+    // 카드별 무기 스프라이트 (바꿔 들 때 그림이 없어 깜박이지 않게 미리 불러 둔다)
+    const [skin, setSkin] = useState<string | null>(null);
+    useEffect(() => {
+        for (const s of Object.values(CARD_SKIN[hero] ?? {})) for (const a of Object.keys(spriteInfo(s)?.anims ?? {})) spriteImage(s, a);
+    }, [hero]);
+    useJuice(hero, c, fieldRef, clock, setHeroAction, cls, setSkin);
 
     const play = useCallback(
         (idx: number, target: string | null) => {
@@ -711,7 +724,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                 <div className={`fighter player-side ${drag?.moved && !drag.target ? `self-aim ${drag.release ? "ready" : ""}` : ""}`}>
                     <div data-body="player">
                         <Shake fx={c.fx} target="player">
-                            <HeroView char={hero} action={heroAction} clock={clock} scale={4} dead={c.result === 'lose'} />
+                            <HeroView char={skin ?? hero} action={heroAction} clock={clock} scale={4} dead={c.result === 'lose'} />
                         </Shake>
                     </div>
                     <FxLayer fx={c.fx} target="player" />

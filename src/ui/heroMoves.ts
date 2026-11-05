@@ -115,6 +115,14 @@ export const CARD_MOVE: Record<string, HeroMove> = {
     adrenaline: M(['special', 'jump'], 'recoil'),
 };
 
+/**
+ * 카드마다 다른 무기: 같은 캐릭터의 다른 무기 스프라이트로 잠깐 바꿔 든다.
+ * 모험가(기사)는 검이 기본, 방패 카드는 검을 넣고 방패·주먹으로 친다.
+ */
+export const CARD_SKIN: Record<string, Record<string, string>> = {
+    adventurer: { shield_bash: 'adventurer-fist', shield_slam: 'adventurer-fist', counter_stance: 'adventurer-fist' },
+};
+
 /** 원거리로만 싸우는 주인공이 근접 카드를 쓸 때 대신할 제자리 움직임 */
 export const STILL_FOR: Partial<Record<HeroMotion, HeroMotion>> = { roll: 'hop' };
 

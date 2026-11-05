@@ -197,7 +197,8 @@ export function SpriteActor({
             cv.style.transform = `translateX(${off}px)${mirrored ? ' scaleX(-1)' : ''}`;
             raf = requestAnimationFrame(tick);
         };
-        raf = requestAnimationFrame(tick);
+        // 바로 한 번 그린다: 다른 무기 스프라이트로 바꿔 들 때 한 프레임 비어 깜박이지 않게
+        tick(performance.now());
         return () => cancelAnimationFrame(raf);
     }, [name, info, clock]);
 

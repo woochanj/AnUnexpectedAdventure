@@ -141,7 +141,8 @@ export function FxCanvas({
         const cl = clock?.current;
         if (cl) cl.windows = cl.windows.filter(([, b]) => b > now - 1000);
         const frozen = !!cl?.windows.some(([a, b]) => now >= a && now < b);
-        const dt = frozen ? 0 : Math.min(0.05, (now - prev) / 1000);
+        // rAF 시각이 시작 시각보다 앞설 수 있어 음수가 되지 않게 (음수면 이펙트가 없는 프레임을 읽다 멈춘다)
+        const dt = frozen ? 0 : Math.max(0, Math.min(0.05, (now - prev) / 1000));
         clearFrame(st.frame);
         for (const a of ambientLive.current) {
             a.update(dt * (ambientSpeed ?? 1));

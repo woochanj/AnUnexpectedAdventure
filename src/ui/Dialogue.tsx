@@ -1,5 +1,5 @@
 // 이야기 장면: 지역 배경 위에 아래쪽 대화창. 한 글자씩 써지고, 누르면 다음 줄로.
-import { useEffect, useRef, useState, type Dispatch } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch } from 'react';
 import { regionOf } from '../game/biomes';
 import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
@@ -18,7 +18,9 @@ function Portrait({ line, run }: { line: Line; run: RunState }) {
 }
 
 export function DialogueScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'dialogue' }>; run: RunState; dispatch: Dispatch<Action> }) {
-    const lines = sceneLines(s.scene, run);
+    // 대사 목록은 장면이 바뀔 때만 새로 만든다 (그릴 때마다 새로 만들면 한 글자 쓸 때마다 처음부터 다시 써서 멈춘 것처럼 보인다)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const lines = useMemo(() => sceneLines(s.scene, run), [s.scene, run.cls]);
     const [i, setI] = useState(0);
     const [shown, setShown] = useState(0);
     const line = lines[i];
@@ -43,7 +45,7 @@ export function DialogueScreen({ s, run, dispatch }: { s: Extract<Screen, { kind
         }, 28);
         timer.current = t;
         return () => clearInterval(t);
-    }, [line]);
+    }, [i, s.scene, line?.text]);
 
     // 대사가 없으면 바로 넘긴다
     useEffect(() => {

@@ -173,7 +173,8 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     torch_swing: [{ mod: swordSlash, at: 'target', dx: SLASH_DX, opts: { palette: FIRE } }],
     twin_cut: [{ mod: doubleSlash, at: 'target', dx: -34 }],
     shield_bash: [{ mod: bluntHit, at: 'target' }, { ...BLOCK, delay: 0.1 }],
-    sweep: [{ mod: spinSlash, at: 'all' }],
+    // 기사 무기 — 휩쓸기: 창을 크게 휘둘러 앞을 쓴다
+    sweep: [{ mod: spearSweep, at: 'all', dx: -24, speed: 1.3 }],
     heavy_blow: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.6 }],
     venom_dagger: [{ mod: daggerFlurry, at: 'target', dx: -28, opts: { palette: VENOM } }],
     crouch: [{ ...BLOCK, speed: 1.6 }, { mod: heavyLanding, at: 'self', speed: 1.8 }],
@@ -236,7 +237,8 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     death_mark: [{ mod: necroSkulls, at: 'target', speed: 1.6, stopAfter: 1.2 }, { mod: curseFx, at: 'target', delay: 0.2, speed: 1.4, stopAfter: 1 }, { mod: acidSplash, at: 'target', delay: 0.5, speed: 1.6 }],
     // 연계 카드
     shield_slam: [{ mod: cartoonPow, at: 'target', speed: 1.4 }, { mod: shieldBlock, at: 'target', dx: -20, speed: 1.4 }],
-    chain_strike: [{ mod: swordSlash, at: 'target', dx: SLASH_DX }, { mod: doubleSlash, at: 'target', dx: -34, delay: 0.18 }],
+    // 연계 베기 → 사슬 철퇴: 사슬이 휘감기고 쇠공이 박힌다
+    chain_strike: [{ mod: whipCrack, at: 'target', dx: -40, speed: 1.3 }, { mod: bluntHit, at: 'target', delay: 0.16, speed: 1.4 }],
     war_cry: [{ mod: exclamation, at: 'self', dy: -60, speed: 1.4 }, { mod: thunderclap, at: 'self', delay: 0.1, speed: 1.6, opts: { palette: ['#2a1406', '#5a2e0a', '#9a5a10', '#d89a20', '#ffd24a', '#fff2b0', '#ffffff'] } }],
     counter_stance: [BLOCK, { mod: thorns, at: 'self', dx: -40, speed: 1.6 }],
     execution: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.4, opts: { palette: BLOOD } }, { mod: critHit, at: 'target', delay: 0.08 }],
@@ -299,8 +301,9 @@ const CARD_ART: Record<string, VfxSpec> = {
     dodge: { mod: blinkOut, at: 'self' },
     counter_stance: { mod: parry, at: 'self' },
     chain_strike: { mod: whipCrack, at: 'target' },
+    sweep: { mod: spearSweep, at: 'target' },
     momentum: { mod: sparkArc, at: 'target', opts: { palette: ['#2a1406', '#5a2e0a', '#9a5a10', '#d89a20', '#ffd24a', '#fff2b0', '#ffffff'] } },
-    blade_storm: { mod: spearSweep, at: 'target' },
+    blade_storm: { mod: spinSlash, at: 'target', opts: { palette: ['#0a2a30', '#145058', '#2a8a8a', '#4ad0c0', '#9af4e0', '#e0fff8', '#ffffff'] } },
     cleave_line: { mod: groundSlam, at: 'target' },
     finisher: { mod: sunburst, at: 'target', opts: { palette: BLOOD } },
     adrenaline: { mod: manaBurst, at: 'self' },

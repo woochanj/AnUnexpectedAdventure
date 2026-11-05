@@ -17,6 +17,7 @@ import type { ClassId } from '../game/types';
 import { CARD_MOVE, CARD_SKIN, IN_PLACE, playHeroMotion, STILL_FOR } from './heroMoves';
 import { spriteImage, spriteInfo } from './SpriteActor';
 import { spawnAfterimages } from './afterimage';
+import { spawnShield } from './shield';
 import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
 import { hasAnim } from './SpriteActor';
 import { ChargeFx } from './ChargeFx';
@@ -121,6 +122,10 @@ function chargeMoment(field: HTMLElement, el: string, ultimate: string | null, c
 }
 
 /** 졸개 말풍선: 몬스터 머리 위에 잠깐 떴다 사라진다 */
+/** 방패를 꺼내 드는 기사 기술 */
+const SHIELD_HIT = new Set(['shield_bash', 'shield_slam']);
+const SHIELD_GUARD = new Set(['counter_stance']);
+
 function say(field: HTMLElement, c: CombatState, uid: string, kind: 'start' | 'attack' | 'hurt' | 'death', delayMs: number) {
     const foe = c.enemies.find((e) => e.uid === uid);
     if (!foe || c.kind === 'boss') return;
@@ -372,8 +377,12 @@ function useJuice(
                         if (heroLook === 'wind-hashashin') spawnAfterimages(field, hero, charge * 1000 + 40, run + hold + 200);
                         // 기사는 뛰어오르거나 기를 모은 큰 기술에서 금빛 잔상
                         else if (card?.cls === 'knight' && (motion === 'leap' || charge)) spawnAfterimages(field, hero, charge * 1000 + 40, run + 160, 'gold');
+                        // 방패 기술: 방패를 들고 달려가 내밀어 친다
+                        if (SHIELD_HIT.has(q.card ?? '')) spawnShield(hero, charge * 1000, charge * 1000 + ATTACK_WINDUP * 1000, charge * 1000 + run + hold + 420);
                     }
                 }
+                // 방패를 앞세우고 버티는 기술
+                if (hero && SHIELD_GUARD.has(q.card ?? '')) spawnShield(hero, charge * 1000, charge * 1000 + 300, charge * 1000 + 1100, true);
             }
             if (q.kind === 'enemyAttack') {
                 const hitAt = (q.delay + IMPACT_DELAY) * 1000;

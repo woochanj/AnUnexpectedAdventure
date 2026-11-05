@@ -5459,3 +5459,301 @@ body {
     color: #e0d2b8;
     opacity: 1;
 }
+
+/* 기사가 방패 기술에 꺼내 드는 도트 방패 */
+.knight-shield {
+    position: absolute;
+    left: 56%;
+    top: 40%;
+    width: 36px;
+    height: 45px;
+    background-size: 100% 100%;
+    image-rendering: pixelated;
+    pointer-events: none;
+    z-index: 3;
+    transform-origin: 30% 80%;
+    filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.5));
+    opacity: 0;
+}
+.knight-shield {
+    left: 60%;
+    top: 36%;
+    width: 40px;
+    height: 50px;
+}
+
+/* ═════════ 메인 화면: 하스스톤 여관 느낌 (장식 상자 · 초상화 틀 · 큰 금빛 버튼 · 불티) ═════════ */
+.title-screen.hs {
+    --accent: #ffcf4a;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    gap: 10px;
+    padding: 22px 14px 28px;
+    background:
+        radial-gradient(ellipse 60% 45% at 50% 42%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+        radial-gradient(ellipse at 50% 110%, rgba(255, 120, 40, 0.28), transparent 55%),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.12) 0 2px, transparent 2px 46px),
+        linear-gradient(180deg, #1c1028, #2a1822 60%, #180c14);
+    transition: background 0.4s;
+}
+.title-screen.hs.hs-knight { --accent: #ffcf4a; }
+.title-screen.hs.hs-mage { --accent: #5ab8ff; }
+.title-screen.hs.hs-rogue { --accent: #7ae070; }
+/* 불티: 아래에서 떠올라 흔들리며 사라진다 */
+.hs-embers {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+.hs-embers i {
+    position: absolute;
+    bottom: -10px;
+    width: 3px;
+    height: 3px;
+    background: #ffb040;
+    box-shadow: 0 0 6px 1px #ff7a20;
+    animation: hs-ember linear infinite;
+}
+.hs-embers i:nth-child(3n) {
+    background: #ffe48a;
+    width: 2px;
+    height: 2px;
+}
+@keyframes hs-ember {
+    0% { transform: translate(0, 0); opacity: 0; }
+    10% { opacity: 1; }
+    50% { transform: translate(18px, -50vh); }
+    90% { opacity: 0.8; }
+    100% { transform: translate(-12px, -100vh); opacity: 0; }
+}
+.title-screen.hs .title-logo {
+    font-size: clamp(2rem, 6.5vw, 3.6rem);
+    margin: 0;
+    background: linear-gradient(180deg, #fff6c0 0%, #ffd84a 45%, #e08a1e 75%, #b85a10 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(2px 0 0 #2a0e04) drop-shadow(-2px 0 0 #2a0e04) drop-shadow(0 2px 0 #2a0e04) drop-shadow(0 -2px 0 #2a0e04) drop-shadow(0 5px 0 #2a0e04) drop-shadow(0 0 18px rgba(255, 150, 60, 0.45));
+}
+.title-screen.hs .title-logo small {
+    -webkit-text-fill-color: #f8ecd0;
+}
+.title-screen.hs .title-sub {
+    margin: 0 0 4px;
+    color: #f0d8c0;
+    text-shadow: 0 2px 0 #000;
+}
+/* 장식 상자: 짙은 나무판 + 금 테두리 + 네 귀퉁이 징 */
+.hs-box {
+    position: relative;
+    width: min(680px, 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px 20px;
+    border: 3px solid #120a06;
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 10px 10px, #ffe48a 0 3px, #8a5a14 3px 5px, transparent 5px),
+        radial-gradient(circle at calc(100% - 10px) 10px, #ffe48a 0 3px, #8a5a14 3px 5px, transparent 5px),
+        radial-gradient(circle at 10px calc(100% - 10px), #ffe48a 0 3px, #8a5a14 3px 5px, transparent 5px),
+        radial-gradient(circle at calc(100% - 10px) calc(100% - 10px), #ffe48a 0 3px, #8a5a14 3px 5px, transparent 5px),
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.12) 0 3px, transparent 3px 11px),
+        linear-gradient(180deg, #4a2e1c, #2e1a10 70%, #24140c);
+    box-shadow:
+        inset 0 0 0 3px #c89a3a,
+        inset 0 0 0 5px #5a3a12,
+        inset 0 0 30px rgba(0, 0, 0, 0.6),
+        0 6px 0 #120a06,
+        0 16px 40px rgba(0, 0, 0, 0.6);
+}
+/* 무대: 고른 주인공이 조명 아래 원형 받침 위에 */
+.hs-stage {
+    position: relative;
+    width: 100%;
+    display: grid;
+    justify-items: center;
+}
+.title-screen.hs .title-art {
+    height: 210px;
+    max-width: 100%;
+    background:
+        radial-gradient(ellipse 30% 8% at 50% 92%, rgba(0, 0, 0, 0.55), transparent 100%),
+        radial-gradient(ellipse 40% 70% at 50% 85%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%);
+    animation: hs-arrive 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes hs-arrive {
+    from { opacity: 0; transform: translateY(14px) scale(0.92); }
+}
+.hs-caption {
+    display: grid;
+    gap: 2px;
+    margin-top: -6px;
+    padding: 4px 16px 6px;
+    border: 2px solid #120a06;
+    border-radius: 6px;
+    background: linear-gradient(#f7ebc8, #e2c890);
+    color: #3a2010;
+    box-shadow: 0 3px 0 #120a06;
+    max-width: 92%;
+}
+.hs-caption b {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    color: #2a1406;
+}
+.hs-caption span {
+    font-size: 0.85rem;
+}
+/* 직업 초상화: 아치형 금 틀, 체력 보석, 이름 리본 */
+.hs-heroes {
+    display: flex;
+    gap: clamp(10px, 3vw, 22px);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.hs-portrait {
+    --pc: #ffcf4a;
+    position: relative;
+    width: clamp(92px, 22vw, 132px);
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: transform 0.15s;
+}
+.hs-portrait.hs-p-mage { --pc: #5ab8ff; }
+.hs-portrait.hs-p-rogue { --pc: #7ae070; }
+.hs-portrait-art {
+    position: relative;
+    display: block;
+    height: clamp(96px, 22vw, 128px);
+    overflow: hidden;
+    border: 3px solid #120a06;
+    border-radius: 50% 50% 8px 8px / 38% 38% 8px 8px;
+    background:
+        radial-gradient(ellipse at 50% 85%, color-mix(in srgb, var(--pc) 45%, transparent), transparent 70%),
+        radial-gradient(ellipse at 50% 40%, #2a2238, #0c0818 85%);
+    box-shadow: inset 0 0 0 2px #c89a3a, inset 0 0 0 4px #5a3a12, inset 0 0 18px rgba(0, 0, 0, 0.8), 0 4px 0 #120a06;
+    filter: saturate(0.55) brightness(0.75);
+    transition: filter 0.2s, box-shadow 0.2s;
+}
+.hs-portrait-art > canvas {
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    translate: -50% 0;
+}
+.hs-portrait .hs-name {
+    position: relative;
+    z-index: 2;
+    display: block;
+    margin: -12px -6px 0;
+    padding: 3px 0 4px;
+    font-family: var(--font-head);
+    font-size: 1rem;
+    color: #fff;
+    text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 2px 0 #000;
+    background: linear-gradient(180deg, #5a4870, #2a1e3a);
+    clip-path: polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%);
+    filter: drop-shadow(0 2px 0 #000);
+}
+.hs-portrait .hs-hp {
+    position: absolute;
+    right: -6px;
+    top: 52%;
+    z-index: 3;
+    width: 30px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-head);
+    font-size: 0.85rem;
+    color: #fff;
+    text-shadow: 0 2px 0 #4a0810;
+    background: linear-gradient(135deg, #ff9a9a 0 22%, transparent 22%), linear-gradient(#e83a4a, #8a1424);
+    clip-path: polygon(50% 0, 100% 30%, 82% 100%, 18% 100%, 0 30%);
+    filter: drop-shadow(0 2px 0 #000);
+}
+.hs-portrait:hover .hs-portrait-art {
+    filter: saturate(0.85) brightness(0.95);
+}
+.hs-portrait.on {
+    transform: translateY(-6px);
+}
+.hs-portrait.on .hs-portrait-art {
+    filter: none;
+    box-shadow: inset 0 0 0 2px #fff1a8, inset 0 0 0 4px var(--pc), inset 0 0 18px rgba(0, 0, 0, 0.6), 0 4px 0 #120a06, 0 0 22px 4px color-mix(in srgb, var(--pc) 70%, transparent);
+}
+.hs-portrait.on .hs-name {
+    background: linear-gradient(180deg, #ffe48a, #c07a20);
+    color: #2a1004;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+/* 큰 금빛 버튼 (하스스톤 '플레이') */
+.hs-menu {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+.hs-menu .btn {
+    min-width: min(300px, 86%);
+    padding: 12px 24px 14px;
+    font-size: 1.3rem;
+}
+.hs-menu .btn-primary {
+    font-size: 1.6rem;
+    background: linear-gradient(180deg, #fff1a8 0 8%, #ffd84a 8% 50%, #f0a020 50% 88%, #b86a10 88%);
+    color: #2a1004;
+    border: 3px solid #120a06;
+    box-shadow: 0 5px 0 #120a06, 0 0 24px rgba(255, 200, 60, 0.55), inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+    animation: hs-play 2.4s ease-in-out infinite;
+}
+@keyframes hs-play {
+    50% { box-shadow: 0 5px 0 #120a06, 0 0 36px rgba(255, 210, 80, 0.85), inset 0 0 0 2px rgba(255, 255, 255, 0.5); }
+}
+.hs-menu .btn-primary:hover {
+    filter: brightness(1.1);
+}
+/* 도움말은 접어 둔다 */
+.hs-help {
+    width: min(440px, 100%);
+}
+.hs-help summary {
+    cursor: pointer;
+    color: #f0d8c0;
+    font-family: var(--font-head);
+    text-shadow: 0 2px 0 #000;
+    list-style: none;
+}
+.hs-help summary::before {
+    content: '▸ ';
+    color: #ffd84a;
+}
+.hs-help[open] summary::before {
+    content: '▾ ';
+}
+.title-screen.hs .look-pick {
+    margin: -4px 0 0;
+}
+@media (max-width: 640px) {
+    .title-screen.hs .title-art {
+        height: 170px;
+    }
+    .hs-box {
+        padding: 12px 10px 16px;
+    }
+    .hs-menu .btn-primary {
+        font-size: 1.35rem;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hs-embers {
+        display: none;
+    }
+}

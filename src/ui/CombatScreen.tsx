@@ -360,11 +360,24 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
     const clock = useRef<HitStopClock>({ windows: [] });
     const living = c.enemies.filter((e) => e.hp > 0);
     const locked = enemyTurn || !!c.result;
+    const [showResult, setShowResult] = useState(false);
 
     useEffect(() => setSelected(null), [c.hand.length, c.turn]);
     useEffect(() => {
-        if (c.result === 'win') window.setTimeout(() => sfx.victory(), 500);
-        if (c.result === 'lose') window.setTimeout(() => sfx.defeat(), 500);
+        if (!c.result) {
+            setShowResult(false);
+            return;
+        }
+        // 마지막 타격과 쓰러지는 동작(연기까지)을 다 보여 준 뒤에 결과 창을 띄운다
+        const last = Math.max(0, ...c.cues.map((q) => q.delay), ...c.fx.map((f) => f.delay));
+        const wait = last * 1000 + (c.result === 'win' ? 1700 : 1500);
+        const t = window.setTimeout(() => {
+            setShowResult(true);
+            if (c.result === 'win') sfx.victory();
+            else sfx.defeat();
+        }, wait);
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [c.result]);
     const [heroAction, setHeroAction] = useState<HeroAction | null>(null);
     // 적마다 가장 최근 공격 신호 → 몬스터 덮치기 동작
@@ -627,7 +640,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 </Modal>
             )}
 
-            {c.result && (
+            {c.result && showResult && (
                 <div className="result-overlay">
                     <div className={`result-box ${c.result}`}>
                         <h2>{c.result === 'win' ? '승리!' : '쓰러졌다…'}</h2>

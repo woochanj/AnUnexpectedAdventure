@@ -38,6 +38,26 @@ import * as smite from 'pixelfx/fx/holy/smite';
 import * as divineShield from 'pixelfx/fx/holy/divine-shield';
 import * as shadowTendrils from 'pixelfx/fx/shadow/shadow-tendrils';
 import * as thrustFx from 'pixelfx/fx/melee/thrust';
+import * as clawSwipe from 'pixelfx/fx/melee/claw-swipe';
+import * as uppercut from 'pixelfx/fx/melee/uppercut';
+import * as spearSweep from 'pixelfx/fx/melee/spear-sweep';
+import * as hammerSmash from 'pixelfx/fx/melee/hammer-smash';
+import * as groundSlam from 'pixelfx/fx/impacts/ground-slam';
+import * as impactFrame from 'pixelfx/fx/impacts/impact-frame';
+import * as burning from 'pixelfx/fx/status/burning';
+import * as bleeding from 'pixelfx/fx/status/bleeding';
+import * as snowflakeBurst from 'pixelfx/fx/ice/snowflake-burst';
+import * as sparkArc from 'pixelfx/fx/lightning/spark-arc';
+import * as lifeSteal from 'pixelfx/fx/shadow/life-steal';
+import * as curseFx from 'pixelfx/fx/shadow/curse';
+import * as shadowFlames from 'pixelfx/fx/shadow/shadow-flames';
+import * as fireballFx from 'pixelfx/fx/fire/fireball';
+import * as splash from 'pixelfx/fx/water/splash';
+import * as magicMissile from 'pixelfx/fx/projectiles/magic-missile';
+import * as dirtExplosion from 'pixelfx/fx/explosions/dirt-explosion';
+import * as poisonCloud from 'pixelfx/fx/nature/poison-cloud';
+import { cardElement, type Element } from './cardElement';
+import { ENEMIES } from '../game/enemies';
 import type { Cue } from '../game/types';
 import { CARDS } from '../game/cards';
 import { ATTACK_WINDUP } from '../game/combat';
@@ -126,20 +146,32 @@ const HEAL: VfxSpec = { mod: heal, at: 'target', speed: 1.4 };
 export function cueVfx(c: Cue): VfxSpec[] {
     switch (c.kind) {
         case 'card': {
-            const specs = CARD_VFX[c.card ?? ''] ?? [];
+            const id = c.card ?? '';
+            const alts = CARD_ALT[id];
+            // 기본 카드는 낼 때마다 다른 베기·찌르기·불꽃 중 하나
+            const specs = alts ? alts[c.id % alts.length] : CARD_VFX[id] ?? [];
+            const attack = CARDS[id]?.type === 'attack';
             // 공격 카드는 주인공이 칼을 젖히는 동안 기다렸다가 터진다
-            const wait = CARDS[c.card ?? '']?.type === 'attack' ? ATTACK_WINDUP : 0;
-            return specs.map((s) => ({ ...s, delay: (s.delay ?? 0) + wait }));
+            const wait = attack ? ATTACK_WINDUP : 0;
+            const out = specs.map((s) => ({ ...s, delay: (s.delay ?? 0) + wait }));
+            // 맞는 자리에 속성별 여운 (불씨, 눈꽃, 전기, 독, 피 …)
+            if (attack) {
+                const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
+                for (const im of elementImpact(cardElement(id), c.id)) out.push({ ...im, at: all ? 'all' : 'target', delay: wait + 0.06 + (im.delay ?? 0) });
+            }
+            return out;
         }
         case 'enemyAttack': {
             const big = (c.amount ?? 0) >= 14;
             const hits = Math.min(c.hits ?? 1, 5);
-            return Array.from({ length: hits }, (_, i) => ({
-                mod: big ? critHit : hitSpark,
-                at: 'target' as const,
-                delay: 0.08 + i * 0.14,
-                opts: { flip: true, seed: c.id * 7 + i },
-            }));
+            const look = c.defId ? ENEMIES[c.defId]?.look : undefined;
+            const out: VfxSpec[] = [];
+            for (let i = 0; i < hits; i++) {
+                for (const sp of enemyHit(look, c.id + i)) out.push({ ...sp, at: 'target', delay: 0.08 + i * 0.14 + (sp.delay ?? 0), opts: { flip: true, seed: c.id * 7 + i, ...sp.opts } });
+            }
+            // 큰 공격은 땅이 울린다
+            if (big) out.push({ mod: groundSlam, at: 'target', delay: 0.1, speed: 1.6, opts: { flip: true } });
+            return out;
         }
         case 'enemyBlock':
             return [{ ...BLOCK, at: 'target', dx: 6, opts: { flip: true } }];
@@ -260,3 +292,87 @@ export const AMBIENT: Record<string, Ambient[]> = {
         { mod: blizzard, fx: 0.5, fy: 1.0, tile: 320, opts: { light: 0.5 } },
     ],
 };
+
+
+// ───────────── 공격 다양화 ─────────────
+
+const ICE = ['#0a1a3a', '#14326a', '#2a62b0', '#5aa0e8', '#9ad4ff', '#dff4ff', '#ffffff'];
+const ARCANE = ['#14082a', '#2e1460', '#5a2aa8', '#8a5ae0', '#c09aff', '#efe0ff', '#ffffff'];
+
+/** 기본 카드는 같은 카드라도 낼 때마다 모양이 바뀐다 */
+const CARD_ALT: Record<string, VfxSpec[][]> = {
+    slash: [
+        [{ mod: swordSlash, at: 'target', dx: SLASH_DX }],
+        [{ mod: uppercut, at: 'target', dx: -26, speed: 1.3 }],
+        [{ mod: swordSlash, at: 'target', dx: SLASH_DX, dy: -10, opts: { angle: -0.5 } }],
+        [{ mod: spearSweep, at: 'target', dx: -34, speed: 1.4 }],
+    ],
+    stab: [
+        [{ mod: thrustFx, at: 'target', dx: -30 }],
+        [{ mod: daggerFlurry, at: 'target', dx: -28, stopAfter: 0.35 }],
+        [{ mod: thrustFx, at: 'target', dx: -30, dy: -8, opts: { angle: 0.35 } }],
+    ],
+    spark: [
+        [{ mod: smallExplosion, at: 'target', speed: 3, stopAfter: 1.2, opts: { palette: FIRE } }],
+        [{ mod: fireballFx, at: 'target', dx: -40, speed: 1.8, stopAfter: 0.8 }],
+        [{ mod: magicMissile, at: 'target', dx: -50, speed: 1.6, opts: { palette: FIRE } }, { mod: smallExplosion, at: 'target', delay: 0.12, speed: 3, stopAfter: 1, opts: { palette: FIRE } }],
+    ],
+    frost_bolt: [
+        [{ mod: iceShatter, at: 'target', speed: 2.2 }],
+        [{ mod: magicMissile, at: 'target', dx: -50, speed: 1.6, opts: { palette: ICE } }, { mod: iceShatter, at: 'target', delay: 0.1, speed: 2.4 }],
+    ],
+    heavy_blow: [
+        [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.6 }],
+        [{ mod: hammerSmash, at: 'target', dx: -20, speed: 1.5 }],
+    ],
+    torch_swing: [
+        [{ mod: swordSlash, at: 'target', dx: SLASH_DX, opts: { palette: FIRE } }],
+        [{ mod: uppercut, at: 'target', dx: -26, speed: 1.3, opts: { palette: FIRE } }],
+    ],
+    poison_stab: [
+        [{ mod: thrustFx, at: 'target', dx: -30, opts: { palette: VENOM } }],
+        [{ mod: daggerFlurry, at: 'target', dx: -28, stopAfter: 0.35, opts: { palette: VENOM } }],
+    ],
+};
+
+/** 맞은 자리에 남는 속성 여운. seed로 매번 조금 다르게 */
+function elementImpact(el: Element, seed: number): VfxSpec[] {
+    const pickOne = (xs: VfxSpec[]) => [xs[seed % xs.length]];
+    switch (el) {
+        case 'fire':
+            return pickOne([{ mod: burning, at: 'target', stopAfter: 0.7, speed: 1.4 }, { mod: smallExplosion, at: 'target', speed: 3, stopAfter: 0.6, opts: { palette: FIRE } }]);
+        case 'ice':
+            return [{ mod: snowflakeBurst, at: 'target', speed: 1.6 }];
+        case 'lightning':
+            return pickOne([{ mod: sparkArc, at: 'target', speed: 1.6, stopAfter: 0.5 }, { mod: zapHit, at: 'target' }]);
+        case 'poison':
+            return pickOne([{ mod: poisoned, at: 'target', stopAfter: 0.8, speed: 1.4 }, { mod: acidSplash, at: 'target', speed: 2 }]);
+        case 'shadow':
+            return pickOne([{ mod: shadowFlames, at: 'target', stopAfter: 0.6, speed: 1.6 }, { mod: curseFx, at: 'target', stopAfter: 0.6, speed: 1.6 }]);
+        case 'blood':
+            return [{ mod: bleeding, at: 'target', stopAfter: 0.8, speed: 1.4 }];
+        case 'arcane':
+            return [{ mod: impactFrame, at: 'target', speed: 1.4, opts: { palette: ARCANE } }];
+        case 'wind':
+            return [{ mod: hitSpark, at: 'target', dy: -10, opts: { palette: ['#14303a', '#2a5a64', '#4a8a8a', '#7ac8c0', '#b8f0e4', '#e8fff8', '#ffffff'] } }];
+        default:
+            return pickOne([{ mod: hitSpark, at: 'target' }, { mod: bluntHit, at: 'target', speed: 1.3 }, { mod: hitSpark, at: 'target', dy: -14 }]);
+    }
+}
+
+/** 적 종류에 맞는 타격 이펙트: 짐승은 할퀴기, 덩치는 둔기, 유령은 그림자, 투척은 폭발 … */
+function enemyHit(look: (typeof ENEMIES)[string]['look'] | undefined, seed: number): VfxSpec[] {
+    const k = look ? (look.kind === 'sprite' ? look.sprite ?? '' : look.kind) : '';
+    const r = look?.ranged;
+    if (r === 'goblin-bomb') return [{ mod: smallExplosion, at: 'target', speed: 2.6, stopAfter: 1 }, { mod: dirtExplosion, at: 'target', speed: 1.8, delay: 0.04 }];
+    if (r === 'mushroom-spore') return [{ mod: sporeBurst, at: 'target', speed: 2 }, { mod: poisonCloud, at: 'target', speed: 2, stopAfter: 0.6 }];
+    if (r === 'eye-bolt') return [{ mod: zapHit, at: 'target', opts: { palette: ARCANE } }];
+    const v = seed % 2;
+    if (['rat', 'bat', 'bird', 'spider', 'gargoyle', 'bee', 'crow'].includes(k)) return [{ mod: clawSwipe, at: 'target', dx: 26, speed: 1.4, opts: { angle: v ? 0.3 : -0.2 } }];
+    if (['slime', 'ooze'].includes(k)) return [{ mod: acidSplash, at: 'target', speed: 2 }];
+    if (k === 'fish') return [{ mod: splash, at: 'target', speed: 1.8 }, { mod: hitSpark, at: 'target' }];
+    if (['ghost', 'wraith', 'cultist', 'eye', 'flameskull'].includes(k)) return v ? [{ mod: lifeSteal, at: 'target', speed: 1.8, stopAfter: 0.7 }] : [{ mod: shadowFlames, at: 'target', speed: 1.8, stopAfter: 0.6 }];
+    if (['beetle', 'mushroom', 'ghoul'].includes(k)) return [{ mod: bluntHit, at: 'target', speed: 1.3 }];
+    if (['skeleton', 'knight', 'goblin'].includes(k)) return v ? [{ mod: swordSlash, at: 'target', dx: 30, speed: 1.2 }] : [{ mod: heavyCleave, at: 'target', dx: 30, speed: 1.6 }];
+    return [{ mod: hitSpark, at: 'target' }];
+}

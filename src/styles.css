@@ -3523,3 +3523,19 @@ kbd {
     .map-scene .corridor.v { width: 8px; left: calc(var(--x) * var(--cell) + var(--cell) / 2 - 4px); }
     .map-scene .map-player .hero-canvas { transform: scale(1.1); }
 }
+
+/* 맞기 전(지연 시간) 동안 첫 프레임(하얀 번쩍)이 미리 보이지 않도록 채우기 없음 */
+.hit-shake {
+    animation-fill-mode: none;
+}
+/* 주인공은 하얗게가 아니라 붉게 */
+.player-side .hit-shake {
+    animation-name: shake-hero;
+}
+@keyframes shake-hero {
+    0% { transform: translateX(0); filter: brightness(1.2) sepia(1) saturate(8) hue-rotate(-50deg); }
+    12% { transform: translateX(var(--kb, -12px)); filter: brightness(1.1) sepia(1) saturate(8) hue-rotate(-50deg); }
+    30% { transform: translateX(calc(var(--kb, -12px) * 0.75)); filter: sepia(0.7) saturate(4) hue-rotate(-50deg); }
+    55% { transform: translateX(calc(var(--kb, -12px) * 0.25)); filter: none; }
+    100% { transform: translateX(0); filter: none; }
+}

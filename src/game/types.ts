@@ -126,6 +126,8 @@ export interface Cue {
     /** 'player' 또는 적 uid */
     target?: string | null;
     source?: string;
+    /** 행동한 적의 종류 (연출용) */
+    defId?: string;
     amount?: number;
     hits?: number;
 }

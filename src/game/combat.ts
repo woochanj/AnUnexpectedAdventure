@@ -18,12 +18,12 @@ function cue(c: CombatState, q: Omit<Cue, 'id' | 'delay'>) {
 }
 
 /** 공격 카드를 낸 뒤 주인공이 예비동작을 하고 이펙트가 시작되기까지(초) */
-export const ATTACK_WINDUP = 0.3;
+export const ATTACK_WINDUP = 0.42;
 /** 공격 이펙트가 대상에 닿기까지 걸리는 시간(초) */
 export const IMPACT_DELAY = 0.08;
 
 /** 적 한 명의 행동 사이 간격(초) */
-export const ENEMY_STEP = 0.8;
+export const ENEMY_STEP = 1.0;
 
 function addStatus(f: Fighter, s: Status, n: number) {
     f.status[s] = (f.status[s] ?? 0) + n;
@@ -310,7 +310,7 @@ export function endTurn(c: CombatState, run: RunState) {
         const regenE = e.status.regen ?? 0;
         if (regenE > 0) heal(c, e.uid, e, regenE);
         const it = e.intent;
-        if (it.attack !== undefined) cue(c, { kind: 'enemyAttack', source: e.uid, target: 'player', amount: attackDamage(it.attack, e, c.player), hits: it.hits ?? 1 });
+        if (it.attack !== undefined) cue(c, { kind: 'enemyAttack', source: e.uid, defId: e.defId, target: 'player', amount: attackDamage(it.attack, e, c.player), hits: it.hits ?? 1 });
         if (it.block) {
             cue(c, { kind: 'enemyBlock', target: e.uid });
             gainBlock(c, e.uid, e, it.block);

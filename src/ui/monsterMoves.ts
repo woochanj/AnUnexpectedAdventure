@@ -39,16 +39,17 @@ export function pickDeath(look: Look, hasDeathAnim: boolean, bigHit: boolean): D
  * hitAt(ms 뒤)에 정확히 닿도록 앞뒤 시간을 맞춘다.
  */
 export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt: number, hits: number, heavy: boolean) {
-    const hold = hits * 140 + 120;
-    const back = 280;
-    let approach = 240;
+    const hold = hits * 140 + 160;
+    // 돌아가는 길은 느긋하게 (천천히 출발, 천천히 멈춤)
+    const back = 440;
+    let approach = 340;
     let frames: Keyframe[];
     const t = (ms: number, total: number) => Math.min(1, Math.max(0, ms / total));
     switch (move) {
         case 'pounce': {
             // 웅크렸다가 포물선으로 덮친다
-            approach = 380;
-            const crouch = 110;
+            approach = 480;
+            const crouch = 150;
             const total = approach + hold + back;
             frames = [
                 { transform: 'translate(0,0) scale(1,1)', offset: 0 },
@@ -65,8 +66,8 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
         }
         case 'swoop': {
             // 높이 솟았다가 비스듬히 내리꽂는다
-            approach = 420;
-            const rise = 170;
+            approach = 520;
+            const rise = 220;
             const total = approach + hold + back;
             frames = [
                 { transform: 'translate(0,0) rotate(0deg)', offset: 0 },
@@ -81,7 +82,7 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
         }
         case 'charge': {
             // 뒤로 물러나 힘을 모았다가 몸통 박치기
-            approach = heavy ? 520 : 420;
+            approach = heavy ? 640 : 520;
             const wind = approach - 160;
             const total = approach + hold + back;
             frames = [
@@ -91,7 +92,7 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
                 { transform: `translate(28px,0) rotate(6deg) scale(${heavy ? 1.12 : 1.05})`, offset: t(wind, total), easing: 'cubic-bezier(0.7,0,1,0.5)' },
                 { transform: `translate(${dx}px,0) rotate(-10deg) scale(1.08)`, offset: t(approach, total) },
                 { transform: `translate(${dx + 14}px,0) rotate(0deg) scale(1)`, offset: t(approach + 90, total) },
-                { transform: `translate(${dx + 14}px,0) rotate(0deg) scale(1)`, offset: t(approach + hold, total), easing: 'cubic-bezier(0.2,0.6,0.4,1)' },
+                { transform: `translate(${dx + 14}px,0) rotate(0deg) scale(1)`, offset: t(approach + hold, total), easing: 'cubic-bezier(0.45,0,0.35,1)' },
                 { transform: 'translate(0,0) rotate(0deg) scale(1)', offset: 1 },
             ];
             run(el, frames, hitAt - approach, total);
@@ -107,7 +108,7 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
                 frames.push({ transform: `translate(${dx - 16}px,-6px) rotate(-6deg)`, offset: t(s + per * 0.3, total) });
                 frames.push({ transform: `translate(${dx + 10}px,0) rotate(4deg)`, offset: t(s + per * 0.75, total) });
             }
-            frames.push({ transform: `translate(${dx}px,0)`, offset: t(total - back, total), easing: 'cubic-bezier(0.2,0.6,0.4,1)' });
+            frames.push({ transform: `translate(${dx}px,0)`, offset: t(total - back, total), easing: 'cubic-bezier(0.45,0,0.35,1)' });
             frames.push({ transform: 'translate(0,0)', offset: 1 });
             run(el, frames, hitAt - approach, total);
             return;
@@ -115,9 +116,11 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
         default: {
             const total = approach + hold + back;
             frames = [
-                { transform: 'translateX(0)', offset: 0, easing: 'cubic-bezier(0.55, 0, 0.9, 0.6)' },
-                { transform: `translateX(${dx}px)`, offset: t(approach, total) },
-                { transform: `translateX(${dx}px)`, offset: t(approach + hold, total), easing: 'cubic-bezier(0.2, 0.6, 0.4, 1)' },
+                { transform: 'translateX(0)', offset: 0, easing: 'cubic-bezier(0.3, 0, 0.5, 1)' },
+                { transform: 'translateX(12px)', offset: t(approach * 0.25, total), easing: 'cubic-bezier(0.6, 0, 0.9, 0.7)' },
+                { transform: `translateX(${dx - 10}px)`, offset: t(approach, total), easing: 'cubic-bezier(0.2, 0.7, 0.4, 1)' },
+                { transform: `translateX(${dx}px)`, offset: t(approach + 110, total) },
+                { transform: `translateX(${dx}px)`, offset: t(approach + hold, total), easing: 'cubic-bezier(0.45, 0, 0.35, 1)' },
                 { transform: 'translateX(0)', offset: 1 },
             ];
             run(el, frames, hitAt - approach, total);

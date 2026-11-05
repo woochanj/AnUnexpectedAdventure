@@ -168,13 +168,19 @@ function useJuice(
         };
         /** el을 dx만큼 달려가게 했다가 돌아오게 한다. 시간은 ms */
         const dash = (el: HTMLElement, dx: number, startIn: number, run: number, hold: number, back: number) => {
+            // 살짝 뒤로 젖혔다가(예비동작) 점점 빨라지며 달려가고, 도착하면 미끄러지듯 멈춘다.
+            // 돌아올 때는 천천히 출발해 천천히 선다
+            const dir = Math.sign(dx) || 1;
             const total = run + hold + back;
             const fighter = el.closest<HTMLElement>('.fighter');
+            const o = (ms: number) => Math.min(1, ms / total);
             const anim = el.animate(
                 [
-                    { transform: 'translateX(0)', easing: 'cubic-bezier(0.55, 0, 0.9, 0.6)' },
-                    { transform: `translateX(${dx}px)`, offset: run / total },
-                    { transform: `translateX(${dx}px)`, offset: (run + hold) / total, easing: 'cubic-bezier(0.2, 0.6, 0.4, 1)' },
+                    { transform: 'translateX(0)', easing: 'cubic-bezier(0.3, 0, 0.5, 1)' },
+                    { transform: `translateX(${-dir * 10}px)`, offset: o(run * 0.25), easing: 'cubic-bezier(0.6, 0, 0.9, 0.7)' },
+                    { transform: `translateX(${dx + dir * 10}px)`, offset: o(run), easing: 'cubic-bezier(0.2, 0.7, 0.4, 1)' },
+                    { transform: `translateX(${dx}px)`, offset: o(run + Math.min(120, hold * 0.4)) },
+                    { transform: `translateX(${dx}px)`, offset: o(run + hold), easing: 'cubic-bezier(0.45, 0, 0.35, 1)' },
                     { transform: 'translateX(0)' },
                 ],
                 { duration: total, delay: Math.max(0, startIn) },
@@ -228,7 +234,7 @@ function useJuice(
                         const me = center(hero);
                         const gap = Math.max(56, me.w * 0.3);
                         const multi = act === 'double' || act === 'dagger' || act === 'spin';
-                        dash(hero, tx - me.x - gap, 0, ATTACK_WINDUP * 1000 - 20, multi ? 420 : 240, 260);
+                        dash(hero, tx - me.x - gap, 0, ATTACK_WINDUP * 1000 - 20, multi ? 480 : 300, 460);
                     }
                 }
             }
@@ -274,8 +280,8 @@ function useJuice(
             if (sprite) {
                 sprite.animate(
                     [
-                        { transform: 'translateX(0)', filter: toPlayer ? 'brightness(2) sepia(1) saturate(6) hue-rotate(-30deg)' : 'brightness(3) saturate(0)' },
-                        { transform: `translateX(${push}px) rotate(${toPlayer ? -4 : 4}deg)`, filter: toPlayer ? 'brightness(1.4) sepia(1) saturate(4) hue-rotate(-30deg)' : 'brightness(1.6)', offset: 0.25 },
+                        { transform: 'translateX(0)', filter: toPlayer ? 'brightness(1.1) sepia(1) saturate(9) hue-rotate(-50deg)' : 'brightness(3) saturate(0)' },
+                        { transform: `translateX(${push}px) rotate(${toPlayer ? -4 : 4}deg)`, filter: toPlayer ? 'brightness(1) sepia(0.8) saturate(5) hue-rotate(-50deg)' : 'brightness(1.6)', offset: 0.25 },
                         { transform: `translateX(${push * 0.6}px)`, filter: 'none', offset: 0.55 },
                         { transform: 'translateX(0)', filter: 'none' },
                     ],

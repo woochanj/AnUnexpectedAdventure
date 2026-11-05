@@ -1,10 +1,10 @@
-import type { Dispatch, ReactNode } from 'react';
+import { useState, type Dispatch, type ReactNode } from 'react';
 import { FLOORS } from '../game/enemies';
 import { EVENTS } from '../game/events';
 import { RELICS } from '../game/relics';
 import type { Action } from '../game/run';
-import type { RunState, Screen, ShopScreen } from '../game/types';
-import { CardGrid, CardView } from './common';
+import type { CardInst, RunState, Screen, ShopScreen } from '../game/types';
+import { CardGrid, CardView, Modal } from './common';
 import { FxView, HeroView } from './Actors';
 import { FX } from './creatures';
 
@@ -178,12 +178,51 @@ export function EventScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: '
 
 export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'pick' }>; run: RunState; dispatch: D }) {
     const up = s.purpose === 'upgrade';
+    // 고른 카드는 바로 바꾸지 않고, 강화 전/후(또는 지울 카드)를 보여준 뒤 확인을 받는다
+    const [chosen, setChosen] = useState<CardInst | null>(null);
     return (
         <Panel title={up ? '강화할 카드를 고르세요' : '지울 카드를 고르세요'} className="pick">
-            <CardGrid cards={run.deck} isDisabled={up ? (c) => c.upgraded : undefined} onPick={(c) => dispatch({ type: 'pick', uid: c.uid })} />
+            <CardGrid cards={run.deck} isDisabled={up ? (c) => c.upgraded : undefined} onPick={setChosen} />
             <button className="btn btn-ghost" onClick={() => dispatch({ type: 'pickCancel' })}>
                 취소
             </button>
+            {chosen && (
+                <Modal title={up ? '이 카드를 강화할까요?' : '이 카드를 덱에서 지울까요?'} onClose={() => setChosen(null)}>
+                    <div className="confirm-cards">
+                        <div className="confirm-col">
+                            <span className="confirm-label">{up ? '지금' : '지울 카드'}</span>
+                            <CardView card={chosen} />
+                        </div>
+                        {up && (
+                            <>
+                                <span className="confirm-arrow" aria-hidden>
+                                    ▶
+                                </span>
+                                <div className="confirm-col">
+                                    <span className="confirm-label up">강화 후</span>
+                                    <CardView card={{ ...chosen, upgraded: true }} />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    {!up && s.cost ? <p className="panel-sub confirm-note">{s.cost} 골드가 들어요.</p> : null}
+                    <div className="confirm-buttons">
+                        <button className="btn btn-ghost" onClick={() => setChosen(null)}>
+                            다시 고르기
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            autoFocus
+                            onClick={() => {
+                                dispatch({ type: 'pick', uid: chosen.uid });
+                                setChosen(null);
+                            }}
+                        >
+                            {up ? '강화하기' : '지우기'}
+                        </button>
+                    </div>
+                </Modal>
+            )}
         </Panel>
     );
 }
@@ -210,7 +249,7 @@ export function EndScreen({ run, win, onTitle }: { run: RunState; win: boolean; 
         <Panel title={win ? '그림자를 걷어냈다' : '모험은 여기까지'} className={win ? 'victory' : 'gameover'} art={
                 <div className="art-stack">
                     <FxView mod={FX[win ? 'ui/level-up' : 'spawn/soul-rise']} scale={3} />
-                    <HeroView scale={3} />
+                    <HeroView char={run.hero} scale={3} />
                 </div>
             }
         >

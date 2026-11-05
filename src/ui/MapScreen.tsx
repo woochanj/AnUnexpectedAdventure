@@ -4,6 +4,7 @@ import { FLOOR_COUNT, type Action } from '../game/run';
 import type { Room, RoomType, RunState } from '../game/types';
 import { FxView, HeroView, monsterStill, SceneryView } from './Actors';
 import { FX } from './creatures';
+import { spriteStillStyle } from './SpriteActor';
 import { FxCanvas } from './FxCanvas';
 import { MAP_AMBIENT } from './vfx';
 
@@ -16,6 +17,8 @@ const LEGEND: RoomType[] = ['combat', 'elite', 'event', 'treasure', 'rest', 'sho
 function RoomIcon({ room }: { room: Room }) {
     if ((room.type === 'combat' || room.type === 'elite' || room.type === 'boss') && room.encounter) {
         const def = ENEMIES[room.encounter[0]];
+        if (def.look.kind === 'sprite')
+            return <span className={`room-enemy room-sprite room-enemy-${room.type}`} style={{ ...spriteStillStyle(def.look.sprite ?? 'slime', room.type === 'combat' ? 30 : 40), filter: def.look.filter }} />;
         return <img src={monsterStill(def.id, def.look)} alt="" className={`room-enemy room-enemy-${room.type}`} draggable={false} />;
     }
     // 모닥불은 지도에서도 실제로 타오른다
@@ -126,7 +129,7 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
                             );
                         })}
                         <div className="map-player" style={{ ['--x' as string]: here.x, ['--y' as string]: here.y }}>
-                            <HeroView scale={1} flip={run.facing === 'left'} walking={walking} className={walking ? 'walking' : ''} />
+                            <HeroView char={run.hero} scale={1} flip={run.facing === 'left'} walking={walking} className={walking ? 'walking' : ''} />
                         </div>
                     </div>
                 </div>

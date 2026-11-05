@@ -2806,3 +2806,98 @@ kbd {
 .card-desc {
     align-self: stretch;
 }
+
+/* ───── 받은 스프라이트 ───── */
+.sprite-actor {
+    image-rendering: pixelated;
+}
+.projectile {
+    position: absolute;
+    z-index: 6;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+}
+/* 사망 동작을 보여준 뒤 사라진다 */
+.fighter.dead {
+    transition: opacity 0.5s 0.9s, transform 0.5s 0.9s;
+}
+.room-sprite {
+    display: inline-block;
+    background-repeat: no-repeat;
+    transform: scale(1.3);
+}
+/* 주인공 고르기 */
+.hero-pick {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    width: min(640px, 100%);
+}
+.hero-option {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 6px;
+    background: var(--ui-parch);
+    color: #3a2416;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: inset 0 -3px 0 var(--ui-parch-dark), 0 4px 0 var(--ui-ink);
+}
+.hero-option b {
+    font-family: var(--font-head);
+    font-weight: 400;
+}
+.hero-option span {
+    font-size: 0.75rem;
+    color: #7a5838;
+}
+.hero-option.on {
+    background: var(--ui-yellow);
+    box-shadow: inset 0 0 0 2px #fff4b0, inset 0 -3px 0 #d8901c, 0 4px 0 var(--ui-ink);
+}
+
+/* 강화/제거 확인 */
+.confirm-cards {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding: 6px 0 4px;
+}
+.confirm-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.confirm-label {
+    font-family: var(--font-head);
+    color: var(--ui-cream);
+    text-shadow: var(--px-title);
+}
+.confirm-label.up {
+    color: #b8ff8a;
+}
+.confirm-arrow {
+    font-size: 1.6rem;
+    color: var(--ui-yellow);
+    text-shadow: var(--px-title);
+}
+.confirm-note {
+    text-align: center;
+}
+.confirm-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding-top: 14px;
+}
+.panel .card-grid {
+    align-self: stretch;
+    width: 100%;
+}

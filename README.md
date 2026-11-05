@@ -36,6 +36,7 @@ src/game/      규칙 (화면과 무관한 순수 로직)
   events.ts    사건 방
   relics.ts    유물
   run.ts       진행 상태 리듀서, 저장/불러오기
+public/sprites/ 받은 스프라이트를 정리한 시트 (scripts/pack_sprites.py로 생성)
 src/ui/        화면
   Actors.tsx   pixelfx 캔버스: 주인공(포즈 리그) / 생물·장식
   FxCanvas.tsx 전투 이펙트·배경 앰비언트 캔버스, 히트스톱
@@ -46,5 +47,10 @@ src/ui/        화면
 
 ## 크레딧
 
-- 픽셀 이펙트·캐릭터: [pixelfx](https://github.com/patch-gg/pixelfx) (MIT, © Patch, Hugo Duprez 외 — 패키지의 NOTICE 참고)
+- 픽셀 이펙트: [pixelfx](https://github.com/patch-gg/pixelfx) (MIT, © Patch, Hugo Duprez 외 — 패키지의 NOTICE 참고)
+- 주인공 "방랑 기사": [Hero Knight](https://luizmelo.itch.io/hero-knight) by LuizMelo (CC0)
+- 몬스터 해골·고블린·버섯·날아다니는 눈: [Monsters Creatures Fantasy](https://luizmelo.itch.io/monsters-creatures-fantasy) by LuizMelo (CC0)
+- 주인공 "붉은/푸른 기사": [Fantasy Knight](https://aamatniekss.itch.io/fantasy-knight-free-pixelart-animated-character) by aamatniekss (게임에 사용 가능, 에셋 단독 재배포 금지)
+- 생물 박쥐·슬라임·유령·거미·딱정벌레·벌·물고기·새: [SpritePilot Creatures](https://spritepilot.com/free-game-assets/creatures) (CC0)
+- 그 밖의 캐릭터(고양이 기사, 다크 판타지 몬스터)는 이 저장소 코드로 직접 그립니다.
 - 글꼴: [갈무리(Galmuri)](https://github.com/quiple/galmuri) (SIL OFL 1.1, © Lee Minseo)

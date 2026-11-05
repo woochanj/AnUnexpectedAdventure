@@ -99,6 +99,79 @@ const LIST: EnemyDef[] = [
             { attack: 32 },
         ],
     },
+
+    // ── 받은 스프라이트 에셋으로 그린 적 (LuizMelo · SpritePilot, CC0) ──
+    // 1층
+    {
+        id: 'slime_s', name: '분홍 슬라임', look: { kind: 'sprite', sprite: 'slime', scale: 4 }, hp: [10, 13], random: true,
+        moves: [{ attack: 5 }, { attack: 3, debuff: { status: 'weak', amount: 1 } }, { block: 5, attack: 2 }],
+    },
+    {
+        id: 'fish', name: '이빨 물고기', look: { kind: 'sprite', sprite: 'fish', scale: 4 }, hp: [9, 12], random: true,
+        moves: [{ attack: 4, hits: 2 }, { attack: 6 }],
+    },
+    {
+        id: 'beetle', name: '바위 딱정벌레', look: { kind: 'sprite', sprite: 'beetle', scale: 4 }, hp: [16, 19],
+        moves: [{ block: 7, attack: 3 }, { attack: 8 }],
+    },
+    {
+        id: 'spider', name: '동굴 거미', look: { kind: 'sprite', sprite: 'spider', scale: 4 }, hp: [13, 16],
+        moves: [{ debuff: { status: 'poison', amount: 3 }, attack: 3 }, { attack: 7 }],
+    },
+    {
+        id: 'bat_s', name: '동굴 박쥐', look: { kind: 'sprite', sprite: 'bat', scale: 4 }, hp: [11, 13], random: true,
+        moves: [{ attack: 3, hits: 2 }, { attack: 5 }],
+    },
+    {
+        id: 'goblin', name: '고블린 약탈자', look: { kind: 'sprite', sprite: 'goblin', scale: 3 }, hp: [20, 24],
+        moves: [{ attack: 7 }, { attack: 4, hits: 2 }, { block: 6, attack: 3 }],
+    },
+    {
+        id: 'goblin_bomber', name: '폭탄 고블린', look: { kind: 'sprite', sprite: 'goblin', scale: 3, ranged: 'goblin-bomb', filter: 'hue-rotate(-40deg) saturate(1.3)' }, hp: [16, 19],
+        moves: [{ attack: 10 }, { buff: { status: 'strength', amount: 2 } }, { attack: 6 }],
+    },
+    {
+        id: 'mushroom_big', name: '거대 버섯', look: { kind: 'sprite', sprite: 'mushroom', scale: 4, ranged: 'mushroom-spore' }, hp: [46, 50], size: 'large',
+        moves: [{ attack: 8, debuff: { status: 'poison', amount: 3 } }, { attack: 12 }, { block: 10, buff: { status: 'strength', amount: 2 } }],
+    },
+    // 2층
+    {
+        id: 'skeleton_s', name: '해골 검사', look: { kind: 'sprite', sprite: 'skeleton', scale: 3 }, hp: [28, 32],
+        moves: [{ attack: 10 }, { block: 12 }, { attack: 5, hits: 2 }],
+    },
+    {
+        id: 'ghost_s', name: '떠도는 유령', look: { kind: 'sprite', sprite: 'ghost', scale: 4 }, hp: [18, 22], random: true,
+        moves: [{ debuff: { status: 'vulnerable', amount: 2 } }, { attack: 8 }, { attack: 4, hits: 2 }],
+    },
+    {
+        id: 'crow', name: '안개 까마귀', look: { kind: 'sprite', sprite: 'bird', scale: 4, filter: 'saturate(0.35) brightness(0.75)' }, hp: [14, 17], random: true,
+        moves: [{ attack: 3, hits: 3 }, { attack: 7 }],
+    },
+    {
+        id: 'flying_eye', name: '날아다니는 눈', look: { kind: 'sprite', sprite: 'flying-eye', scale: 3, ranged: 'eye-bolt' }, hp: [22, 26],
+        moves: [{ attack: 9 }, { debuff: { status: 'vulnerable', amount: 2 }, attack: 4 }],
+    },
+    // 3층
+    {
+        id: 'void_skeleton', name: '공허 해골', look: { kind: 'sprite', sprite: 'skeleton', scale: 3, filter: 'hue-rotate(230deg) saturate(1.4)' }, hp: [40, 44],
+        moves: [{ attack: 13 }, { block: 14, buff: { status: 'strength', amount: 1 } }, { attack: 6, hits: 2 }],
+    },
+    {
+        id: 'void_goblin', name: '공허 고블린', look: { kind: 'sprite', sprite: 'goblin', scale: 3, filter: 'hue-rotate(200deg) saturate(1.3)' }, hp: [36, 40],
+        moves: [{ attack: 6, hits: 2 }, { attack: 14 }, { debuff: { status: 'weak', amount: 2 }, attack: 5 }],
+    },
+    {
+        id: 'void_bee', name: '공허 말벌', look: { kind: 'sprite', sprite: 'bee', scale: 4, filter: 'hue-rotate(220deg) saturate(1.3)' }, hp: [24, 28], random: true,
+        moves: [{ attack: 3, hits: 3 }, { debuff: { status: 'poison', amount: 4 } }, { attack: 9 }],
+    },
+    {
+        id: 'void_eye', name: '공허의 눈동자', look: { kind: 'sprite', sprite: 'flying-eye', scale: 3, ranged: 'eye-bolt', filter: 'hue-rotate(200deg) saturate(1.4)' }, hp: [34, 38],
+        moves: [{ attack: 12 }, { debuff: { status: 'vulnerable', amount: 2 }, attack: 6 }, { healAll: 8 }],
+    },
+    {
+        id: 'void_mushroom', name: '공허 버섯', look: { kind: 'sprite', sprite: 'mushroom', scale: 4, ranged: 'mushroom-spore', filter: 'hue-rotate(220deg) saturate(1.3)' }, hp: [96, 100], size: 'large',
+        moves: [{ attack: 10, debuff: { status: 'poison', amount: 4 } }, { attack: 18 }, { block: 14, buff: { status: 'strength', amount: 3 } }, { attack: 7, hits: 2 }],
+    },
 ];
 
 export const ENEMIES: Record<string, EnemyDef> = Object.fromEntries(LIST.map((e) => [e.id, e]));
@@ -115,22 +188,31 @@ export const FLOORS: FloorTheme[] = [
     {
         name: '잠긴 동굴',
         subtitle: '물에 잠긴 동굴, 빛이 물결 따라 일렁인다',
-        encounters: [['blob', 'blob'], ['goblin_spear'], ['goblin_archer', 'blob'], ['imp', 'imp'], ['goblin_spear', 'goblin_archer']],
-        elites: [['goblin_brute']],
+        encounters: [
+            ['slime_s', 'slime_s'], ['goblin'], ['fish', 'fish'], ['spider', 'bat_s'], ['beetle'], ['blob', 'slime_s'],
+            ['goblin', 'goblin_bomber'], ['goblin_spear'], ['goblin_archer', 'bat_s'], ['imp', 'imp'],
+        ],
+        elites: [['mushroom_big'], ['goblin_brute']],
         boss: ['goblin_chief'],
     },
     {
         name: '안개 묘지',
         subtitle: '이름 모를 묘비들 사이로 안개가 흐른다',
-        encounters: [['skeleton'], ['bones', 'bones', 'bones'], ['witch_ghost', 'bones'], ['drop_ghost', 'skeleton'], ['maid']],
+        encounters: [
+            ['skeleton_s'], ['ghost_s', 'ghost_s'], ['crow', 'crow', 'crow'], ['flying_eye', 'skeleton_s'], ['skeleton'],
+            ['bones', 'ghost_s'], ['witch_ghost', 'flying_eye'], ['drop_ghost', 'skeleton_s'], ['maid'],
+        ],
         elites: [['black_knight']],
         boss: ['old_shaman'],
     },
     {
         name: '그림자 성채',
         subtitle: '빛이 닿지 않는 곳, 무언가 숨 쉬고 있다',
-        encounters: [['wraith', 'shade_wraith'], ['violet_priest', 'pumpkin'], ['pumpkin'], ['shade_wraith', 'shade_wraith', 'shade_wraith'], ['wraith', 'violet_priest']],
-        elites: [['imp_lord']],
+        encounters: [
+            ['void_skeleton', 'void_goblin'], ['void_bee', 'void_bee', 'void_bee'], ['void_eye', 'violet_priest'], ['wraith', 'shade_wraith'],
+            ['pumpkin', 'void_skeleton'], ['void_goblin', 'void_bee'], ['violet_priest', 'pumpkin'],
+        ],
+        elites: [['imp_lord'], ['void_mushroom']],
         boss: ['endless_shadow'],
     },
 ];

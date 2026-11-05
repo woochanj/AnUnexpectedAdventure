@@ -46,10 +46,16 @@ export interface EnemyDef {
     name: string;
     /** 생김새. 화면 쪽(ui/monsters.ts)에서 픽셀 몬스터로 그린다 */
     look: {
-        kind: 'ooze' | 'ghoul' | 'gargoyle' | 'rat' | 'skeleton' | 'flameskull' | 'cultist' | 'wraith' | 'eye' | 'knight';
+        kind: 'ooze' | 'ghoul' | 'gargoyle' | 'rat' | 'skeleton' | 'flameskull' | 'cultist' | 'wraith' | 'eye' | 'knight' | 'sprite';
         variant?: string;
         scale?: number;
         crown?: boolean;
+        /** kind가 'sprite'일 때: public/sprites의 캐릭터 이름 */
+        sprite?: string;
+        /** CSS filter로 색 변주 (예: 'hue-rotate(200deg)') */
+        filter?: string;
+        /** 원거리 공격이면 던질 투사체 이름 (달려가지 않음) */
+        ranged?: string;
     };
     hp: [number, number];
     moves: Intent[];
@@ -165,6 +171,8 @@ export type Screen =
     | { kind: 'victory' };
 
 export interface RunState {
+    /** 고른 주인공 (ui/Actors.tsx HEROES의 id) */
+    hero: string;
     floor: number;
     hp: number;
     maxHp: number;

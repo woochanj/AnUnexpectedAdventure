@@ -3,7 +3,7 @@
 import { drawKnight, IDLE_POSE, KNIGHT_HERO, type KnightPalette, type Pose } from './knight';
 import { blit, Buf, glowDot, R, u32, INK } from './pixelkit';
 
-export type MonsterKind = 'ooze' | 'ghoul' | 'gargoyle' | 'rat' | 'skeleton' | 'flameskull' | 'cultist' | 'wraith' | 'eye' | 'knight';
+export type MonsterKind = 'ooze' | 'ghoul' | 'gargoyle' | 'rat' | 'skeleton' | 'flameskull' | 'cultist' | 'wraith' | 'eye' | 'knight' | 'sprite';
 
 export interface MonsterLook {
     kind: MonsterKind;
@@ -11,6 +11,9 @@ export interface MonsterLook {
     variant?: string;
     scale?: number;
     crown?: boolean;
+    sprite?: string;
+    filter?: string;
+    ranged?: string;
 }
 
 const GLOW = {
@@ -344,12 +347,13 @@ function knightPose(t: number, a: number): Pose {
 const DRAW = { ooze, ghoul, gargoyle, rat, skeleton, flameskull, cultist, wraith, eye };
 
 export function drawMonster(look: MonsterLook, t: number, a: number, out: Uint32Array, flip = true) {
+    if (look.kind === 'sprite') return;
     if (look.kind === 'knight') {
         drawKnight(knightPose(t, a), out, flip, KNIGHT_VARIANTS[look.variant ?? 'bone'] ?? KNIGHT_VARIANTS.bone, look.crown);
         return;
     }
     const b = new Buf();
-    const res = DRAW[look.kind](b, t, a, look.variant);
+    const res = DRAW[look.kind as keyof typeof DRAW](b, t, a, look.variant);
     b.contours();
     b.outline();
     blit(b, out, flip);

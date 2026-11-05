@@ -6,7 +6,8 @@ import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
 import type { CardInst, CombatState, EnemyState, Fx, Intent } from '../game/types';
 import { CardGrid, CardView, HpBar, Modal, StatusList } from './common';
-import { HeroView, MonsterView, SceneryView, type HeroAction, type MonsterAttack } from './Actors';
+import { HeroView, MonsterView, PROJECTILE_MS, SceneryView, type HeroAction, type MonsterAttack } from './Actors';
+import { PROJECTILES } from './spriteManifest';
 import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { FLOOR_AMBIENT } from './vfx';
@@ -81,6 +82,42 @@ function IntentBadge({ e, c }: { e: EnemyState; c: CombatState }) {
  *  - 맞는 순간 히트스톱 (이펙트 시간을 잠깐 멈춤)
  *  - 피해량에 비례한 화면 흔들림 (픽셀 단위로 끊어서)
  */
+/** 투사체 스프라이트를 from에서 to로 날린다 (startIn ms 뒤 출발, PROJECTILE_MS 동안) */
+function throwProjectile(field: HTMLElement, name: string, from: Element, to: Element, startIn: number) {
+    const p = PROJECTILES[name as keyof typeof PROJECTILES];
+    if (!p) return;
+    const box = field.getBoundingClientRect();
+    const a = from.getBoundingClientRect();
+    const b = to.getBoundingClientRect();
+    const k = 1.6;
+    const x0 = a.left + a.width * 0.3 - box.left - (p.w * k) / 2;
+    const y0 = a.top + a.height * 0.55 - box.top - (p.h * k) / 2;
+    const x1 = b.left + b.width * 0.55 - box.left - (p.w * k) / 2;
+    const y1 = b.top + b.height * 0.5 - box.top - (p.h * k) / 2;
+    window.setTimeout(() => {
+        const el = document.createElement('div');
+        el.className = 'projectile';
+        Object.assign(el.style, {
+            width: `${p.w * k}px`,
+            height: `${p.h * k}px`,
+            backgroundImage: `url("${import.meta.env.BASE_URL}sprites/projectiles/${name}.png")`,
+            backgroundSize: `${p.w * p.frames * k}px ${p.h * k}px`,
+            transform: 'scaleX(-1)',
+        });
+        field.appendChild(el);
+        el.animate([{ backgroundPosition: '0 0' }, { backgroundPosition: `-${p.w * p.frames * k}px 0` }], { duration: (p.frames / 18) * 1000, iterations: Infinity, easing: `steps(${p.frames})` });
+        const fly = el.animate(
+            [
+                { left: `${x0}px`, top: `${y0}px` },
+                { left: `${(x0 + x1) / 2}px`, top: `${Math.min(y0, y1) - 40}px`, offset: 0.5 },
+                { left: `${x1}px`, top: `${y1}px` },
+            ],
+            { duration: PROJECTILE_MS, easing: 'linear', fill: 'forwards' },
+        );
+        fly.finished.then(() => el.remove()).catch(() => el.remove());
+    }, Math.max(0, startIn));
+}
+
 function useJuice(
     c: CombatState,
     fieldRef: React.RefObject<HTMLDivElement | null>,
@@ -145,7 +182,12 @@ function useJuice(
                 window.setTimeout(() => setHeroAction({ id: q.id, act: 'hurt', windup: 0 }), hitAt);
                 const el = q.source ? field.querySelector<HTMLElement>(`[data-body="${q.source}"]`) : null;
                 const hero = field.querySelector<HTMLElement>('[data-body="player"]');
-                if (el && hero) {
+                const src = c.enemies.find((e) => e.uid === q.source);
+                const look = src ? ENEMIES[src.defId].look : undefined;
+                if (el && hero && look?.ranged) {
+                    // 원거리: 제자리에서 던지고, 투사체가 날아가 맞는 순간에 닿는다
+                    for (let i = 0; i < (q.hits ?? 1); i++) throwProjectile(field, look.ranged, el, hero, hitAt + i * 140 - PROJECTILE_MS);
+                } else if (el && hero) {
                     const me = center(el);
                     const gap = Math.max(56, me.w * 0.3);
                     const run = 240;
@@ -178,7 +220,7 @@ function useJuice(
     }, [c.fx, c.cues, fieldRef, clock, setHeroAction]);
 }
 
-export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatState; floor: number; dispatch: Dispatch<Action> }) {
+export function CombatScreen({ combat: c, floor, hero, dispatch }: { combat: CombatState; floor: number; hero: string; dispatch: Dispatch<Action> }) {
     const [selected, setSelected] = useState<number | null>(null);
     const [enemyTurn, setEnemyTurn] = useState(false);
     const [pile, setPile] = useState<null | 'draw' | 'discard' | 'exhaust'>(null);
@@ -192,6 +234,9 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
     // 적마다 가장 최근 공격 신호 → 몬스터 덮치기 동작
     const attacks: Record<string, MonsterAttack> = {};
     for (const q of c.cues) if (q.kind === 'enemyAttack' && q.source) attacks[q.source] = { id: q.id, hitIn: q.delay + IMPACT_DELAY };
+    // 적마다 가장 최근에 맞은 순간 → 피격 동작
+    const hurts: Record<string, { id: number; delay: number }> = {};
+    for (const f of c.fx) if (f.kind === 'dmg' && f.target !== 'player') hurts[f.target] = { id: f.id, delay: f.delay };
     useJuice(c, fieldRef, clock, setHeroAction);
 
     const play = useCallback(
@@ -253,7 +298,7 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
                 <div className="fighter player-side">
                     <div data-body="player">
                         <Shake fx={c.fx} target="player">
-                            <HeroView action={heroAction} clock={clock} scale={4} />
+                            <HeroView char={hero} action={heroAction} clock={clock} scale={4} dead={c.result === 'lose'} />
                         </Shake>
                     </div>
                     <FxLayer fx={c.fx} target="player" />
@@ -280,6 +325,8 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
                                             seed={Number(e.uid.slice(1)) + 1}
                                             clock={clock}
                                             attack={attacks[e.uid]}
+                                            hurt={hurts[e.uid]}
+                                            dead={e.hp <= 0}
                                         />
                                     </Shake>
                                 </div>

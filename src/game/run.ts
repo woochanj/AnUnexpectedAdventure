@@ -7,10 +7,10 @@ import type { CardInst, CombatKind, Dir, Room, RunState, ShopScreen } from './ty
 import { pick, rand, shuffle } from './util';
 
 export const FLOOR_COUNT = 3;
-const SAVE_KEY = 'aua-run-v2';
+const SAVE_KEY = 'aua-run-v3';
 
 export type Action =
-    | { type: 'new' }
+    | { type: 'new'; hero?: string }
     | { type: 'load'; run: RunState }
     | { type: 'quit' }
     | { type: 'move'; to: number }
@@ -152,9 +152,10 @@ function makeApi(run: RunState): EventApi {
 
 // ───────────────────────── 진행 ─────────────────────────
 
-export function newRun(): RunState {
+export function newRun(hero = 'hero-knight'): RunState {
     const map = generateFloor(0);
     const run: RunState = {
+        hero,
         floor: 0,
         hp: 70,
         maxHp: 70,
@@ -280,7 +281,7 @@ function move(run: RunState, to: number) {
 // ───────────────────────── 리듀서 ─────────────────────────
 
 export function reducer(state: GameState, action: Action): GameState {
-    if (action.type === 'new') return { run: newRun() };
+    if (action.type === 'new') return { run: newRun(action.hero) };
     if (action.type === 'quit') return { run: null };
     if (action.type === 'load') return { run: action.run };
     if (!state.run) return state;

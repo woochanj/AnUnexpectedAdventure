@@ -5,6 +5,7 @@ import { drawHeroKnight } from './heroknight';
 import { IDLE_POSE, KNIGHT_H, KNIGHT_W, MOVES, moveSpan, samplePose, type Key, type Pose } from './knight';
 import { paintScenery } from './scenery';
 import { ATTACK_LEAD, attackCurve, drawMonster, type MonsterLook } from './monsters';
+import { animFps, hasAnim, hitFrame, SpriteActor, spriteInfo, type SpritePlay, type SpriteStep } from './SpriteActor';
 import { PX } from './pixelkit';
 import { cleanOpts } from './creatures';
 
@@ -123,7 +124,74 @@ export interface HeroAction {
     windup?: number;
 }
 
-export function HeroView({
+/** 고를 수 있는 주인공 */
+export const HEROES: { id: string; name: string; desc: string }[] = [
+    { id: 'hero-knight', name: '방랑 기사', desc: '묵직한 두 손 검. 크게 휘두른다' },
+    { id: 'fantasy-knight-1', name: '붉은 기사', desc: '날렵한 한 손 검과 연속 베기' },
+    { id: 'fantasy-knight-2', name: '푸른 기사', desc: '붉은 기사의 다른 갑옷' },
+    { id: 'cat-knight', name: '고양이 기사', desc: '투구 쓴 고양이. 작지만 용감하다' },
+];
+
+const ATTACK_ACTS = new Set(['slash', 'double', 'dagger', 'cleave', 'smash', 'reap', 'thrust', 'spin']);
+
+/** 카드 동작 → 스프라이트 재생 단계 */
+function heroSteps(char: string, a: HeroAction): SpriteStep[] {
+    const fk = char.startsWith('fantasy-knight');
+    if (ATTACK_ACTS.has(a.act)) {
+        const heavy = a.act === 'cleave' || a.act === 'smash' || a.act === 'reap';
+        const multi = a.act === 'double' || a.act === 'dagger' || a.act === 'spin';
+        const first = fk ? (multi ? 'combo' : heavy ? 'attack2' : 'attack') : heavy ? 'attack2' : 'attack';
+        const second = !fk && multi ? 'attack2' : null;
+        // 무기가 닿는 프레임이 피해 순간(예비동작 + 접촉)에 오도록 달리기 시간을 맞춘다
+        const hitMs = ((a.windup ?? 0.3) + 0.08) * 1000;
+        const lead = (hitFrame(char, first) / animFps(first)) * 1000;
+        const steps: SpriteStep[] = [{ anim: 'run', ms: Math.max(0, hitMs - lead) }, { anim: first }];
+        if (second) steps.push({ anim: second });
+        steps.push({ anim: 'run', ms: 240, turn: true });
+        return steps;
+    }
+    if (a.act === 'hurt') return [{ anim: 'hurt', ms: 260, fps: hasAnim(char, 'hurt') && spriteInfo(char).anims.hurt.frames > 1 ? 16 : 1 }];
+    if (a.act === 'rage' || a.act === 'charge') return [{ anim: 'jump' }, { anim: 'fall', ms: 220 }];
+    if (a.act === 'death') return [{ anim: 'death', hold: true }];
+    return [];
+}
+
+export function HeroView(props: {
+    char?: string;
+    action?: HeroAction | null;
+    scale?: number;
+    clock?: RefObject<HitStopClock>;
+    flip?: boolean;
+    walking?: boolean;
+    dead?: boolean;
+    className?: string;
+}) {
+    const { char = 'hero-knight', action, clock, flip = false, walking = false, dead, className } = props;
+    if (char === 'cat-knight') return <CatKnightView {...props} />;
+    const play: SpritePlay | null = dead
+        ? { id: -999, steps: [{ anim: 'death', hold: true }] }
+        : action
+          ? { id: action.id, steps: heroSteps(char, action) }
+          : null;
+    // 받은 스프라이트는 캐릭터 크기가 제각각이라 화면 배율을 따로 맞춘다
+    const k = HERO_SCALE[char] ?? 1;
+    return (
+        <SpriteActor
+            name={char}
+            scale={(props.scale ?? 3) * k}
+            flip={flip}
+            play={play}
+            clock={clock}
+            idle={walking ? 'run' : 'idle'}
+            className={`hero-canvas ${className ?? ''}`}
+        />
+    );
+}
+
+/** 고양이 기사(64px 캔버스)를 기준으로 한 상대 배율 */
+const HERO_SCALE: Record<string, number> = { 'hero-knight': 0.62, 'fantasy-knight-1': 0.8, 'fantasy-knight-2': 0.8 };
+
+function CatKnightView({
     action, scale = 3, clock, flip = false, walking = false, className,
 }: {
     action?: HeroAction | null;
@@ -233,7 +301,63 @@ export interface MonsterAttack {
     hitIn: number;
 }
 
+/** 투사체가 날아가는 시간(ms) */
+export const PROJECTILE_MS = 320;
+
+/** 받은 스프라이트로 그린 적: 공격(달려가기 또는 던지기) / 피격 / 사망 */
+function SpriteMonster({
+    look, scale, clock, attack, hurt, dead,
+}: {
+    look: MonsterLook;
+    scale: number;
+    clock?: RefObject<HitStopClock>;
+    attack?: MonsterAttack | null;
+    hurt?: { id: number; delay: number } | null;
+    dead?: boolean;
+}) {
+    const name = look.sprite ?? 'slime';
+    let play: SpritePlay | null = null;
+    if (dead) play = { id: -999, steps: hasAnim(name, 'death') ? [{ anim: 'death', hold: true }] : [] };
+    else {
+        const cands: SpritePlay[] = [];
+        if (attack) {
+            const anim = look.ranged && hasAnim(name, 'attack3') ? 'attack3' : 'attack';
+            if (hasAnim(name, anim)) {
+                const hitMs = attack.hitIn * 1000 - (look.ranged ? PROJECTILE_MS : 0);
+                const lead = (hitFrame(name, anim) / animFps(anim)) * 1000;
+                const start = hitMs - lead;
+                const steps: SpriteStep[] = [];
+                // 근접이면 공격 직전까지 달려간다 (달려가기 자체는 화면 쪽에서 위치를 옮김)
+                if (!look.ranged && hasAnim(name, 'run')) steps.push({ anim: 'run', ms: 240 });
+                steps.push({ anim });
+                if (!look.ranged && hasAnim(name, 'run')) steps.push({ anim: 'run', ms: 240, turn: true });
+                const delay = Math.max(0, start - (!look.ranged && hasAnim(name, 'run') ? 240 : 0));
+                cands.push({ id: attack.id, steps, delay });
+            }
+        }
+        if (hurt && hasAnim(name, 'hurt')) cands.push({ id: 1e6 + hurt.id, steps: [{ anim: 'hurt' }], delay: hurt.delay * 1000 });
+        // 가장 최근 신호를 재생
+        play = cands.sort((x, y) => (y.id % 1e6) - (x.id % 1e6))[0] ?? null;
+    }
+    return <SpriteActor name={name} scale={scale} flip play={play} clock={clock} style={look.filter ? { filter: look.filter } : undefined} />;
+}
+
 export function MonsterView({
+    look, scale = 3, clock, seed = 1, attack, hurt, dead,
+}: {
+    look: MonsterLook;
+    scale?: number;
+    clock?: RefObject<HitStopClock>;
+    seed?: number;
+    attack?: MonsterAttack | null;
+    hurt?: { id: number; delay: number } | null;
+    dead?: boolean;
+}) {
+    if (look.kind === 'sprite') return <SpriteMonster look={look} scale={scale} clock={clock} attack={attack} hurt={hurt} dead={dead} />;
+    return <DrawnMonster look={look} scale={scale} clock={clock} seed={seed} attack={attack} />;
+}
+
+function DrawnMonster({
     look, scale = 3, clock, seed = 1, attack,
 }: {
     look: MonsterLook;

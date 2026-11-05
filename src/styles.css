@@ -3315,3 +3315,18 @@ kbd {
 .hand-slot.dragging .card {
     box-shadow: 0 0 0 3px #ffcf3e, 0 0 18px rgba(255, 207, 62, 0.7);
 }
+
+.charge-fx {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 59;
+}
+
+/* 피해 숫자: 다른 이펙트보다 위, 진한 그림자로 배경 위에서도 또렷하게 */
+.fx-numbers {
+    z-index: 8;
+    filter: drop-shadow(0 3px 0 rgba(20, 10, 30, 0.85)) drop-shadow(0 0 6px rgba(20, 10, 30, 0.6));
+}

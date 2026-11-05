@@ -17,6 +17,9 @@ interface Live {
 }
 
 /** 화면 픽셀 하나가 몇 CSS 픽셀인지. 스프라이트(32px × 3)와 같은 배율이라 이펙트와 캐릭터의 픽셀 크기가 맞는다 */
+/** 전투 이펙트 재생 속도 배율 (1보다 작으면 느긋하게) */
+const FX_TEMPO = 0.7;
+
 export const pixelScale = (w: number) => (w < 640 ? 2 : 3);
 
 const NO_CUES: Cue[] = [];
@@ -30,8 +33,10 @@ export type HitStopClock = { windows: [number, number][] };
  * - cues: 전투 신호. 새 cue가 오면 data-anchor 요소(캐릭터 발밑) 위치에 이펙트를 띄운다.
  */
 export function FxCanvas({
-    cues = NO_CUES, container, ambient, className, clock, numbers,
+    cues = NO_CUES, container, ambient, className, clock, numbers, pixel,
 }: {
+    /** 도트 크기를 직접 정할 때 (피해 숫자는 더 크게) */
+    pixel?: number;
     cues?: Cue[];
     /** 피해 숫자를 pixelfx로 띄울 fx 목록 */
     numbers?: Fx[];
@@ -84,7 +89,7 @@ export function FxCanvas({
         const cv = canvasRef.current;
         if (!el || !cv) return;
         const fit = () => {
-            const s = pixelScale(el.clientWidth);
+            const s = pixel ?? pixelScale(el.clientWidth);
             const w = Math.max(1, Math.ceil(el.clientWidth / s));
             const h = Math.max(1, Math.ceil(el.clientHeight / s));
             if (state.current && state.current.frame.w === w && state.current.frame.h === h) return;
@@ -145,13 +150,13 @@ export function FxCanvas({
                 // 같은 대상에 연달아 맞으면 옆으로 조금씩 흩어 놓는다
                 const jitter = ((f.id * 37) % 5) * 6 - 12;
                 const x = Math.round((r.left + r.width / 2 - box.left) / st.scale + jitter);
-                const y = Math.round((r.top + r.height * 0.45 - box.top) / st.scale);
+                const y = Math.round((r.top + r.height * 0.2 - box.top) / st.scale);
                 const toPlayer = f.target === 'player';
                 const opts = f.crit
                     ? { text: `${f.amount}!`, label: 'CRIT', palette: toPlayer ? undefined : CRIT_GOLD }
                     : { text: `-${f.amount}`, palette: f.dot ? POISON : toPlayer ? undefined : GOLD };
                 const fx = createFx(f.crit ? critNumber : damageNumber, { seed: f.id, ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)), x, y });
-                live.current.push({ fx, speed: f.crit ? 1.15 : 1.25, stopAt: Infinity });
+                live.current.push({ fx, speed: f.crit ? 0.8 : 0.75, stopAt: Infinity });
                 kick();
             };
             const ms = f.delay * 1000 + i * 30;
@@ -170,7 +175,7 @@ export function FxCanvas({
         const x = Math.round((r.left + r.width / 2 - box.left) / st.scale + (spec.dx ?? 0));
         const y = Math.round((r.bottom - box.top) / st.scale - 2 + (spec.dy ?? 0));
         const fx = createFx(spec.mod, { seed: Math.floor(Math.random() * 1e6), ...spec.opts, x, y });
-        live.current.push({ fx, speed: spec.speed ?? 1, stopAt: spec.stopAfter ?? Infinity });
+        live.current.push({ fx, speed: (spec.speed ?? 1) * FX_TEMPO, stopAt: spec.stopAfter ?? Infinity });
         kick();
     };
 

@@ -11,6 +11,9 @@ import { PROJECTILES } from './spriteManifest';
 import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { sfx } from './sfx';
+import { DragArrow } from './DragArrow';
+import { ChargeFx } from './ChargeFx';
+import { cardElement } from './cardElement';
 import { AMBIENT } from './vfx';
 
 function FxLayer({ fx, target }: { fx: Fx[]; target: string }) {
@@ -59,6 +62,7 @@ function Shake({ fx, target, children }: { fx: Fx[]; target: string; children: R
 
 interface Drag {
     idx: number;
+    card: string;
     /** 대상을 골라야 하는 카드인지 */
     target: boolean;
     x0: number;
@@ -73,53 +77,6 @@ interface Drag {
     aim: string | null;
     /** 대상 없는 카드: 놓으면 사용되는 위치인지 */
     release: boolean;
-}
-
-/** 카드에서 커서까지 이어지는 픽셀 화살표 (네모 점을 곡선 위에 찍는다) */
-function DragArrow({ d }: { d: Drag }) {
-    const cx = (d.sx + d.x) / 2;
-    const cy = Math.min(d.sy, d.y) - 90;
-    const at = (t: number) => {
-        const u = 1 - t;
-        return [u * u * d.sx + 2 * u * t * cx + t * t * d.x, u * u * d.sy + 2 * u * t * cy + t * t * d.y];
-    };
-    const len = Math.hypot(d.x - d.sx, d.y - d.sy) + 90;
-    const n = Math.max(4, Math.floor(len / 26));
-    const dots: number[][] = [];
-    for (let i = 1; i < n - 1; i++) dots.push(at(i / n));
-    const [px, py] = at(0.94);
-    const ang = (Math.atan2(d.y - py, d.x - px) * 180) / Math.PI;
-    const color = d.aim ? '#ff4a3a' : '#ffcf3e';
-    return (
-        <svg className="drag-arrow" aria-hidden shapeRendering="crispEdges">
-            {dots.map(([x, y], i) => {
-                const s = 6 + Math.round((i / n) * 6);
-                return (
-                    <g key={i}>
-                        <rect x={Math.round(x - s / 2) - 2} y={Math.round(y - s / 2) - 2} width={s + 4} height={s + 4} fill="#1e1a40" />
-                        <rect x={Math.round(x - s / 2)} y={Math.round(y - s / 2)} width={s} height={s} fill={color} />
-                    </g>
-                );
-            })}
-            {d.aim && (
-                // 하스스톤처럼 적 위에 조준선
-                <g transform={`translate(${Math.round(d.x)} ${Math.round(d.y)})`} className="drag-reticle">
-                    {[0, 90, 180, 270].map((r) => (
-                        <g key={r} transform={`rotate(${r})`}>
-                            <rect x={-30} y={-30} width={18} height={8} fill="#1e1a40" />
-                            <rect x={-30} y={-30} width={8} height={18} fill="#1e1a40" />
-                            <rect x={-28} y={-28} width={14} height={4} fill="#ff4a3a" />
-                            <rect x={-28} y={-28} width={4} height={14} fill="#ff4a3a" />
-                        </g>
-                    ))}
-                </g>
-            )}
-            <g transform={`translate(${Math.round(d.x)} ${Math.round(d.y)}) rotate(${ang})`}>
-                <polygon points="6,0 -18,-16 -12,0 -18,16" fill="#1e1a40" transform="scale(1.25)" />
-                <polygon points="4,0 -16,-13 -10,0 -16,13" fill={color} />
-            </g>
-        </svg>
-    );
 }
 
 function IntentBadge({ e, c }: { e: EnemyState; c: CombatState }) {
@@ -293,7 +250,7 @@ function useJuice(
         for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg')) {
             const dmg = dmgOf(f);
             const start = now + f.delay * 1000;
-            const hold = dmg >= 15 ? 110 : dmg >= 7 ? 75 : 50;
+            const hold = dmg >= 15 ? 170 : dmg >= 7 ? 120 : 80;
             clock.current.windows.push([start, start + hold]);
             const amp = (dmg >= 15 ? 3 : dmg >= 7 ? 2 : 1) * 3;
             field.animate(
@@ -371,12 +328,14 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
         if (!card || !canPlay(c, card)) return;
         const r = ev.currentTarget.getBoundingClientRect();
         const d: Drag = {
-            idx, target: needsTarget(card), x0: ev.clientX, y0: ev.clientY, x: ev.clientX, y: ev.clientY,
+            idx, card: card.id, target: needsTarget(card), x0: ev.clientX, y0: ev.clientY, x: ev.clientX, y: ev.clientY,
             sx: r.left + r.width / 2, sy: r.top + 8, moved: false, aim: null, release: false,
         };
         dragRef.current = d;
         setDrag(d);
+        sfx.charge(cardElement(card.id));
     };
+    const chargeRect = useCallback(() => document.querySelector('.hand-slot[data-charging] .card')?.getBoundingClientRect() ?? null, []);
 
     useEffect(() => {
         if (!drag) return;
@@ -520,7 +479,8 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 </div>
 
                 <div className="bd-front" aria-hidden />
-                <FxCanvas cues={c.cues} numbers={c.fx} container={fieldRef} className="fx-front" clock={clock} />
+                <FxCanvas cues={c.cues} container={fieldRef} className="fx-front" clock={clock} />
+                <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={4} />
                 {enemyTurn && !c.result && <div className="turn-banner">적의 차례</div>}
                 {selectedCard && <div className="target-hint">[{cardStats(selectedCard).name}] 적에게 끌어다 놓거나 적을 누르세요 · Esc 취소</div>}
             </div>
@@ -547,6 +507,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                                 ['--n' as string]: c.hand.length,
                                 ...(lift ? { transform: `translate(${drag.x - drag.x0}px, ${drag.y - drag.y0}px) scale(1.06)` } : {}),
                             }}
+                            data-charging={drag?.idx === i ? '' : undefined}
                             onPointerDown={(ev) => startDrag(ev, i)}
                         >
                             <CardView card={card} disabled={locked || !canPlay(c, card)} selected={selected === i} onClick={() => clickCard(i)} />
@@ -554,6 +515,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                         );
                     })}
                 </div>
+                {drag && <ChargeFx key={drag.card + drag.idx} element={cardElement(drag.card)} getRect={chargeRect} heat={drag.aim ? 1 : drag.moved ? 0.5 : 0.2} />}
                 {drag?.moved && drag.target && <DragArrow d={drag} />}
                 <div className="hand-right">
                     <button className="btn btn-end" onClick={doEndTurn} disabled={locked}>

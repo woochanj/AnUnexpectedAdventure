@@ -77,6 +77,42 @@ function noise(dur: number, freq: number, vol = 0.3, at = 0, type: BiquadFilterT
 }
 
 export const sfx = {
+    /** 카드를 집어 기운을 모을 때 (속성별) */
+    charge(el: string) {
+        switch (el) {
+            case 'fire':
+                noise(0.35, 500, 0.16, 0, 'lowpass', 2400);
+                tone(110, 220, 0.3, 'sawtooth', 0.04);
+                break;
+            case 'ice':
+                [1600, 2100, 2600].forEach((f, i) => tone(f, f * 1.02, 0.12, 'triangle', 0.04, i * 0.05));
+                noise(0.25, 6000, 0.05, 0, 'highpass');
+                break;
+            case 'lightning':
+                noise(0.08, 3000, 0.14, 0, 'bandpass');
+                noise(0.06, 3500, 0.12, 0.09, 'bandpass');
+                tone(80, 160, 0.25, 'square', 0.04);
+                break;
+            case 'poison':
+                [0, 0.08, 0.17].forEach((d) => tone(220 + Math.random() * 80, 420, 0.07, 'sine', 0.07, d));
+                break;
+            case 'arcane':
+            case 'shadow':
+                tone(el === 'arcane' ? 440 : 160, el === 'arcane' ? 880 : 240, 0.35, 'triangle', 0.06);
+                tone(el === 'arcane' ? 660 : 120, el === 'arcane' ? 1320 : 180, 0.35, 'sine', 0.04, 0.04);
+                break;
+            case 'guard':
+                tone(520, 780, 0.18, 'triangle', 0.06);
+                break;
+            case 'wind':
+                noise(0.3, 900, 0.12, 0, 'bandpass', 2600);
+                break;
+            default:
+                // 칼을 뽑는 소리
+                noise(0.18, 3500, 0.1, 0, 'highpass');
+                tone(1800, 2400, 0.12, 'triangle', 0.04, 0.02);
+        }
+    },
     /** 카드를 집거나 낼 때 */
     card() {
         noise(0.12, 2400, 0.12, 0, 'bandpass', 5200);

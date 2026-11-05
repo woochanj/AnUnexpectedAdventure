@@ -57,6 +57,7 @@ import * as magicMissile from 'pixelfx/fx/projectiles/magic-missile';
 import * as dirtExplosion from 'pixelfx/fx/explosions/dirt-explosion';
 import * as poisonCloud from 'pixelfx/fx/nature/poison-cloud';
 import * as tornado from 'pixelfx/fx/nature/tornado';
+import * as sunburst from 'pixelfx/fx/holy/sunburst';
 import * as waterSplash from 'pixelfx/fx/water/splash';
 import * as ripples from 'pixelfx/fx/water/ripples';
 import * as waveCrash from 'pixelfx/fx/water/wave-crash';
@@ -192,6 +193,8 @@ export function cueVfx(c: Cue): VfxSpec[] {
             if (def?.charge) for (const ch of chargeVfx(cardElement(id))) out.push({ ...ch, delay: ch.delay ?? 0 });
             // 마법사(물 사제): 발밑 물의 마법진, 물방울이 모였다가 물줄기로 날아가 물보라
             if (CARDS[id]?.cls === 'mage') for (const w of waterFlourish(id, c.id, attack, wait)) out.push({ ...w, delay: w.delay ?? 0 });
+            // 기사(모험가): 금빛 칼날 궤적과 불꽃, 큰 기술은 땅이 갈라지는 충격파
+            if (attack && CARDS[id].cls === 'knight') for (const k of knightFlourish(id, c.id)) out.push({ ...k, delay: wait + (k.delay ?? 0) });
             // 도적(바람 암살자): 바람 칼날이 덧붙는다
             if (attack && CARDS[id].cls === 'rogue') for (const w of windFlourish(id, c.id)) out.push({ ...w, delay: wait + (w.delay ?? 0) });
             // 맞는 자리에 속성별 여운 (불씨, 눈꽃, 전기, 독, 피 …)
@@ -478,4 +481,34 @@ function chargeVfx(el: Element): VfxSpec[] {
         { mod: chargeUp, at: 'self', speed: 1.3, stopAfter: CHARGE_TIME + 0.1, opts },
         { mod: spellCharge, at: 'self', speed: 1.2, stopAfter: CHARGE_TIME, opts },
     ];
+}
+
+const GOLD = ['#2a1406', '#5a2e0a', '#9a5a10', '#d89a20', '#ffd24a', '#fff2b0', '#ffffff'];
+/** 내려찍는 큰 기술 */
+const KNIGHT_HEAVY = new Set(['heavy_blow', 'oath_blade', 'execution', 'shield_slam', 'shield_bash']);
+/** 여러 번 베는 기술 */
+const KNIGHT_MULTI = new Set(['cleave_line', 'chain_strike', 'sweep', 'momentum']);
+
+/** 기사 공격에 덧붙는 금빛 연출 */
+function knightFlourish(id: string, seed: number): VfxSpec[] {
+    const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
+    const at = all ? ('all' as const) : ('target' as const);
+    const tilt = [-0.5, 0.35, -0.2, 0.55][seed % 4];
+    // 칼날이 지나간 금빛 궤적 + 튀는 불꽃
+    const out: VfxSpec[] = [
+        { mod: swordSlash, at, dx: SLASH_DX + 6, dy: -6, speed: 1.3, opts: { palette: GOLD, angle: tilt } },
+        { mod: hitSpark, at, delay: 0.04, opts: { palette: GOLD, seed: seed * 3 } },
+    ];
+    if (KNIGHT_MULTI.has(id)) {
+        out.push({ mod: swordSlash, at, dx: SLASH_DX, delay: 0.16, speed: 1.4, opts: { palette: GOLD, angle: -tilt } });
+        out.push({ mod: spinSlash, at, delay: 0.3, speed: 1.6, opts: { palette: GOLD } });
+    }
+    if (KNIGHT_HEAVY.has(id)) {
+        // 내려찍는 순간: 번쩍, 햇살처럼 퍼지는 빛, 땅이 갈라지며 흙이 튄다
+        out.push({ mod: impactFrame, at, speed: 1.6, opts: { palette: ['#2a1406', '#ffd24a'] } });
+        out.push({ mod: sunburst, at, dy: -20, delay: 0.02, speed: 1.6, stopAfter: 0.6, opts: { palette: GOLD } });
+        out.push({ mod: groundSlam, at, delay: 0.03, speed: 1.4 });
+        out.push({ mod: dirtExplosion, at, delay: 0.06, speed: 1.6 });
+    }
+    return out;
 }

@@ -269,6 +269,8 @@ function useJuice(
                         else playHeroMotion(hero, motion, tx - me.x - gap, charge * 1000, run, hold, 460);
                         // 바람 암살자는 지나간 자리에 잔상이 남는다
                         if (heroLook === 'wind-hashashin') spawnAfterimages(field, hero, charge * 1000 + 40, run + hold + 200);
+                        // 기사는 뛰어오르거나 기를 모은 큰 기술에서 금빛 잔상
+                        else if (card?.cls === 'knight' && (motion === 'leap' || charge)) spawnAfterimages(field, hero, charge * 1000 + 40, run + 160, 'gold');
                     }
                 }
             }

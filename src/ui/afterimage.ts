@@ -6,7 +6,9 @@ export function spawnAfterimages(field: HTMLElement, body: HTMLElement, startIn:
     const filter =
         tint === 'cyan'
             ? 'brightness(0) invert(1) sepia(1) saturate(6) hue-rotate(130deg) brightness(1.1)'
-            : 'brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(230deg)';
+            : tint === 'gold'
+              ? 'brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(5deg) brightness(1.05)'
+              : 'brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(230deg)';
     let timer = 0;
     const snap = () => {
         const now = performance.now();

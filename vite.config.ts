@@ -1,18 +1,15 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  server: {
-    host: true,
-    port: 5173,
-    open: true
-  },
-  build: {
-    target: 'esnext',
-    outDir: 'dist',
-    sourcemap: true
-  },
-  optimizeDeps: {
-    include: ['phaser']
-  },
-  base: process.env.NODE_ENV === 'production' ? '/AnUnexpectedAdventure/' : '/'
-})
+    plugins: [react()],
+    server: {
+        host: true,
+        port: 5173,
+    },
+    build: {
+        target: 'es2022',
+        outDir: 'dist',
+    },
+    base: process.env.NODE_ENV === 'production' ? '/AnUnexpectedAdventure/' : '/',
+});

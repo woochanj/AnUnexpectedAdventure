@@ -1,0 +1,118 @@
+import { useEffect, type ReactNode } from 'react';
+import { describeCard, cardStats, STATUS_INFO } from '../game/cards';
+import { RELICS } from '../game/relics';
+import type { CardInst, StatusMap, Status } from '../game/types';
+import { cardArt } from './cardArt';
+
+const TYPE_LABEL = { attack: '공격', skill: '기술', power: '지속' } as const;
+
+export function CardView({
+    card, onClick, disabled, selected, cost, small, footer,
+}: {
+    card: Pick<CardInst, 'id' | 'upgraded'>;
+    onClick?: () => void;
+    disabled?: boolean;
+    selected?: boolean;
+    cost?: number;
+    small?: boolean;
+    footer?: ReactNode;
+}) {
+    const s = cardStats(card);
+    const art = cardArt(card.id);
+    return (
+        <button
+            type="button"
+            className={[
+                'card', `card-${s.def.type}`, `rarity-${s.def.rarity}`,
+                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', card.upgraded && 'card-up',
+            ].filter(Boolean).join(' ')}
+            onClick={onClick}
+            aria-disabled={disabled}
+        >
+            <span className="card-cost">{cost ?? s.cost}</span>
+            <span className="card-name">{s.name}</span>
+            <span className="card-art">
+                {art ? <img src={art} alt="" draggable={false} /> : <span className={`card-art-fallback art-${s.def.type}`} />}
+            </span>
+            <span className="card-type">{TYPE_LABEL[s.def.type]}</span>
+            <span className="card-desc">
+                {describeCard(card).map((l, i) => (
+                    <span key={i}>{l}</span>
+                ))}
+            </span>
+            {footer && <span className="card-footer">{footer}</span>}
+        </button>
+    );
+}
+
+export function HpBar({ hp, max, block = 0 }: { hp: number; max: number; block?: number }) {
+    return (
+        <div className={`hpbar ${block > 0 ? 'has-block' : ''}`}>
+            <div className="hpbar-fill" style={{ width: `${(hp / max) * 100}%` }} />
+            <span className="hpbar-text">
+                {hp} / {max}
+            </span>
+            {block > 0 && <span className="block-badge">{block}</span>}
+        </div>
+    );
+}
+
+export function StatusList({ status }: { status: StatusMap }) {
+    const entries = Object.entries(status).filter(([, v]) => v && v > 0) as [Status, number][];
+    if (!entries.length) return <div className="statuses" />;
+    return (
+        <div className="statuses">
+            {entries.map(([k, v]) => (
+                <span key={k} className={`status ${STATUS_INFO[k].debuff ? 'debuff' : 'buff'} st-${k}`} title={`${STATUS_INFO[k].name}: ${STATUS_INFO[k].desc}`}>
+                    {STATUS_INFO[k].name} {v}
+                </span>
+            ))}
+        </div>
+    );
+}
+
+export function RelicIcon({ id }: { id: string }) {
+    const r = RELICS[id];
+    return (
+        <span className="relic" title={`${r.name} — ${r.desc}`} tabIndex={0}>
+            {r.glyph}
+            <span className="relic-tip">
+                <b>{r.name}</b>
+                {r.desc}
+            </span>
+        </span>
+    );
+}
+
+export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+    useEffect(() => {
+        const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+        window.addEventListener('keydown', k);
+        return () => window.removeEventListener('keydown', k);
+    }, [onClose]);
+    return (
+        <div className="modal-bg" onClick={onClose}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-head">
+                    <h2>{title}</h2>
+                    <button className="btn btn-ghost" onClick={onClose}>
+                        닫기
+                    </button>
+                </div>
+                <div className="modal-body">{children}</div>
+            </div>
+        </div>
+    );
+}
+
+export function CardGrid({ cards, onPick, isDisabled }: { cards: CardInst[]; onPick?: (c: CardInst) => void; isDisabled?: (c: CardInst) => boolean }) {
+    const sorted = [...cards].sort((a, b) => a.id.localeCompare(b.id) || Number(a.upgraded) - Number(b.upgraded));
+    if (!sorted.length) return <p className="muted">카드가 없습니다.</p>;
+    return (
+        <div className="card-grid">
+            {sorted.map((c) => (
+                <CardView key={c.uid} card={c} small disabled={isDisabled?.(c)} onClick={onPick && !isDisabled?.(c) ? () => onPick(c) : undefined} />
+            ))}
+        </div>
+    );
+}

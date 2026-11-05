@@ -1,0 +1,184 @@
+export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize';
+export type StatusMap = Partial<Record<Status, number>>;
+
+export type Effect =
+    | { kind: 'damage'; amount: number; hits?: number }
+    | { kind: 'damageAll'; amount: number; hits?: number }
+    | { kind: 'block'; amount: number }
+    | { kind: 'draw'; amount: number }
+    | { kind: 'energy'; amount: number }
+    | { kind: 'heal'; amount: number }
+    | { kind: 'apply'; status: Status; amount: number; to: 'target' | 'all' | 'self' }
+    | { kind: 'doublePoison' };
+
+export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare';
+export type CardType = 'attack' | 'skill' | 'power';
+
+export interface CardDef {
+    id: string;
+    name: string;
+    type: CardType;
+    rarity: Rarity;
+    cost: number;
+    effects: Effect[];
+    exhaust?: boolean;
+    /** 강화 시 바뀌는 값 */
+    up: { cost?: number; effects?: Effect[]; exhaust?: boolean };
+}
+
+export interface CardInst {
+    uid: string;
+    id: string;
+    upgraded: boolean;
+}
+
+export interface Intent {
+    attack?: number;
+    hits?: number;
+    block?: number;
+    buff?: { status: Status; amount: number };
+    debuff?: { status: Status; amount: number };
+    healAll?: number;
+}
+
+export interface EnemyDef {
+    id: string;
+    name: string;
+    /** pixelfx 이펙트 id와 색. 화면 쪽(ui/creatures.ts)에서 모듈로 바꿔 그린다 */
+    look: { fx: string; palette?: string[]; scale?: number; flip?: boolean };
+    hp: [number, number];
+    moves: Intent[];
+    /** true면 무작위 행동, 아니면 순서대로 반복 */
+    random?: boolean;
+    size?: 'normal' | 'large' | 'huge';
+}
+
+export interface Fighter {
+    hp: number;
+    maxHp: number;
+    block: number;
+    status: StatusMap;
+}
+
+export interface EnemyState extends Fighter {
+    uid: string;
+    defId: string;
+    moveIdx: number;
+    intent: Intent;
+    dead?: boolean;
+}
+
+export interface Fx {
+    id: number;
+    target: string; // 'player' | enemy uid
+    text: string;
+    kind: 'dmg' | 'block' | 'heal' | 'status';
+    /** 연출 지연(초). 적의 턴 행동을 순서대로 보여주기 위해 사용 */
+    delay: number;
+}
+
+export type CueKind = 'card' | 'enemyAttack' | 'enemyBlock' | 'enemyBuff' | 'enemyDebuff' | 'enemyHeal' | 'death' | 'poison';
+
+/** 화면 연출(픽셀 이펙트)을 위한 신호. 게임 규칙에는 영향 없음 */
+export interface Cue {
+    id: number;
+    kind: CueKind;
+    delay: number;
+    card?: string;
+    /** 'player' 또는 적 uid */
+    target?: string | null;
+    source?: string;
+    amount?: number;
+    hits?: number;
+}
+
+export type CombatKind = 'normal' | 'elite' | 'boss';
+
+export interface CombatState {
+    kind: CombatKind;
+    player: Fighter;
+    enemies: EnemyState[];
+    draw: CardInst[];
+    hand: CardInst[];
+    discard: CardInst[];
+    exhaust: CardInst[];
+    energy: number;
+    maxEnergy: number;
+    turn: number;
+    fx: Fx[];
+    fxSeq: number;
+    cues: Cue[];
+    cueSeq: number;
+    /** 지금 발생하는 fx/cue에 붙일 지연 시간 */
+    delay: number;
+    result?: 'win' | 'lose';
+}
+
+export type RoomType = 'start' | 'combat' | 'elite' | 'treasure' | 'rest' | 'shop' | 'event' | 'boss';
+
+export interface Room {
+    id: number;
+    x: number;
+    y: number;
+    type: RoomType;
+    links: number[];
+    seen: boolean;
+    visited: boolean;
+    cleared: boolean;
+    encounter?: string[];
+    eventId?: string;
+    shop?: ShopScreen;
+}
+
+export interface FloorMap {
+    w: number;
+    h: number;
+    cells: (Room | null)[];
+    start: number;
+}
+
+export type Screen =
+    | { kind: 'map' }
+    | { kind: 'combat'; combat: CombatState }
+    | {
+          kind: 'reward';
+          combatKind: CombatKind;
+          gold: number;
+          goldTaken: boolean;
+          cards: string[];
+          cardsDone: boolean;
+          relic: string | null;
+          relicTaken: boolean;
+      }
+    | { kind: 'rest'; done: boolean; message?: string }
+    | ShopScreen
+    | { kind: 'treasure'; relic: string | null; gold: number; taken: boolean }
+    | { kind: 'event'; eventId: string; result?: string }
+    | { kind: 'pick'; purpose: 'upgrade' | 'remove'; returnTo: Screen; cost?: number }
+    | { kind: 'floorClear' }
+    | { kind: 'gameover' }
+    | { kind: 'victory' };
+
+export interface RunState {
+    floor: number;
+    hp: number;
+    maxHp: number;
+    gold: number;
+    deck: CardInst[];
+    relics: string[];
+    map: FloorMap;
+    pos: number;
+    facing: Dir;
+    screen: Screen;
+    uidSeq: number;
+    stats: { kills: number; rooms: number; turns: number };
+}
+
+export type Dir = 'up' | 'down' | 'left' | 'right';
+
+export interface ShopScreen {
+    kind: 'shop';
+    cards: { id: string; price: number; sold: boolean }[];
+    removePrice: number;
+    removed: boolean;
+}

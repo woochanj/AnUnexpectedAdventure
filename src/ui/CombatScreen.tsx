@@ -12,6 +12,7 @@ import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { sfx } from './sfx';
 import { DragArrow } from './DragArrow';
+import { spawnAfterimages } from './afterimage';
 import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
 import { hasAnim } from './SpriteActor';
 import { ChargeFx } from './ChargeFx';
@@ -235,6 +236,8 @@ function useJuice(
                         const gap = Math.max(56, me.w * 0.3);
                         const multi = act === 'double' || act === 'dagger' || act === 'spin';
                         dash(hero, tx - me.x - gap, 0, ATTACK_WINDUP * 1000 - 20, multi ? 480 : 300, 460);
+                        // 바람 암살자는 지나간 자리에 잔상이 남는다
+                        if (heroLook === 'wind-hashashin') spawnAfterimages(field, hero, 40, ATTACK_WINDUP * 1000 + (multi ? 480 : 300) + 200);
                     }
                 }
             }

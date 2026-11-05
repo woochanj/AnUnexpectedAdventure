@@ -56,6 +56,8 @@ import * as splash from 'pixelfx/fx/water/splash';
 import * as magicMissile from 'pixelfx/fx/projectiles/magic-missile';
 import * as dirtExplosion from 'pixelfx/fx/explosions/dirt-explosion';
 import * as poisonCloud from 'pixelfx/fx/nature/poison-cloud';
+import * as tornado from 'pixelfx/fx/nature/tornado';
+import * as hitFlash from 'pixelfx/fx/impacts/hit-flash';
 import { cardElement, type Element } from './cardElement';
 import { ENEMIES } from '../game/enemies';
 import type { Cue } from '../game/types';
@@ -154,6 +156,8 @@ export function cueVfx(c: Cue): VfxSpec[] {
             // 공격 카드는 주인공이 칼을 젖히는 동안 기다렸다가 터진다
             const wait = attack ? ATTACK_WINDUP : 0;
             const out = specs.map((s) => ({ ...s, delay: (s.delay ?? 0) + wait }));
+            // 도적(바람 암살자): 바람 칼날이 덧붙는다
+            if (attack && CARDS[id].cls === 'rogue') for (const w of windFlourish(id, c.id)) out.push({ ...w, delay: wait + (w.delay ?? 0) });
             // 맞는 자리에 속성별 여운 (불씨, 눈꽃, 전기, 독, 피 …)
             if (attack) {
                 const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
@@ -375,4 +379,22 @@ function enemyHit(look: (typeof ENEMIES)[string]['look'] | undefined, seed: numb
     if (['beetle', 'mushroom', 'ghoul'].includes(k)) return [{ mod: bluntHit, at: 'target', speed: 1.3 }];
     if (['skeleton', 'knight', 'goblin'].includes(k)) return v ? [{ mod: swordSlash, at: 'target', dx: 30, speed: 1.2 }] : [{ mod: heavyCleave, at: 'target', dx: 30, speed: 1.6 }];
     return [{ mod: hitSpark, at: 'target' }];
+}
+
+const WIND = ['#0a2a30', '#145058', '#2a8a8a', '#4ad0c0', '#9af4e0', '#e0fff8', '#ffffff'];
+const MULTI_ROGUE = new Set(['twin_cut', 'gale', 'blade_storm', 'shadow_dance', 'venom_dagger']);
+const BIG_ROGUE = new Set(['backstab', 'shadow_dance', 'blade_storm']);
+
+/** 바람 암살자 공격에 덧붙는 바람 칼날: 회오리 베기, 엇갈린 X자, 큰 기술은 돌풍과 번쩍임 */
+function windFlourish(id: string, seed: number): VfxSpec[] {
+    const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
+    const at = all ? ('all' as const) : ('target' as const);
+    const out: VfxSpec[] = [{ mod: spinSlash, at, speed: 1.7, opts: { palette: WIND, angle: seed % 2 ? 0.4 : -0.4 } }];
+    if (MULTI_ROGUE.has(id)) {
+        out.push({ mod: doubleSlash, at, dx: -20, delay: 0.1, speed: 1.4, opts: { palette: WIND } });
+        out.push({ mod: doubleSlash, at, dx: -20, delay: 0.22, speed: 1.4, opts: { palette: WIND, flip: true } });
+    }
+    if (BIG_ROGUE.has(id) || id === 'gale') out.push({ mod: tornado, at, delay: 0.05, speed: 1.8, stopAfter: 0.7, opts: { palette: WIND } });
+    if (BIG_ROGUE.has(id)) out.push({ mod: hitFlash, at, delay: 0.08, opts: { palette: WIND } });
+    return out;
 }

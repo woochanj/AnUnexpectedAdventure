@@ -97,6 +97,8 @@ export function SpriteActor({
     idleRef.current = idle;
     const flipRef = useRef(flip);
     flipRef.current = flip;
+    const scaleRef = useRef(scale);
+    scaleRef.current = scale;
     const vt = useRef(0); // 히트스톱을 뺀 가상 시간(ms)
 
     useEffect(() => {
@@ -153,7 +155,10 @@ export function SpriteActor({
             const im = spriteImage(name, anim);
             ctx.clearRect(0, 0, info.w, info.h);
             if (im.complete && im.naturalWidth) ctx.drawImage(im, frame * info.w, 0, info.w, info.h, 0, 0, info.w, info.h);
-            cv.style.transform = flipRef.current !== turn ? 'scaleX(-1)' : '';
+            // 그림 틀이 공격 범위만큼 넓어도 몸통이 자리 한가운데 오도록 옮긴다 (뒤집혀도 같은 자리)
+            const mirrored = flipRef.current !== turn;
+            const off = (info.w / 2 - (info.bodyX ?? info.w / 2)) * scaleRef.current * (mirrored ? -1 : 1);
+            cv.style.transform = `translateX(${off}px)${mirrored ? ' scaleX(-1)' : ''}`;
             raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);

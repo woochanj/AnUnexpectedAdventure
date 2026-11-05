@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Dispatch, type ReactNode, useMemo } from 'react';
-import { cardStats, needsTarget, STATUS_INFO } from '../game/cards';
+import { cardStats, ELEMENT_NAME, needsTarget, STATUS_INFO } from '../game/cards';
 import { AFFIXES, ATTACK_WINDUP, FREEZE_AT, chargeOf, windupOf, canPlay, ENEMY_LEAD, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
 import { ENEMIES } from '../game/enemies';
@@ -18,6 +18,7 @@ import { CARD_MOVE, CARD_SKIN, IN_PLACE, playHeroMotion, STILL_FOR } from './her
 import { spriteImage, spriteInfo } from './SpriteActor';
 import { spawnAfterimages } from './afterimage';
 import { spawnShield } from './shield';
+import { showProc } from './proc';
 import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
 import { hasAnim } from './SpriteActor';
 import { ChargeFx } from './ChargeFx';
@@ -26,7 +27,8 @@ import { AMBIENT } from './vfx';
 
 function FxLayer({ fx, target }: { fx: Fx[]; target: string }) {
     // 피해 숫자는 pixelfx 캔버스가 그린다. 여기서는 방어·회복·상태이상 글자만
-    const mine = fx.filter((f) => f.target === target && !(f.kind === 'dmg' && f.amount));
+    // 공명·반응·투지 폭발은 따로 큰 알림으로 보여 준다
+    const mine = fx.filter((f) => f.target === target && !(f.kind === 'dmg' && f.amount) && !f.proc);
     return (
         <div className="fx-layer">
             {mine.map((f, i) => (
@@ -122,6 +124,12 @@ function chargeMoment(field: HTMLElement, el: string, ultimate: string | null, c
 }
 
 /** 졸개 말풍선: 몬스터 머리 위에 잠깐 떴다 사라진다 */
+/** 이번에 낸 카드의 대상 (공명·반응 표식을 그 적 발밑에) */
+function q0Target(c: CombatState): string | null {
+    const last = [...c.cues].reverse().find((q) => q.kind === 'card');
+    return last?.target ?? null;
+}
+
 /** 방패를 꺼내 드는 기사 기술 */
 const SHIELD_HIT = new Set(['shield_bash', 'shield_slam']);
 const SHIELD_GUARD = new Set(['counter_stance']);
@@ -175,10 +183,16 @@ function bubble(field: HTMLElement, hostSel: string, text: string, kind: string,
     }, Math.max(0, delayMs));
 }
 
-/** 지금 내면 연계 효과가 붙는 카드 */
-function comboReady(card: CardInst, c: CombatState): boolean {
-    const eff = cardStats(card).effects;
-    return eff.some((e) => (e.kind === 'after' && e.type === c.lastType) || ((e.kind === 'combo' || e.kind === 'finisher') && (c.played ?? 0) > 0));
+/** 지금 내면 직업 체계 효과가 붙는 카드: 손패 위에 꼬리표로 미리 알려 준다 (연계 · 공명 · 반응 · 투지) */
+function readyTag(card: CardInst, c: CombatState): { tag: string; cls: string } | null {
+    const s = cardStats(card);
+    if (s.effects.some((e) => (e.kind === 'after' && e.type === c.lastType) || ((e.kind === 'combo' || e.kind === 'finisher') && (c.played ?? 0) > 0)))
+        return { tag: '연계', cls: 'rt-combo' };
+    const el = s.def.el;
+    if (el && c.lastEl) return el === c.lastEl ? { tag: '공명 +3', cls: `rt-${el}` } : { tag: '반응', cls: `rt-${el}` };
+    const grit = c.player.status.grit ?? 0;
+    if (grit > 0 && s.effects.some((e) => e.kind === 'unleash')) return { tag: `투지 ×${grit}`, cls: 'rt-grit' };
+    return null;
 }
 
 function IntentBadge({ e, c }: { e: EnemyState; c: CombatState }) {
@@ -415,6 +429,7 @@ function useJuice(
                 else sfx.hit(f.amount ?? 5, f.delay);
             }
         }
+        for (const f of c.fx.filter((f) => f.id > seenFx.current && f.proc)) showProc(field, f, q0Target(c));
         for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg' && !f.dot && f.target !== 'player'))
             if (Math.random() < 0.15) say(field, c, f.target, 'hurt', f.delay * 1000 + 120);
         // 피격 반응: 맞은 쪽이 뒤로 밀리고 번쩍인다. 주인공이 맞으면 화면 가장자리도 붉게
@@ -567,6 +582,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
         for (const s of Object.values(CARD_SKIN[hero] ?? {})) for (const a of Object.keys(spriteInfo(s)?.anims ?? {})) spriteImage(s, a);
     }, [hero]);
     useJuice(hero, c, fieldRef, clock, setHeroAction, cls, setSkin);
+    const tagOf = (card: CardInst) => readyTag(card, c);
 
     const play = useCallback(
         (idx: number, target: string | null) => {
@@ -811,9 +827,14 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
 
             <div className="hand-area">
                 <div className="hand-left">
-                    {(c.played ?? 0) > 0 && (
+                    {cls === 'rogue' && (c.played ?? 0) > 0 && (
                         <div className="combo-count" key={c.played} title="이번 턴에 낸 카드 수 (연계 카드가 강해진다)">
                             연계 <b>{c.played}</b>
+                        </div>
+                    )}
+                    {cls === 'mage' && c.lastEl && (
+                        <div className={`combo-count el-now pe-${c.lastEl}`} key={c.lastEl} title="직전에 쓴 원소: 같은 원소면 공명, 다른 원소면 반응">
+                            원소 <b>{ELEMENT_NAME[c.lastEl]}</b>
                         </div>
                     )}
                     <div className="energy-wrap">
@@ -839,7 +860,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                         <div
                             key={card.uid}
                             data-uid={card.uid}
-                            className={`hand-slot ${dragging ? 'dragging' : ''} ${lift && drag.release ? 'will-play' : ''} ${comboReady(card, c) ? 'combo-ready' : ''} ${!locked && canPlay(c, card) ? 'playable' : ''}`}
+                            className={`hand-slot ${dragging ? 'dragging' : ''} ${lift && drag.release ? 'will-play' : ''} ${tagOf(card) ? `combo-ready ${tagOf(card)!.cls}` : ''} ${!locked && canPlay(c, card) ? 'playable' : ''}`} data-tag={tagOf(card)?.tag}
                             style={{
                                 ['--i' as string]: i,
                                 ['--n' as string]: c.hand.length,

@@ -140,6 +140,8 @@ export interface Fx {
     dot?: boolean;
     /** 숫자만 (피해량) */
     amount?: number;
+    /** 직업 체계 발동 (공명·반응·투지 폭발): 화면에 큰 알림으로 보여 준다 */
+    proc?: { kind: 'resonance' | 'reaction' | 'unleash'; el?: SpellElement; from?: SpellElement; n?: number; note: string; impact: number; all?: boolean };
 }
 
 export type CueKind = 'card' | 'enemyAttack' | 'enemyBlock' | 'enemyBuff' | 'enemyDebuff' | 'enemyHeal' | 'death' | 'poison';

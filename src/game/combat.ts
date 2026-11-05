@@ -221,6 +221,7 @@ function reaction(el: SpellElement, all: boolean): Effect[] {
     if (el === 'lightning') return [{ kind: 'draw', amount: 1 }];
     return [{ kind: 'block', amount: 5 }];
 }
+const REACTION_NOTE: Record<SpellElement, string> = { fire: '화상 +3', frost: '냉기 +1', lightning: '카드 1장', earth: '방어도 +5' };
 /** 같은 원소를 연달아 쓰면 공명: 피해 +3 */
 export const RESONANCE = 3;
 
@@ -297,14 +298,18 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
     if (triggered) fx(c, 'player', '연계!', 'status');
     let comboBonus = flat.reduce((n, e) => n + (e.kind === 'combo' ? e.per * before : 0), 0);
     // 마법사 원소: 같은 원소를 연달아 쓰면 공명(피해 +3), 다른 원소로 바꾸면 반응(새 원소의 덤)
+    // 알림은 카드를 낸 직후에 (주문이 날아가는 동안 읽히게), 대상 표시는 맞는 순간에
     const el = s.def.el;
+    const all = flat.some((e) => e.kind === 'damageAll');
+    const procAt = { delay: 0.12, impact: c.delay };
     if (el && c.lastEl) {
         if (c.lastEl === el) {
+            const hits = flat.some((e) => e.kind === 'damage' || e.kind === 'damageAll');
             comboBonus += RESONANCE;
-            fx(c, 'player', `${ELEMENT_NAME[el]} 공명!`, 'status');
+            fx(c, 'player', `${ELEMENT_NAME[el]} 공명!`, 'status', { ...procAt, proc: { kind: 'resonance', el, note: hits ? `피해 +${RESONANCE}` : '공명', impact: procAt.impact, all } });
         } else {
-            fx(c, 'player', `${ELEMENT_NAME[c.lastEl]}+${ELEMENT_NAME[el]} 반응!`, 'status');
-            flat.push(...reaction(el, flat.some((e) => e.kind === 'damageAll') || !target));
+            fx(c, 'player', `${ELEMENT_NAME[c.lastEl]}+${ELEMENT_NAME[el]} 반응!`, 'status', { ...procAt, proc: { kind: 'reaction', el, from: c.lastEl, note: REACTION_NOTE[el], impact: procAt.impact, all } });
+            flat.push(...reaction(el, all));
         }
     }
     if (el) c.lastEl = el;
@@ -379,7 +384,7 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
                 const n = c.player.status.grit ?? 0;
                 if (n > 0 && target) {
                     delete c.player.status.grit;
-                    fx(c, 'player', `투지 폭발 ×${n}`, 'status');
+                    fx(c, 'player', `투지 폭발 ×${n}`, 'status', { delay: 0.12, proc: { kind: 'unleash', n, note: `피해 +${n * e.per}`, impact: c.delay } });
                     strike(n * e.per);
                 }
                 break;

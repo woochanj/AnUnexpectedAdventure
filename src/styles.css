@@ -5796,3 +5796,144 @@ body {
 @keyframes grit-full {
     50% { box-shadow: 0 2px 0 #120a06, 0 0 16px 3px rgba(255, 170, 60, 0.95); }
 }
+
+/* ═════ 직업 체계 발동 알림: 시인성 우선 (단색 바탕 · 큰 글자 · 원소 색 하나) ═════ */
+.proc-banner {
+    --pc: #ffd84a;
+    position: absolute;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px 5px 6px;
+    border: 3px solid #0c0818;
+    border-radius: 8px;
+    background: #1a1428;
+    box-shadow: inset 0 0 0 2px var(--pc), 0 4px 0 #0c0818, 0 0 16px color-mix(in srgb, var(--pc) 55%, transparent);
+    pointer-events: none;
+    white-space: nowrap;
+    opacity: 0;
+}
+.proc-banner.pe-fire { --pc: #ff8a3a; }
+.proc-banner.pe-frost { --pc: #7ad0ff; }
+.proc-banner.pe-lightning { --pc: #ffe84a; }
+.proc-banner.pe-earth { --pc: #d8a860; }
+.proc-banner.proc-unleash { --pc: #ff7a20; }
+.proc-icons {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.proc-icons i {
+    font-style: normal;
+    font-size: 0.7rem;
+    color: #fff;
+}
+.proc-gem {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 2px solid #0c0818;
+    border-radius: 5px;
+    font-family: var(--font-head);
+    font-size: 0.85rem;
+    line-height: 1;
+}
+.pg-fire { background: linear-gradient(#ffc070, #e0501a); color: #2a0800; }
+.pg-frost { background: linear-gradient(#e0f6ff, #5ab0e8); color: #06243a; }
+.pg-lightning { background: linear-gradient(#fff8b0, #e8b820); color: #2a2000; }
+.pg-earth { background: linear-gradient(#f0d4a0, #9a6a30); color: #1e0e02; }
+.pg-grit {
+    width: 30px;
+    height: 30px;
+    font-size: 1.1rem;
+    background: linear-gradient(#ffc040, #e8501a);
+    color: #fff;
+    text-shadow: 0 2px 0 #5a1800;
+}
+.proc-text {
+    display: grid;
+    line-height: 1.15;
+    text-align: left;
+}
+.proc-text b {
+    font-family: var(--font-head);
+    font-size: 1.05rem;
+    color: #fff;
+    text-shadow: 0 2px 0 #000;
+}
+.proc-text small {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--pc);
+}
+.proc-unleash .proc-text b {
+    font-size: 1.2rem;
+}
+/* 대상 발밑 고리: 납작한 타원, 몸 뒤에 */
+.proc-ring {
+    --rc: #ffd84a;
+    position: absolute;
+    z-index: 1;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 6px solid var(--rc);
+    box-shadow: 0 0 14px var(--rc), inset 0 0 14px var(--rc);
+    pointer-events: none;
+    opacity: 0;
+}
+.proc-ring.pr-fire { --rc: #ff8a3a; }
+.proc-ring.pr-frost { --rc: #9ae0ff; }
+.proc-ring.pr-lightning { --rc: #ffe84a; }
+.proc-ring.pr-earth { --rc: #d8a860; }
+.proc-ring.pr-grit { --rc: #ff7a20; border-width: 8px; }
+@media (max-width: 640px) {
+    .proc-banner {
+        gap: 5px;
+        padding: 3px 8px 3px 4px;
+    }
+    .proc-gem { width: 20px; height: 20px; font-size: 0.75rem; }
+    .proc-text b { font-size: 0.92rem; }
+    .proc-text small { font-size: 0.74rem; }
+    .proc-ring { width: 100px; height: 100px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .proc-ring { display: none; }
+}
+
+/* 손패 꼬리표: 연계 · 공명 · 반응 · 투지 (색 하나 + 글자) */
+.hand-slot.combo-ready {
+    --rt: #ff8a2a;
+}
+.hand-slot.combo-ready.rt-fire { --rt: #ff8a3a; }
+.hand-slot.combo-ready.rt-frost { --rt: #7ad0ff; }
+.hand-slot.combo-ready.rt-lightning { --rt: #ffe84a; }
+.hand-slot.combo-ready.rt-earth { --rt: #d8a860; }
+.hand-slot.combo-ready.rt-grit { --rt: #ff7a20; }
+.hand-slot.combo-ready .card {
+    box-shadow: 0 0 0 3px var(--rt), 0 0 16px color-mix(in srgb, var(--rt) 85%, transparent);
+}
+.hand-slot.combo-ready::after {
+    content: attr(data-tag);
+    background: var(--rt);
+    white-space: nowrap;
+    font-weight: 700;
+}
+.combo-count.el-now {
+    border-color: #0c0818;
+}
+.combo-count.el-now.pe-fire { background: linear-gradient(#ffc070, #e0501a); color: #2a0800; }
+.combo-count.el-now.pe-frost { background: linear-gradient(#e0f6ff, #5ab0e8); color: #06243a; }
+.combo-count.el-now.pe-lightning { background: linear-gradient(#fff8b0, #e8b820); color: #2a2000; }
+.combo-count.el-now.pe-earth { background: linear-gradient(#f0d4a0, #9a6a30); color: #1e0e02; }
+.combo-count.el-now b { color: inherit; }
+.hand-slot.combo-ready::after {
+    top: -22px;
+}
+@media (max-width: 640px) {
+    .hand-slot.combo-ready::after {
+        top: -18px;
+    }
+}

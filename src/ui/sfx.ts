@@ -189,6 +189,15 @@ export const sfx = {
     step() {
         noise(0.05, 500, 0.08);
     },
+    /** 직업 체계 발동: 공명은 맑게 두 번, 반응은 위로 쓸어 올리고, 투지 폭발은 묵직하게 */
+    proc(kind: 'resonance' | 'reaction' | 'unleash') {
+        if (kind === 'resonance') [880, 1320].forEach((f, i) => tone(f, f, 0.1, 'triangle', 0.08, i * 0.07));
+        else if (kind === 'reaction') tone(520, 1560, 0.22, 'square', 0.06);
+        else {
+            tone(140, 60, 0.3, 'sawtooth', 0.14);
+            noise(0.25, 900, 0.14);
+        }
+    },
     /** 강화 망치질: 쇠가 부딪는 소리 */
     forge() {
         noise(0.08, 3200, 0.16, 0, 'bandpass');

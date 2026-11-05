@@ -31,7 +31,21 @@ export function RewardScreen({ s, dispatch }: { s: Extract<Screen, { kind: 'rewa
                 <button className="reward-item" disabled={s.goldTaken} onClick={() => (sfx.coin(), dispatch({ type: 'takeGold' }))}>
                     <i className="ico ico-coin" /> {s.goldTaken ? '골드 획득함' : `골드 ${s.gold}`}
                 </button>
-                {s.relic && (
+                {s.relicChoices && !s.relicTaken && (
+                    <div className="relic-choice">
+                        <p className="panel-sub">보스 유물 — 하나만 고를 수 있다</p>
+                        {s.relicChoices.map((id) => (
+                            <button key={id} className="reward-item relic-option" onClick={() => (sfx.upgrade(), dispatch({ type: 'takeRelic', id }))}>
+                                <span className="reward-glyph">{RELICS[id].glyph}</span>
+                                <span>
+                                    <b>{RELICS[id].name}</b>
+                                    <small>{RELICS[id].desc}</small>
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+                {s.relic && (!s.relicChoices || s.relicTaken) && (
                     <button className="reward-item" disabled={s.relicTaken} onClick={() => (sfx.upgrade(), dispatch({ type: 'takeRelic' }))}>
                         <span className="reward-glyph">{RELICS[s.relic].glyph}</span>
                         <span>
@@ -105,6 +119,20 @@ export function ShopView({ s, run, dispatch }: { s: ShopScreen; run: RunState; d
                     />
                 ))}
             </div>
+            {s.relic && (
+                <button
+                    className="reward-item shop-relic"
+                    disabled={s.relic.sold || run.gold < s.relic.price}
+                    onClick={() => (sfx.upgrade(), dispatch({ type: 'buyRelic' }))}
+                >
+                    <span className="reward-glyph">{RELICS[s.relic.id].glyph}</span>
+                    <span>
+                        <b>{RELICS[s.relic.id].name}</b>
+                        <small>{RELICS[s.relic.id].desc}</small>
+                    </span>
+                    <em className={run.gold < s.relic.price && !s.relic.sold ? 'price no' : 'price'}>{s.relic.sold ? '판매됨' : `${s.relic.price} G`}</em>
+                </button>
+            )}
             <button className="choice" disabled={s.removed || run.gold < s.removePrice} onClick={() => dispatch({ type: 'shopRemove' })}>
                 <b>카드 제거</b> <span>{s.removed ? '이용함' : `${s.removePrice} G — 덱에서 카드 1장을 지운다`}</span>
             </button>

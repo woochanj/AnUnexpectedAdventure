@@ -9,6 +9,7 @@ export interface EventApi {
     addRandomCard(rarity: 'common' | 'uncommon' | 'rare'): string;
     addCard(id: string): string;
     gainRandomRelic(): string | null;
+    gainRelic(id: string): string;
     upgradeRandom(n: number): string[];
     openPick(purpose: 'upgrade' | 'remove'): void;
     startFight(enemies: string[], elite: boolean): void;
@@ -31,6 +32,33 @@ export interface EventDef {
 }
 
 const LIST: EventDef[] = [
+    {
+        id: 'mana_spring',
+        title: '마나의 샘',
+        text: '바위 틈에서 푸른 빛이 흘러나온다. 손을 담그자 손끝이 저릿하다. 이 물을 마시면 무언가를 얻고, 무언가를 잃을 것 같다.',
+        choices: [
+            {
+                label: '샘물을 들이켠다',
+                hint: '최대 체력 -12, 최대 에너지 +1',
+                enabled: (r) => r.maxHp > 20,
+                run: (r, api) => {
+                    r.maxHp -= 12;
+                    r.hp = Math.min(r.hp, r.maxHp);
+                    api.gainRelic('mana_spring');
+                    return '몸이 차갑게 식으며, 머릿속에 마력이 고였다. [샘의 축복] 획득 — 최대 에너지 +1.';
+                },
+            },
+            {
+                label: '얼굴만 씻는다',
+                hint: '체력 15 회복',
+                run: (_r, api) => {
+                    api.heal(15);
+                    return '맑은 물에 피로가 씻겨 내려갔다.';
+                },
+            },
+            { label: '지나친다', run: () => '빛은 등 뒤에서 오래도록 일렁였다.' },
+        ],
+    },
     {
         id: 'spring',
         title: '빛나는 샘',

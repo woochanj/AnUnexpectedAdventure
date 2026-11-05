@@ -49,4 +49,8 @@ export const CARD_ACT: Record<string, string> = {
     assassinate: 'thrust',
     bandage: 'heal',
     adrenaline: 'rage',
+    titan_strike: 'smash',
+    last_stand: 'rage',
+    thousand_cuts: 'dagger',
+    death_mark: 'thrust',
 };

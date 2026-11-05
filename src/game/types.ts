@@ -43,6 +43,8 @@ export interface CardDef {
     ranged?: boolean;
     /** 강한 기술: 기를 모은 뒤 터진다 (연출 시간이 길어짐) */
     charge?: boolean;
+    /** 궁극기: 더 길게 모으고 화면 전체 연출 */
+    ultimate?: boolean;
     /** 낼 수 없는 카드 (저주). 턴이 끝날 때 손에 있으면 사라진다 */
     unplayable?: boolean;
     /** 강화 시 바뀌는 값 */
@@ -169,6 +171,9 @@ export interface CombatState {
     critChance: number;
     /** 저주 카드 uid 번호 */
     curseSeq: number;
+    /** 불사조 깃털: 남은 부활 횟수, 이번 전투에서 썼는지 */
+    reviveLeft?: number;
+    revived?: boolean;
     /** 이번 턴에 낸 카드 수 / 그중 공격 수 / 마지막으로 낸 카드 종류 (연계용) */
     played?: number;
     attacksPlayed?: number;
@@ -213,6 +218,8 @@ export type Screen =
           cardsDone: boolean;
           relic: string | null;
           relicTaken: boolean;
+          /** 보스: 셋 중 하나를 고르는 유물 */
+          relicChoices?: string[];
       }
     | { kind: 'rest'; done: boolean; message?: string }
     | ShopScreen
@@ -253,4 +260,6 @@ export interface ShopScreen {
     cards: { id: string; price: number; sold: boolean }[];
     removePrice: number;
     removed: boolean;
+    /** 유물 한 점 */
+    relic?: { id: string; price: number; sold: boolean };
 }

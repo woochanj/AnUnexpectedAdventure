@@ -79,7 +79,7 @@ function bfsPath(run: RunState, ok: (id: number) => boolean): number[] | null {
             }
             return path;
         }
-        for (const n of run.map.cells[id]!.links) if (!prev.has(n)) {
+        for (const n of run.map.cells[id]!.links) if (!prev.has(n) && run.map.cells[n]!.y <= run.map.cells[id]!.y) {
             prev.set(n, id);
             q.push(n);
         }
@@ -110,6 +110,7 @@ export function playRun(cls: ClassId): Result {
                 break;
             case 'reward': {
                 if (!sc.goldTaken) st = reducer(st, { type: 'takeGold' });
+                else if (sc.relicChoices && !sc.relicTaken) st = reducer(st, { type: 'takeRelic', id: sc.relicChoices[Math.floor(Math.random() * sc.relicChoices.length)] });
                 else if (sc.relic && !sc.relicTaken) st = reducer(st, { type: 'takeRelic' });
                 else if (!sc.cardsDone) {
                     const best = [...sc.cards].sort((a, b) => RANK[CARDS[b].rarity] - RANK[CARDS[a].rarity] + Math.random() - 0.5)[0];

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
 import { cardStats, needsTarget, STATUS_INFO } from '../game/cards';
-import { AFFIXES, ATTACK_WINDUP, CHARGE_TIME, FREEZE_AT, windupOf, canPlay, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
+import { AFFIXES, ATTACK_WINDUP, FREEZE_AT, chargeOf, windupOf, canPlay, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
 import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
@@ -84,13 +84,37 @@ interface Drag {
 }
 
 /** 강한 기술을 쓰기 직전: 화면이 살짝 어두워지고 기 모으는 소리 */
-function chargeMoment(field: HTMLElement, el: string) {
+function chargeMoment(field: HTMLElement, el: string, ultimate: string | null, charge: number) {
     const v = document.createElement('div');
-    v.className = 'charge-dim';
+    v.className = 'charge-dim' + (ultimate ? ' ultimate' : '');
     field.appendChild(v);
-    const a = v.animate([{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: CHARGE_TIME * 1000 + 350, fill: 'both' });
+    const a = v.animate([{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: charge * 1000 + 350, fill: 'both' });
     a.finished.then(() => v.remove()).catch(() => v.remove());
     sfx.chargeUp(el);
+    if (!ultimate) return;
+    // 궁극기: 위아래 검은 띠(영화 화면처럼) + 기술 이름이 화면을 가로지른다
+    for (const side of ['top', 'bottom']) {
+        const bar = document.createElement('div');
+        bar.className = `ult-bar ${side}`;
+        field.appendChild(bar);
+        const b = bar.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)', offset: 0.2 }, { transform: 'scaleY(1)', offset: 0.85 }, { transform: 'scaleY(0)' }], { duration: charge * 1000 + 700, fill: 'both', easing: 'ease-out' });
+        b.finished.then(() => bar.remove()).catch(() => bar.remove());
+    }
+    const name = document.createElement('div');
+    name.className = 'ult-name';
+    name.innerHTML = `<small>궁극기</small>${ultimate}`;
+    field.appendChild(name);
+    const n = name.animate(
+        [
+            { transform: 'translateX(60%) skewX(-12deg)', opacity: 0 },
+            { transform: 'translateX(0) skewX(-12deg)', opacity: 1, offset: 0.18 },
+            { transform: 'translateX(-4%) skewX(-12deg)', opacity: 1, offset: 0.8 },
+            { transform: 'translateX(-60%) skewX(-12deg)', opacity: 0 },
+        ],
+        { duration: charge * 1000 + 300, fill: 'both', easing: 'cubic-bezier(0.2,0.8,0.3,1)' },
+    );
+    n.finished.then(() => name.remove()).catch(() => name.remove());
+    window.setTimeout(() => sfx.crit(), charge * 1000 - 120);
 }
 
 /** 지금 내면 연계 효과가 붙는 카드 */
@@ -247,9 +271,9 @@ function useJuice(
                 const act = CARD_ACT[q.card ?? ''] ?? (attack ? 'slash' : 'cast');
                 const move = CARD_MOVE[q.card ?? ''];
                 const inPlace = !!card?.ranged || lookIsRanged(heroLook) || move?.motion === 'stay';
-                const charge = card?.charge ? CHARGE_TIME : 0;
+                const charge = card ? chargeOf(card) : 0;
                 setHeroAction({ id: q.id, act, windup: card ? Math.max(windupOf(card), attack ? 0 : 0.05) : 0.05, ranged: inPlace, anims: move?.anims, charge });
-                if (charge) chargeMoment(field, cardElement(q.card ?? ''));
+                if (charge) chargeMoment(field, cardElement(q.card ?? ''), card?.ultimate ? card.name : null, charge);
                 const hero = field.querySelector<HTMLElement>('[data-body="player"]');
                 if (attack && hero && !inPlace) {
                     // 대상(광역 공격이면 적들 가운데) 바로 앞까지
@@ -578,7 +602,9 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
 
                 <div className="bd-front" aria-hidden />
                 <FxCanvas cues={c.cues} container={fieldRef} className="fx-front" clock={clock} />
-                <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={4} />
+                <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={4} numberKind="normal" />
+                {/* 치명타 숫자는 그림이 커서 한 단계 작은 도트로, 몬스터 머리 위 비스듬히 */}
+                <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={2} numberKind="crit" />
                 {enemyTurn && !c.result && <div className="turn-banner">적의 차례</div>}
                 {drag?.moved && !drag.target && <div className="target-hint self">[{cardStats(c.hand[drag.idx] ?? { id: drag.card, upgraded: false }).name}] 대상이 필요 없어요 · 위로 끌어 올려 놓으면 사용</div>}
                 {selectedCard && <div className="target-hint">[{cardStats(selectedCard).name}] 적에게 끌어다 놓거나 적을 누르세요 · Esc 취소</div>}

@@ -23,6 +23,7 @@ const BY_CARD: Record<string, Element> = {
     frost_touch: 'ice', shatter: 'ice', glacier: 'ice', ignite: 'fire', combust: 'fire', flame_chain: 'fire', mana_flow: 'arcane', tidal_wave: 'arcane',
     quick_slash: 'wind', finisher: 'wind', venom_burst: 'poison', shred: 'steel', smoke_bomb: 'shadow', assassinate: 'shadow', shadow_chain: 'shadow',
     bandage: 'nature', adrenaline: 'blood', momentum: 'steel',
+    titan_strike: 'blood', last_stand: 'guard', meteor: 'fire', absolute_zero: 'ice', thousand_cuts: 'wind', death_mark: 'shadow',
 };
 
 export const cardElement = (id: string): Element => BY_CARD[id] ?? 'steel';

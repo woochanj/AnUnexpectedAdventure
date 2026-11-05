@@ -3371,7 +3371,7 @@ kbd {
 /* ═════════ 지도 다시 정리: 더 크게, 더 또렷하게 ═════════ */
 .map-scene {
     /* 일지(오른쪽 240px)를 뺀 공간과 화면 높이에 맞춰 칸을 최대한 크게 */
-    --cell: clamp(60px, min(calc((100vw - 340px) / 7), calc((100vh - 250px) / 5)), 128px);
+    --cell: clamp(56px, min(calc((100vw - 340px) / 5), calc((100vh - 200px) / 7)), 104px);
 }
 .map-layout {
     gap: 18px;
@@ -3505,7 +3505,7 @@ kbd {
 
 @media (max-width: 760px) {
     .map-scene {
-        --cell: calc((100vw - 44px) / 7);
+        --cell: calc((100vw - 44px) / 5);
     }
     .map-journal {
         width: 100%;
@@ -3661,4 +3661,125 @@ kbd {
         linear-gradient(135deg, #bff0ff 0 26%, transparent 26%),
         linear-gradient(315deg, #1e5aa8 0 30%, transparent 30%),
         linear-gradient(#5ab8ff, #2a7ae0);
+}
+
+/* 보스 유물 고르기 */
+.relic-choice {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+}
+.relic-option:hover {
+    outline: 3px solid #ffd84a;
+}
+.shop-relic {
+    margin: 6px 0;
+}
+
+/* ── 궁극기 ── */
+.card.card-ultimate {
+    background: linear-gradient(180deg, #2a1040 0 24px, var(--ui-panel) 24px);
+    animation: ult-glow 1.6s steps(8) infinite;
+}
+.card.card-ultimate .card-name {
+    color: #ffe680;
+    text-shadow: 0 2px 0 #3a1050;
+}
+@keyframes ult-glow {
+    0%, 100% { box-shadow: 0 0 0 3px #ffd84a, 0 0 14px rgba(255, 120, 220, 0.8), 0 4px 0 var(--ui-ink); }
+    50% { box-shadow: 0 0 0 3px #ff7ad8, 0 0 22px rgba(120, 200, 255, 0.9), 0 4px 0 var(--ui-ink); }
+}
+.charge-dim.ultimate {
+    background: radial-gradient(ellipse at 25% 65%, transparent 10%, rgba(10, 4, 30, 0.6) 50%, rgba(4, 0, 14, 0.85));
+}
+.ult-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 13%;
+    background: #05020c;
+    z-index: 10;
+    pointer-events: none;
+}
+.ult-bar.top {
+    top: 0;
+    transform-origin: top;
+}
+.ult-bar.bottom {
+    bottom: 0;
+    transform-origin: bottom;
+}
+.ult-name {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 22%;
+    z-index: 11;
+    pointer-events: none;
+    text-align: center;
+    font-family: var(--font-head);
+    font-size: clamp(2rem, 6vw, 4rem);
+    color: #fff3b0;
+    text-shadow: 0 4px 0 #3a1050, 4px 0 0 #3a1050, -4px 0 0 #3a1050, 0 -4px 0 #3a1050, 0 0 24px rgba(255, 120, 220, 0.9);
+    background: linear-gradient(90deg, transparent, rgba(40, 10, 60, 0.8) 20%, rgba(40, 10, 60, 0.8) 80%, transparent);
+    padding: 6px 0 10px;
+}
+.ult-name small {
+    display: block;
+    font-size: 0.35em;
+    color: #ff9ae0;
+    letter-spacing: 0.3em;
+}
+
+/* ── 휴대폰: 아래 줄(연계·에너지·더미·턴 종료)이 한 줄로, 글자가 세로로 쪼개지지 않게 ── */
+@media (max-width: 640px) {
+    .hand-left,
+    .hand-right {
+        flex-wrap: nowrap;
+        gap: 6px;
+        align-items: center;
+    }
+    .hand-left > *,
+    .hand-right > * {
+        white-space: nowrap;
+        flex: none;
+    }
+    .hand-left .energy {
+        width: 44px;
+        height: 50px;
+        font-size: 1rem;
+    }
+    .combo-count {
+        font-size: 0.75rem;
+        padding: 1px 6px;
+        order: 3;
+    }
+    .combo-count b {
+        font-size: 0.9rem;
+    }
+    .pile {
+        font-size: 0.75rem;
+        padding: 3px 7px;
+    }
+    .btn-end {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    .card .card-cost {
+        width: 24px;
+        height: 28px;
+        top: -8px;
+        left: -8px;
+        font-size: 0.85rem;
+    }
+    .hand-slot.combo-ready::after {
+        font-size: 0.6rem;
+        top: -10px;
+    }
+    .ult-name {
+        top: 18%;
+    }
+    .target-hint {
+        font-size: 0.75rem;
+    }
 }

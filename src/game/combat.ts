@@ -2,6 +2,7 @@ import { cardStats, CURSE_CARD } from './cards';
 import { ENEMIES } from './enemies';
 import type { Affix, CardInst, CombatKind, Effect, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, Status } from './types';
 import { CLASSES } from './classes';
+import { ENERGY_RELICS } from './relics';
 import { pick, rand, shuffle } from './util';
 
 const HAND_SIZE = 5;
@@ -22,7 +23,10 @@ export const ATTACK_WINDUP = 0.42;
 /** 강한 기술이 기를 모으는 시간(초) */
 export const CHARGE_TIME = 0.65;
 /** 이 카드를 낸 뒤 주인공이 움직이기 시작해 공격이 닿기 직전까지(초) */
-export const windupOf = (def: { type: string; charge?: boolean }) => (def.type === 'attack' ? ATTACK_WINDUP : 0) + (def.charge ? CHARGE_TIME : 0);
+/** 궁극기는 이만큼 더 오래 모은다 */
+export const ULTIMATE_EXTRA = 0.55;
+export const chargeOf = (def: { charge?: boolean; ultimate?: boolean }) => (def.charge ? CHARGE_TIME : 0) + (def.ultimate ? ULTIMATE_EXTRA : 0);
+export const windupOf = (def: { type: string; charge?: boolean; ultimate?: boolean }) => (def.type === 'attack' ? ATTACK_WINDUP : 0) + chargeOf(def);
 
 /** 공격 이펙트가 대상에 닿기까지 걸리는 시간(초) */
 export const IMPACT_DELAY = 0.08;
@@ -105,7 +109,8 @@ export function startCombat(run: RunState, kind: CombatKind, enemyIds: string[])
         discard: [],
         exhaust: [],
         energy: 0,
-        maxEnergy: 3 + (run.relics.includes('ember') ? 1 : 0),
+        maxEnergy: 3 + run.relics.filter((r) => ENERGY_RELICS.includes(r)).length,
+        reviveLeft: run.relics.includes('phoenix_feather') ? 1 : 0,
         turn: 0,
         fx: [],
         fxSeq: 0,
@@ -121,6 +126,7 @@ export function startCombat(run: RunState, kind: CombatKind, enemyIds: string[])
         for (const e of c.enemies) applyAffix(e, pick(pool), false);
     }
     if (run.relics.includes('whetstone')) addStatus(c.player, 'strength', 1);
+    if (run.relics.includes('war_banner')) addStatus(c.player, 'strength', 2);
     if (run.relics.includes('herb_pouch')) for (const e of c.enemies) addStatus(e, 'poison', 3);
     startPlayerTurn(c, run);
     if (run.relics.includes('iron_shield')) gainBlock(c, 'player', c.player, 8);
@@ -189,6 +195,13 @@ function loseHp(c: CombatState, key: string, f: Fighter, n: number, label: strin
 }
 
 function checkEnd(c: CombatState) {
+    if (c.player.hp <= 0 && (c.reviveLeft ?? 0) > 0) {
+        // 불사조 깃털: 한 번 되살아난다
+        c.reviveLeft = 0;
+        c.revived = true;
+        c.player.hp = Math.ceil(c.player.maxHp / 2);
+        fx(c, 'player', '불사조! 부활', 'heal');
+    }
     if (c.player.hp <= 0) c.result = 'lose';
     else if (alive(c).length === 0) c.result = 'win';
 }
@@ -208,7 +221,9 @@ function startPlayerTurn(c: CombatState, run: RunState) {
         if (c.result) return;
     }
     c.energy = c.maxEnergy + (c.player.status.energize ?? 0);
-    drawCards(c, HAND_SIZE);
+    let n = HAND_SIZE + (run.relics.includes('sage_tome') ? 1 : 0);
+    if (c.turn === 1 && run.relics.includes('rusty_hourglass')) n -= 2;
+    drawCards(c, n);
 }
 
 export function canPlay(c: CombatState, card: CardInst): boolean {

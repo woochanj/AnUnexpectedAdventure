@@ -1,3 +1,4 @@
+import { canStep } from '../game/map';
 import { useEffect, useRef, useState, type Dispatch } from 'react';
 import { ENEMIES } from '../game/enemies';
 import { FLOOR_COUNT, type Action } from '../game/run';
@@ -41,6 +42,13 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
     const [walking, setWalking] = useState(false);
     const lastPos = useRef(run.pos);
     const sceneRef = useRef<HTMLDivElement>(null);
+    // 세로로 긴 지도: 주인공이 있는 칸이 늘 화면 안에 오도록 따라간다
+    useEffect(() => {
+        const t = window.setTimeout(() => {
+            sceneRef.current?.querySelector('.map-player')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 300);
+        return () => clearTimeout(t);
+    }, [run.pos]);
 
     useEffect(() => {
         if (lastPos.current === run.pos) return;
@@ -109,7 +117,7 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
                             );
                         })}
                         {rooms.map((r) => {
-                            const reachable = here.links.includes(r.id);
+                            const reachable = here.links.includes(r.id) && canStep(here, r);
                             const cls = [
                                 'room', `room-${r.type}`,
                                 r.seen ? 'seen' : 'hidden', r.visited && 'visited', r.cleared && 'cleared', reachable && 'reachable', r.id === run.pos && 'current',
@@ -161,7 +169,7 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
                         <kbd>W</kbd>
                         <kbd>A</kbd>
                         <kbd>S</kbd>
-                        <kbd>D</kbd> 또는 화살표가 뜬 방을 눌러 이동
+                        <kbd>D</kbd> 또는 화살표가 뜬 방을 눌러 위로 나아가기
                     </p>
                 </aside>
             </div>

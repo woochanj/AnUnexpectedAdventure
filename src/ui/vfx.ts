@@ -67,7 +67,12 @@ import { cardElement, type Element } from './cardElement';
 import { ENEMIES } from '../game/enemies';
 import type { Cue } from '../game/types';
 import { CARDS } from '../game/cards';
-import { ATTACK_WINDUP, CHARGE_TIME, windupOf } from '../game/combat';
+import { ATTACK_WINDUP, chargeOf, windupOf } from '../game/combat';
+import * as meteorFx from 'pixelfx/fx/fire/meteor';
+import * as holyPillar from 'pixelfx/fx/holy/holy-pillar';
+import * as blizzardVortex from 'pixelfx/fx/ice/blizzard-vortex';
+import * as necroSkulls from 'pixelfx/fx/shadow/necro-skulls';
+import * as nuke from 'pixelfx/fx/explosions/nuke';
 import * as chargeUp from 'pixelfx/fx/lightning/charge-up';
 
 export interface VfxSpec {
@@ -146,6 +151,19 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     shadow_step: [{ mod: blinkIn, at: 'self', speed: 1.8 }],
     backstab: [{ mod: critHit, at: 'target' }],
     shadow_dance: [{ mod: shadowTendrils, at: 'target', speed: 2 }, { mod: daggerFlurry, at: 'target', dx: -28, delay: 0.1, opts: { palette: VENOM } }],
+    // 궁극기
+    titan_strike: [{ mod: hammerSmash, at: 'target', dx: -20, speed: 1.3 }, { mod: nuke, at: 'target', delay: 0.05, speed: 1.6, stopAfter: 1.4 }, { mod: groundSlam, at: 'target', delay: 0.05, speed: 1.2 }],
+    last_stand: [{ mod: holyPillar, at: 'self', speed: 1.4 }, { mod: divineShield, at: 'self', delay: 0.2, stopAfter: 1.2 }, { mod: rage, at: 'self', delay: 0.3, stopAfter: 1 }],
+    meteor: [{ mod: meteorFx, at: 'all', speed: 1.4 }, { mod: bigExplosion, at: 'all', delay: 0.35, speed: 2.6, stopAfter: 1.6 }],
+    absolute_zero: [{ mod: blizzardVortex, at: 'all', speed: 1.6, stopAfter: 1.2 }, { mod: frostNova, at: 'all', delay: 0.2, speed: 1.6 }, { mod: iceSpikes, at: 'all', delay: 0.3, speed: 2 }],
+    thousand_cuts: [
+        { mod: daggerFlurry, at: 'target', dx: -28, speed: 1.3 },
+        { mod: spinSlash, at: 'target', delay: 0.3, speed: 1.6 },
+        { mod: doubleSlash, at: 'target', dx: -20, delay: 0.6, speed: 1.4 },
+        { mod: spinSlash, at: 'target', delay: 0.9, speed: 1.6 },
+        { mod: critHit, at: 'target', delay: 1.2 },
+    ],
+    death_mark: [{ mod: necroSkulls, at: 'target', speed: 1.6, stopAfter: 1.2 }, { mod: curseFx, at: 'target', delay: 0.2, speed: 1.4, stopAfter: 1 }, { mod: acidSplash, at: 'target', delay: 0.5, speed: 1.6 }],
     // 연계 카드
     shield_slam: [{ mod: bluntHit, at: 'target', speed: 1.3 }, { mod: shieldBlock, at: 'target', dx: -20, speed: 1.4 }],
     chain_strike: [{ mod: swordSlash, at: 'target', dx: SLASH_DX }, { mod: doubleSlash, at: 'target', dx: -34, delay: 0.18 }],
@@ -190,7 +208,7 @@ export function cueVfx(c: Cue): VfxSpec[] {
             const wait = def ? windupOf(def) : attack ? ATTACK_WINDUP : 0;
             const out = specs.map((s) => ({ ...s, delay: (s.delay ?? 0) + wait }));
             // 강한 기술: 발밑에서 기를 모은다 (속성 색)
-            if (def?.charge) for (const ch of chargeVfx(cardElement(id))) out.push({ ...ch, delay: ch.delay ?? 0 });
+            if (def?.charge) for (const ch of chargeVfx(cardElement(id), chargeOf(def), !!def.ultimate)) out.push({ ...ch, delay: ch.delay ?? 0 });
             // 마법사(물 사제): 발밑 물의 마법진, 물방울이 모였다가 물줄기로 날아가 물보라
             if (CARDS[id]?.cls === 'mage') for (const w of waterFlourish(id, c.id, attack, wait)) out.push({ ...w, delay: w.delay ?? 0 });
             // 기사(모험가): 금빛 칼날 궤적과 불꽃, 큰 기술은 땅이 갈라지는 충격파
@@ -474,13 +492,19 @@ const ELEMENT_FX_PAL: Partial<Record<Element, string[]>> = {
 };
 
 /** 기 모으기: 빛이 빨려들고(charge-up) 마력 소용돌이(spell-charge)가 커진다 */
-function chargeVfx(el: Element): VfxSpec[] {
+function chargeVfx(el: Element, t: number, ultimate: boolean): VfxSpec[] {
     const palette = ELEMENT_FX_PAL[el];
     const opts = palette ? { palette } : {};
-    return [
-        { mod: chargeUp, at: 'self', speed: 1.3, stopAfter: CHARGE_TIME + 0.1, opts },
-        { mod: spellCharge, at: 'self', speed: 1.2, stopAfter: CHARGE_TIME, opts },
+    const out: VfxSpec[] = [
+        { mod: chargeUp, at: 'self', speed: 1.3, stopAfter: t + 0.1, opts },
+        { mod: spellCharge, at: 'self', speed: 1.2, stopAfter: t, opts },
     ];
+    // 궁극기: 발밑 마법진과 하늘로 치솟는 빛기둥까지
+    if (ultimate) {
+        out.push({ mod: magicCircle, at: 'self', speed: 1.4, stopAfter: t + 0.2, opts });
+        out.push({ mod: holyPillar, at: 'self', delay: t * 0.4, speed: 1.6, stopAfter: t * 0.7, opts });
+    }
+    return out;
 }
 
 const GOLD = ['#2a1406', '#5a2e0a', '#9a5a10', '#d89a20', '#ffd24a', '#fff2b0', '#ffffff'];

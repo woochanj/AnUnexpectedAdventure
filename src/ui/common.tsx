@@ -24,7 +24,7 @@ export function CardView({
             type="button"
             className={[
                 'card', `card-${s.def.type}`, `rarity-${s.def.rarity}`,
-                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', s.level > 1 && 'card-up', s.def.unplayable && 'card-curse', s.cost < s.def.cost && 'cost-down',
+                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', s.level > 1 && 'card-up', s.def.unplayable && 'card-curse', s.cost < s.def.cost && 'cost-down', s.def.ultimate && 'card-ultimate',
             ].filter(Boolean).join(' ')}
             onClick={onClick}
             aria-disabled={disabled}
@@ -36,7 +36,7 @@ export function CardView({
             </span>
             {s.level > 1 && <span className={`card-level lv${s.level}`}>Lv.{s.level}</span>}
             <span className="card-type">
-                {s.def.unplayable ? '저주' : TYPE_LABEL[s.def.type]} · <em className={`rar rar-${s.def.rarity}`}>{RARITY_INFO[s.def.rarity].name}</em>
+                {s.def.unplayable ? '저주' : s.def.ultimate ? '궁극기' : TYPE_LABEL[s.def.type]} · <em className={`rar rar-${s.def.rarity}`}>{RARITY_INFO[s.def.rarity].name}</em>
             </span>
             <span className="card-desc">
                 {describeCard(card).map((l, i) => (

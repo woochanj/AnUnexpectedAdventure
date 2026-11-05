@@ -3,7 +3,7 @@ import { CLASSES } from './classes';
 import { pickRoute } from './biomes';
 import { endTurn, playCard, startCombat } from './combat';
 import { EVENTS, type EventApi } from './events';
-import { generateFloor, reveal, revealAll } from './map';
+import { canStep, generateFloor, reveal, revealAll } from './map';
 import { BOSS_RELICS, RELIC_IDS, RELICS } from './relics';
 import type { CardInst, ClassId, CombatKind, Dir, Room, RunState, ShopScreen } from './types';
 import { pick, rand, shuffle } from './util';
@@ -23,7 +23,8 @@ export type Action =
     | { type: 'takeGold' }
     | { type: 'takeCard'; id: string }
     | { type: 'skipCards' }
-    | { type: 'takeRelic' }
+    | { type: 'takeRelic'; id?: string }
+    | { type: 'buyRelic' }
     | { type: 'leave' }
     | { type: 'rest' }
     | { type: 'restUpgrade' }
@@ -84,6 +85,10 @@ function gainRelic(run: RunState, id: string) {
         run.maxHp += 10;
         run.hp += 10;
     }
+    if (id === 'ember') {
+        run.maxHp = Math.max(10, run.maxHp - 10);
+        run.hp = Math.min(run.hp, run.maxHp);
+    }
     if (id === 'compass') revealAll(run.map);
     if (id === 'lantern') reveal(run.map, run.pos, 2);
 }
@@ -107,7 +112,8 @@ function rollRarity(kind: CombatKind): Drop {
 function cardChoices(run: RunState, kind: CombatKind): string[] {
     const out: string[] = [];
     let guard = 0;
-    while (out.length < 3 && guard++ < 60) {
+    const want = run.relics.includes('cursed_crown') ? 2 : 3;
+    while (out.length < want && guard++ < 60) {
         const pool = cardPool(rollRarity(kind), run.cls);
         if (!pool.length) continue;
         const id = pick(pool);
@@ -148,6 +154,10 @@ function makeApi(run: RunState): EventApi {
         addCard: (id) => {
             run.deck.push(newCard(run, id));
             return CARDS[id].name;
+        },
+        gainRelic: (id) => {
+            gainRelic(run, id);
+            return RELICS[id].name;
         },
         gainRandomRelic: () => {
             const id = randomRelic(run);
@@ -240,7 +250,10 @@ function makeShop(run: RunState): ShopScreen {
         const base = { common: 50, uncommon: 75, rare: 140, unique: 220 }[rar];
         return { id, price: base + rand(-6, 12) + run.floor * 5, sold: false };
     });
-    return { kind: 'shop', cards, removePrice: 75 + run.floor * 15, removed: false };
+    // 유물 한 점 (보스 유물·사건 유물은 팔지 않는다)
+    const relicPool = RELIC_IDS.filter((r) => !BOSS_RELICS.includes(r) && !run.relics.includes(r));
+    const relic = relicPool.length ? { id: pick(relicPool), price: 150 + run.floor * 20 + rand(-10, 15), sold: false } : undefined;
+    return { kind: 'shop', cards, removePrice: 75 + run.floor * 15, removed: false, relic };
 }
 
 function leaveRoom(run: RunState) {
@@ -259,11 +272,15 @@ function finishCombat(run: RunState) {
     }
     if (c.result !== 'win') return;
     run.hp = c.player.hp;
+    // 불사조 깃털은 한 번 쓰면 사라진다
+    if (c.revived) run.relics = run.relics.filter((r) => r !== 'phoenix_feather');
     if (run.relics.includes('blood_charm')) healRun(run, 6);
     room(run).cleared = true;
 
     const gold = c.kind === 'boss' ? rand(70, 90) : c.kind === 'elite' ? rand(28, 38) : rand(11, 20);
-    const relic = c.kind === 'elite' ? randomRelic(run) : c.kind === 'boss' ? randomRelic(run, true) : null;
+    const relic = c.kind === 'elite' ? randomRelic(run) : null;
+    // 보스: 보스 유물 셋 중 하나를 고른다
+    const relicChoices = c.kind === 'boss' ? shuffle(BOSS_RELICS.filter((r) => !run.relics.includes(r))).slice(0, 3) : undefined;
     run.screen = {
         kind: 'reward',
         combatKind: c.kind,
@@ -273,6 +290,7 @@ function finishCombat(run: RunState) {
         cardsDone: false,
         relic,
         relicTaken: false,
+        relicChoices,
     };
 }
 
@@ -293,6 +311,8 @@ function move(run: RunState, to: number) {
     const here = room(run);
     if (!here.links.includes(to)) return;
     const there = run.map.cells[to]!;
+    // 지나온 아래쪽으로는 돌아가지 않는다
+    if (!canStep(here, there)) return;
     const dx = there.x - here.x;
     const dy = there.y - here.y;
     run.facing = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
@@ -349,9 +369,22 @@ export function reducer(state: GameState, action: Action): GameState {
             if (sc.kind === 'reward') sc.cardsDone = true;
             break;
         case 'takeRelic':
-            if (sc.kind === 'reward' && sc.relic && !sc.relicTaken) {
-                gainRelic(run, sc.relic);
-                sc.relicTaken = true;
+            if (sc.kind === 'reward' && !sc.relicTaken) {
+                if (sc.relicChoices && action.id && sc.relicChoices.includes(action.id)) {
+                    gainRelic(run, action.id);
+                    sc.relic = action.id;
+                    sc.relicTaken = true;
+                } else if (sc.relic) {
+                    gainRelic(run, sc.relic);
+                    sc.relicTaken = true;
+                }
+            }
+            break;
+        case 'buyRelic':
+            if (sc.kind === 'shop' && sc.relic && !sc.relic.sold && run.gold >= sc.relic.price) {
+                run.gold -= sc.relic.price;
+                sc.relic.sold = true;
+                gainRelic(run, sc.relic.id);
             }
             break;
         case 'leave':
@@ -362,7 +395,9 @@ export function reducer(state: GameState, action: Action): GameState {
             }
             break;
         case 'rest':
-            if (sc.kind === 'rest' && !sc.done) {
+            if (sc.kind === 'rest' && !sc.done && run.relics.includes('blood_chalice')) {
+                run.screen = { kind: 'rest', done: true, message: '피의 성배가 잠을 허락하지 않는다. 눈을 감아도 몸이 낫지 않았다.' };
+            } else if (sc.kind === 'rest' && !sc.done) {
                 const n = Math.round(run.maxHp * 0.3);
                 healRun(run, n);
                 run.screen = { kind: 'rest', done: true, message: `모닥불 곁에서 잠시 눈을 붙였다. 체력을 ${n} 회복했다.` };

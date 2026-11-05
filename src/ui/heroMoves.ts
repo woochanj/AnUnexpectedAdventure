@@ -56,6 +56,12 @@ export const CARD_MOVE: Record<string, HeroMove> = {
     blade_storm: M(['special', 'combo'], 'leap'),
     finisher: M(['airAttack', 'attack2'], 'leap'),
     dagger_throw: M(['attack'], 'stay'),
+    // 궁극기
+    titan_strike: M(['attack3', 'combo'], 'leap'),
+    meteor: M(['special', 'attack2'], 'stay'),
+    absolute_zero: M(['special', 'attack2'], 'stay'),
+    thousand_cuts: M(['combo', 'special'], 'blink'),
+    death_mark: M(['special', 'attack2'], 'blink'),
 };
 
 /**

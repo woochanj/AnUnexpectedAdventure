@@ -33,8 +33,10 @@ export type HitStopClock = { windows: [number, number][] };
  * - cues: 전투 신호. 새 cue가 오면 data-anchor 요소(캐릭터 발밑) 위치에 이펙트를 띄운다.
  */
 export function FxCanvas({
-    cues = NO_CUES, container, ambient, className, clock, numbers, pixel,
+    cues = NO_CUES, container, ambient, className, clock, numbers, pixel, numberKind,
 }: {
+    /** 이 캔버스가 그릴 피해 숫자 종류 (없으면 둘 다) */
+    numberKind?: 'normal' | 'crit';
     /** 도트 크기를 직접 정할 때 (피해 숫자는 더 크게) */
     pixel?: number;
     cues?: Cue[];
@@ -89,7 +91,8 @@ export function FxCanvas({
         const cv = canvasRef.current;
         if (!el || !cv) return;
         const fit = () => {
-            const s = pixel ?? pixelScale(el.clientWidth);
+            // 좁은 화면(휴대폰)에서는 직접 정한 도트 크기도 절반으로 (숫자가 몬스터를 덮지 않게)
+            const s = pixel ? (el.clientWidth < 640 ? Math.max(1, pixel / 2) : pixel) : pixelScale(el.clientWidth);
             const w = Math.max(1, Math.ceil(el.clientWidth / s));
             const h = Math.max(1, Math.ceil(el.clientHeight / s));
             if (state.current && state.current.frame.w === w && state.current.frame.h === h) return;
@@ -141,6 +144,8 @@ export function FxCanvas({
         seenNum.current = fresh[fresh.length - 1].id;
         fresh.forEach((f, i) => {
             if (f.kind !== 'dmg' || !f.amount) return;
+            if (numberKind === 'crit' && !f.crit) return;
+            if (numberKind === 'normal' && f.crit) return;
             const run = () => {
                 const st = state.current;
                 const box = container.current?.getBoundingClientRect();
@@ -150,12 +155,14 @@ export function FxCanvas({
                 // 같은 대상에 연달아 맞으면 옆으로 조금씩 흩어 놓는다
                 const jitter = ((f.id * 37) % 5) * 6 - 12;
                 const x = Math.round((r.left + r.width / 2 - box.left) / st.scale + jitter);
-                const y = Math.round((r.top + r.height * 0.2 - box.top) / st.scale);
+                // 치명타는 몸을 가리지 않게 머리 위, 공격자 쪽으로 비켜서
+                const y = Math.round((f.crit ? r.top - r.height * 0.15 : r.top + r.height * 0.2) - box.top) / st.scale;
+                const xShift = f.crit ? (f.target === 'player' ? 40 : -40) / st.scale : 0;
                 const toPlayer = f.target === 'player';
                 const opts = f.crit
                     ? { text: `${f.amount}!`, label: 'CRIT', palette: toPlayer ? undefined : CRIT_GOLD }
                     : { text: `-${f.amount}`, palette: f.dot ? POISON : toPlayer ? undefined : GOLD };
-                const fx = createFx(f.crit ? critNumber : damageNumber, { seed: f.id, ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)), x, y });
+                const fx = createFx(f.crit ? critNumber : damageNumber, { seed: f.id, ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)), x: Math.round(x + xShift), y: Math.round(y) });
                 live.current.push({ fx, speed: f.crit ? 0.8 : 0.75, stopAt: Infinity });
                 kick();
             };

@@ -112,6 +112,17 @@ export class Buf {
         const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2) + 1;
         for (let i = 0; i <= n; i++) this.set(x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n, c);
     }
+    /** 굵은 검정 외곽선 (32비트 만화풍) */
+    inkOutline() {
+        const s = this.d.slice();
+        const W = PX;
+        for (let y = 0; y < PX; y++)
+            for (let x = 0; x < W; x++) {
+                const i = y * W + x;
+                if (s[i]) continue;
+                if ((x > 0 && s[i - 1]) || (x < W - 1 && s[i + 1]) || (y > 0 && s[i - W]) || (y < PX - 1 && s[i + W])) this.d[i] = INK;
+            }
+    }
     /** 색 외곽선: 그늘진 쪽(아래·오른쪽)은 진하게, 빛 받는 쪽(위·왼쪽)은 옅게 */
     outline() {
         const s = this.d.slice();

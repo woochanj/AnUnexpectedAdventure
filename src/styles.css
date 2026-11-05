@@ -2495,3 +2495,314 @@ kbd {
 @keyframes hop {
     50% { transform: scale(1.35) translateY(-3px); }
 }
+
+/* ═════════════════════ 32비트 판타지 UI (노을빛 + 굵은 검정 테두리 + 딱딱한 그림자) ═════════════════════ */
+:root {
+    --ui-ink: #120a18;
+    --ui-panel: #2a1c40;
+    --ui-panel-2: #3c2a5a;
+    --ui-cream: #fff1d6;
+    --ui-parch: #f4dfb6;
+    --ui-parch-dark: #c9a874;
+    --ui-yellow: #ffcf3e;
+    --ui-orange: #f5893c;
+    --ui-pink: #e9658c;
+    --ui-plum: #7a3e7e;
+    --sunset: linear-gradient(180deg, #ffb35c 0 25%, #f5893c 25% 50%, #e9658c 50% 75%, #a8487e 75%);
+    --px-title: 2px 0 0 var(--ui-ink), -2px 0 0 var(--ui-ink), 0 2px 0 var(--ui-ink), 0 -2px 0 var(--ui-ink), 2px 2px 0 var(--ui-ink), -2px 2px 0 var(--ui-ink), 0 4px 0 var(--ui-ink);
+}
+body {
+    background: radial-gradient(ellipse at 50% -10%, #6a3a6e 0%, #2a1c40 45%, #160e24 100%) fixed, #160e24;
+}
+
+/* 공통: 굵은 테두리 + 딱딱한 그림자 + 살짝 각진 모서리 */
+.btn,
+.panel,
+.modal,
+.choice,
+.reward-item,
+.pile,
+.result-box,
+.title-help,
+.intent,
+.hud-stat,
+.relic,
+.map-banner,
+.map-journal,
+.map-frame,
+.card {
+    border-radius: 6px !important;
+}
+
+.btn {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-panel-2);
+    color: var(--ui-cream);
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.18), inset 0 -4px 0 rgba(0, 0, 0, 0.35), 0 4px 0 var(--ui-ink);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+}
+.btn-primary {
+    background: var(--ui-yellow);
+    color: #3a1e00;
+    text-shadow: none;
+    box-shadow: inset 0 3px 0 #fff2a8, inset 0 -4px 0 #d8901c, 0 4px 0 var(--ui-ink);
+}
+.btn-primary:hover:not(:disabled) {
+    background: #ffdb6a;
+}
+.btn-end {
+    background: var(--ui-orange);
+    color: #3a1400;
+    text-shadow: none;
+    box-shadow: inset 0 3px 0 #ffc48a, inset 0 -4px 0 #c0581c, 0 4px 0 var(--ui-ink);
+}
+.btn-end:hover:not(:disabled) {
+    background: #ff9e56;
+}
+
+/* 패널: 노을 머리띠 + 짙은 보라 몸통 */
+.panel {
+    border: 4px solid var(--ui-ink);
+    background: linear-gradient(180deg, transparent 0 64px, var(--ui-panel) 64px), var(--sunset) 0 0 / 100% 64px no-repeat;
+    box-shadow: inset 0 0 0 3px rgba(255, 210, 140, 0.25), 0 6px 0 var(--ui-ink), 0 20px 50px rgba(10, 4, 20, 0.6);
+}
+.panel-title,
+.map-journal h2,
+.result-box h2,
+.modal-head h2 {
+    color: var(--ui-cream);
+    text-shadow: var(--px-title);
+}
+.panel-title {
+    margin-top: -6px;
+}
+.panel-text,
+.panel-sub {
+    color: #f2e4ff;
+}
+.panel-result {
+    border-left: none;
+    border: 3px solid var(--ui-ink);
+    border-radius: 6px;
+    background: var(--ui-parch);
+    color: #3a2416;
+}
+.modal {
+    border: 4px solid var(--ui-ink);
+    background: var(--ui-panel);
+    box-shadow: 0 6px 0 var(--ui-ink);
+}
+.modal-head {
+    background: var(--sunset);
+    border-bottom: 4px solid var(--ui-ink);
+}
+
+/* 선택지·보상: 양피지 */
+.choice,
+.reward-item {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-parch);
+    color: #3a2416;
+    box-shadow: inset 0 -4px 0 var(--ui-parch-dark), 0 4px 0 var(--ui-ink);
+}
+.choice span,
+.reward-item small {
+    color: #7a5838;
+}
+.choice:hover:not(:disabled),
+.reward-item:hover:not(:disabled):not(.static) {
+    background: #fff0cc;
+    box-shadow: inset 0 0 0 3px var(--ui-yellow), inset 0 -4px 0 var(--ui-parch-dark), 0 4px 0 var(--ui-ink);
+}
+.reward-item em {
+    color: #7a5838;
+}
+
+/* HUD: 짙은 보라 띠 + 금 테두리 + 노란 알약 */
+.hud {
+    background: linear-gradient(#3c2a5a, #2a1c40);
+    border-bottom: 4px solid var(--ui-ink);
+    box-shadow: inset 0 -3px 0 #ffcf3e33;
+}
+.hud-stat {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-parch);
+    color: #3a2416;
+    box-shadow: inset 0 -3px 0 var(--ui-parch-dark), 0 3px 0 var(--ui-ink);
+}
+.hud-stat.floor {
+    background: var(--ui-plum);
+    color: var(--ui-cream);
+    box-shadow: inset 0 -3px 0 #4e2050, 0 3px 0 var(--ui-ink);
+}
+.relic {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-parch);
+    box-shadow: 0 3px 0 var(--ui-ink);
+}
+.pile {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-parch);
+    color: #3a2416;
+    box-shadow: 0 3px 0 var(--ui-ink);
+}
+.title-help {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-parch);
+    color: #3a2416;
+    box-shadow: 0 4px 0 var(--ui-ink);
+}
+.title-help li::before {
+    color: var(--ui-orange);
+}
+.title-logo {
+    color: var(--ui-yellow);
+    text-shadow: 3px 0 0 var(--ui-ink), -3px 0 0 var(--ui-ink), 0 3px 0 var(--ui-ink), 0 -3px 0 var(--ui-ink), 3px 3px 0 var(--ui-ink), -3px 3px 0 var(--ui-ink), 0 7px 0 var(--ui-ink), 0 0 30px rgba(255, 140, 60, 0.45);
+}
+.title-logo small {
+    color: var(--ui-cream);
+    text-shadow: var(--px-title);
+}
+.title-sub {
+    color: #f2c8e0;
+}
+.title-art {
+    background: radial-gradient(ellipse at 50% 85%, rgba(255, 150, 80, 0.45), transparent 65%);
+}
+
+/* 체력바·의도·상태 */
+.hpbar {
+    height: 18px;
+    border-radius: 4px;
+    background: #3a0e1e;
+    box-shadow: 0 0 0 3px var(--ui-ink), 0 4px 0 1px var(--ui-ink);
+}
+.hpbar-fill {
+    border-radius: 2px;
+    background: linear-gradient(#ff8a8a 0 30%, #e83e4e 30% 75%, #a8203a 75%);
+}
+.hpbar-text {
+    text-shadow: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000;
+}
+.intent,
+.status {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-parch);
+    box-shadow: 0 3px 0 var(--ui-ink);
+}
+.enemy-name,
+.turn-banner {
+    color: var(--ui-cream);
+    text-shadow: var(--px-title);
+}
+.turn-banner {
+    background: linear-gradient(90deg, transparent, rgba(168, 72, 126, 0.92) 18% 82%, transparent);
+}
+.target-hint {
+    border: 3px solid var(--ui-ink);
+    border-radius: 6px;
+    background: var(--ui-yellow);
+}
+.result-box {
+    border: 4px solid var(--ui-ink);
+    background: linear-gradient(180deg, transparent 0 70px, var(--ui-panel) 70px), var(--sunset) 0 0 / 100% 70px no-repeat;
+    box-shadow: 0 6px 0 var(--ui-ink);
+}
+.energy {
+    border: 4px solid var(--ui-ink);
+    background: radial-gradient(circle at 36% 32%, #fff6c0 0 12%, var(--ui-yellow) 13% 56%, #e0861a 57%);
+    box-shadow: 0 4px 0 var(--ui-ink), 0 0 20px rgba(255, 180, 60, 0.5);
+}
+.hand-area {
+    background: linear-gradient(transparent, rgba(22, 14, 36, 0.9) 32%);
+}
+
+/* 카드: 검정 테두리 + 색 머리띠 + 양피지 설명칸 */
+.card {
+    border: 3px solid var(--ui-ink);
+    padding: 4px;
+    background: linear-gradient(180deg, var(--c) 0 24px, var(--ui-panel) 24px);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.16), 0 4px 0 var(--ui-ink);
+}
+.card-attack { --c: #e8503e; }
+.card-skill { --c: #3a8ad8; }
+.card-power { --c: #a84ad8; }
+.rarity-uncommon {
+    box-shadow: inset 0 0 0 2px #9ad8ff, 0 4px 0 var(--ui-ink);
+}
+.rarity-rare {
+    box-shadow: inset 0 0 0 2px var(--ui-yellow), 0 4px 0 var(--ui-ink), 0 0 16px rgba(255, 200, 60, 0.5);
+}
+.card-name {
+    color: #fff;
+    text-shadow: 1px 0 0 var(--ui-ink), -1px 0 0 var(--ui-ink), 0 1px 0 var(--ui-ink), 0 2px 0 var(--ui-ink);
+}
+.card-art {
+    border: 3px solid var(--ui-ink);
+    border-radius: 4px;
+}
+.card-type {
+    background: var(--ui-ink);
+    border-radius: 4px;
+}
+.card-desc {
+    margin: 3px 2px 0;
+    padding: 4px 4px 6px;
+    border-radius: 4px;
+    background: var(--ui-parch);
+    color: #3a2416;
+    box-shadow: inset 0 -3px 0 var(--ui-parch-dark);
+}
+.card-cost {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-yellow);
+    color: #3a1e00;
+}
+
+/* 지도 위 UI */
+.map-banner {
+    border: 4px solid var(--ui-ink);
+    background: var(--ui-parch);
+    box-shadow: 0 5px 0 var(--ui-ink);
+}
+.map-floor-badge {
+    border-radius: 6px;
+    background: var(--ui-orange);
+    color: #3a1400;
+    box-shadow: inset 0 3px 0 #ffc48a;
+}
+.map-floor-badge small {
+    color: #6a2a00;
+}
+.map-journal {
+    border: 4px solid var(--ui-ink);
+    background: linear-gradient(180deg, transparent 0 48px, var(--ui-panel) 48px), var(--sunset) 0 0 / 100% 48px no-repeat;
+    box-shadow: 0 6px 0 var(--ui-ink);
+}
+.progress {
+    border-radius: 4px;
+}
+.progress-fill {
+    background: linear-gradient(#ffe48a 0 30%, var(--ui-yellow) 30% 70%, #e0961e 70%);
+}
+.journal-boss {
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-parch);
+    color: #3a2416;
+}
+.journal-boss.found {
+    background: #ffd0d8;
+    color: #8a1a2a;
+}
+kbd {
+    border-radius: 4px;
+    background: var(--ui-parch);
+}
+.map-scene .room::before {
+    border-radius: 6px;
+    background: var(--ui-parch);
+    color: #3a2416;
+}
+.card-desc {
+    align-self: stretch;
+}

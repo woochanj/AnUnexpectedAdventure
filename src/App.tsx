@@ -2,6 +2,7 @@ import { useEffect, useReducer, useState } from 'react';
 import { loadRun, reducer, saveRun } from './game/run';
 import { HEROES, HeroView } from './ui/Actors';
 import { CLASS_IDS, CLASSES } from './game/classes';
+import { regionOf } from './game/biomes';
 import type { ClassId } from './game/types';
 import { CombatScreen } from './ui/CombatScreen';
 import { Hud } from './ui/Hud';
@@ -53,7 +54,7 @@ function Title({ onNew, onContinue, canContinue }: { onNew: (cls: ClassId, hero:
             <h1 className="title-logo">
                 <small>An</small> Unexpected Adventure
             </h1>
-            <p className="title-sub">카드 한 장, 횃불 하나로 내려가는 세 층의 던전</p>
+            <p className="title-sub">카드 한 벌 들고 떠나는, 매번 다른 세 지역의 탐험 여행</p>
             <div className="class-pick" role="radiogroup" aria-label="직업 고르기">
                 {CLASS_IDS.map((id) => {
                     const c = CLASSES[id];
@@ -89,10 +90,10 @@ function Title({ onNew, onContinue, canContinue }: { onNew: (cls: ClassId, hero:
                 </button>
             </div>
             <ul className="title-help">
-                <li>안개 낀 지도를 돌아다니며 방을 하나씩 밝혀 나가세요.</li>
+                <li>탐험할 때마다 여섯 지역 중 세 곳이 무작위로 정해지고, 길도 매번 새로 생겨요.</li>
                 <li>전투는 카드로 합니다. 매 턴 에너지 3, 카드 5장.</li>
                 <li>카드는 일반 · 고급 · 희귀 · 유니크 등급이 있고, 모닥불에서 Lv.3까지 강화할 수 있어요.</li>
-                <li>각 층 가장 깊은 곳의 보스를 쓰러뜨리면 다음 층으로.</li>
+                <li>지역 가장 깊은 곳의 수호자를 쓰러뜨리면 다음 지역으로 떠납니다.</li>
             </ul>
         </div>
     );
@@ -133,7 +134,7 @@ export default function App() {
             body = <MapScreen run={run} dispatch={dispatch} />;
             break;
         case 'combat':
-            body = <CombatScreen key={`${run.pos}-${run.stats.rooms}`} combat={sc.combat} floor={run.floor} hero={run.hero} dispatch={dispatch} />;
+            body = <CombatScreen key={`${run.pos}-${run.stats.rooms}`} combat={sc.combat} biome={regionOf(run).id} seed={run.expedition + run.floor * 7 + 3} hero={run.hero} dispatch={dispatch} />;
             break;
         case 'reward':
             body = <RewardScreen s={sc} dispatch={dispatch} />;

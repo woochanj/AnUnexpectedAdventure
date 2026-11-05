@@ -3166,3 +3166,85 @@ kbd {
 .map-scene .map-player::before {
     background: radial-gradient(circle, rgba(255, 170, 80, 0.4), rgba(255, 120, 50, 0.1) 45%, transparent 66%);
 }
+
+/* 지도: 너무 어둡지 않게 */
+.map-scene.floor-0 { --floor: #2c5262; --floor-hi: #3e6c7c; }
+.map-scene.floor-1 { --floor: #444668; --floor-hi: #5a5c84; }
+.map-scene.floor-2 { --floor: #5a3456; --floor-hi: #764670; }
+.map-frame {
+    background: rgba(10, 8, 24, 0.25);
+}
+.map-scene .map-board {
+    background:
+        radial-gradient(circle at 1px 1px, rgba(var(--glow), 0.14) 1px, transparent 1.5px) 0 0 / calc(var(--cell) / 4) calc(var(--cell) / 4),
+        rgba(8, 6, 20, 0.3);
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.45);
+}
+.map-scene .room.hidden .room-top {
+    background: radial-gradient(ellipse at 50% 55%, rgba(60, 50, 90, 0.6), rgba(30, 24, 50, 0.3) 55%, transparent 72%);
+}
+
+/* ═════════ 하이비트 UI: 검정 대신 짙은 남색 외곽선 ═════════ */
+:root {
+    --ui-ink: #1e1a40;
+}
+/* 여정 */
+.journey {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.journey-stop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 96px;
+    position: relative;
+}
+.journey-stop + .journey-stop::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    right: 50%;
+    width: 100%;
+    height: 4px;
+    background: repeating-linear-gradient(90deg, var(--ui-cream) 0 6px, transparent 6px 12px);
+    opacity: 0.6;
+    z-index: -1;
+}
+.journey-dot {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 3px solid var(--ui-ink);
+    background: var(--ui-panel-2);
+    color: var(--ui-cream);
+    font-family: var(--font-head);
+    box-shadow: 0 3px 0 var(--ui-ink);
+}
+.journey-stop.done .journey-dot {
+    background: #6ac86a;
+    color: #0a2a10;
+}
+.journey-stop.next .journey-dot {
+    background: var(--ui-yellow);
+    color: #3a1e00;
+    animation: pulse 1.2s ease-in-out infinite;
+}
+.journey-name {
+    font-size: 0.8rem;
+    color: var(--ui-cream);
+}
+/* 지도 돌판 색: 지역 풍경에 맞춤 */
+.map-scene.biome-cave { --floor: #3f7aa6; --floor-hi: #5c9ccc; --glow: 255, 255, 255; }
+.map-scene.biome-graveyard { --floor: #5d6894; --floor-hi: #7c88bc; --glow: 255, 255, 255; }
+.map-scene.biome-castle { --floor: #7a4a7a; --floor-hi: #9a6498; --glow: 255, 220, 160; }
+.map-scene.biome-forest { --floor: #4a8a5a; --floor-hi: #64a874; --glow: 255, 255, 220; }
+.map-scene.biome-ruins { --floor: #b07e4c; --floor-hi: #cc9a62; --glow: 255, 250, 220; }
+.map-scene.biome-ice { --floor: #6a98c8; --floor-hi: #8ab4e0; --glow: 255, 255, 255; }

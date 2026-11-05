@@ -159,6 +159,7 @@ export function cueVfx(c: Cue): VfxSpec[] {
 // ───────────── 층별 배경 앰비언트 (전투 화면 뒤쪽 캔버스에 계속 재생) ─────────────
 import * as spiritFlame from 'pixelfx/fx/fire/spirit-flame';
 import * as fog from 'pixelfx/fx/weather/fog';
+import * as fireflies from 'pixelfx/fx/weather/fireflies';
 import * as bubbles from 'pixelfx/fx/water/bubbles';
 import * as bat from 'pixelfx/fx/critters/bat';
 import * as wisp from 'pixelfx/fx/critters/wisp';
@@ -173,8 +174,8 @@ export interface Ambient {
     tile?: number;
 }
 
-const VIOLET_FOG = ['#140608', '#2a0c12', '#42141e', '#5e1e2a', '#7e2c38', '#a04650', '#c8707a', '#ecc4c8'];
-const BLOOD_FLAME = ['#1a0406', '#3a080c', '#6a1014', '#a01c1a', '#d8361e', '#ff6a2a', '#ffb070', '#ffe0c0', '#ffffff'];
+const VIOLET_FOG = ['#2a1430', '#3e1e44', '#5a2c5a', '#7a3e72', '#a0568a', '#c878a4', '#e8a8c4', '#fde4ee'];
+const BLOOD_FLAME = ['#2a0a04', '#5a1a08', '#9a3a0c', '#d8661a', '#ff9a2a', '#ffc24a', '#ffe08a', '#fff4d0', '#ffffff'];
 
 export const FLOOR_AMBIENT: Ambient[][] = [
     [
@@ -215,3 +216,46 @@ export const MAP_AMBIENT: Ambient[][] = [
         { mod: wisp, fx: 0.88, fy: 0.6, opts: { seed: 3, palette: ['#0e0618', '#241040', '#3e1a6a', '#6a2ea0', '#9a52d0', '#c99af0', '#f2e2ff'] } },
     ],
 ];
+
+// ───────────── 지역별 앰비언트 (지도와 전투 공통) ─────────────
+import * as aurora from 'pixelfx/fx/weather/aurora';
+import * as cherryBlossoms from 'pixelfx/fx/weather/cherry-blossoms';
+import * as fallingLeaves from 'pixelfx/fx/weather/falling-leaves';
+import * as blizzard from 'pixelfx/fx/weather/blizzard';
+import * as butterfly from 'pixelfx/fx/critters/butterfly';
+import * as birdFx from 'pixelfx/fx/critters/bird';
+
+const WARM_FLAME = ['#2a0a04', '#5a1a08', '#9a3a0c', '#d8661a', '#ff9a2a', '#ffc24a', '#ffe08a', '#fff4d0', '#ffffff'];
+
+export const AMBIENT: Record<string, Ambient[]> = {
+    cave: [
+        { mod: bubbles, fx: 0.1, fy: 0.78 },
+        { mod: bubbles, fx: 0.92, fy: 0.7, opts: { seed: 6 } },
+        { mod: wisp, fx: 0.24, fy: 0.5, opts: { seed: 6 } },
+        { mod: bat, fx: 0.62, fy: 0.16, opts: { seed: 4 } },
+    ],
+    graveyard: [
+        { mod: fog, fx: 0.5, fy: 1.02, tile: 320, opts: { light: 0.6 } },
+        { mod: wisp, fx: 0.14, fy: 0.6, opts: { seed: 8 } },
+        { mod: wisp, fx: 0.86, fy: 0.45, opts: { seed: 2 } },
+    ],
+    castle: [
+        { mod: spiritFlame, fx: 0.07, fy: 0.42, opts: { palette: WARM_FLAME } },
+        { mod: spiritFlame, fx: 0.93, fy: 0.42, opts: { seed: 3, palette: WARM_FLAME } },
+        { mod: birdFx, fx: 0.55, fy: 0.16, opts: { seed: 5 } },
+        { mod: cherryBlossoms, fx: 0.5, fy: 1.0, tile: 320 },
+    ],
+    forest: [
+        { mod: fireflies, fx: 0.5, fy: 1.0, tile: 320, opts: { light: 0.9 } },
+        { mod: fallingLeaves, fx: 0.5, fy: 1.0, tile: 320 },
+        { mod: butterfly, fx: 0.3, fy: 0.4, opts: { seed: 3 } },
+    ],
+    ruins: [
+        { mod: birdFx, fx: 0.7, fy: 0.18, opts: { seed: 2 } },
+        { mod: birdFx, fx: 0.3, fy: 0.24, opts: { seed: 9 } },
+    ],
+    ice: [
+        { mod: aurora, fx: 0.5, fy: 0.7, tile: 320, opts: { light: 0.8 } },
+        { mod: blizzard, fx: 0.5, fy: 1.0, tile: 320, opts: { light: 0.5 } },
+    ],
+};

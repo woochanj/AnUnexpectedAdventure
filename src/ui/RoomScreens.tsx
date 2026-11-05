@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type ReactNode } from 'react';
 import { cardLevel, MAX_LEVEL } from '../game/cards';
-import { FLOORS } from '../game/enemies';
+import { regionOf } from '../game/biomes';
 import { EVENTS } from '../game/events';
 import { RELICS } from '../game/relics';
 import type { Action } from '../game/run';
@@ -229,25 +229,45 @@ export function PickScreen({ s, run, dispatch }: { s: Extract<Screen, { kind: 'p
 }
 
 export function FloorClearScreen({ run, dispatch }: { run: RunState; dispatch: D }) {
-    const next = FLOORS[run.floor + 1];
+    const here = regionOf(run);
+    const next = regionOf(run, run.floor + 1);
     return (
-        <Panel title={`${FLOORS[run.floor].name} 돌파`} art={<FxView mod={FX['arcane/portal']} scale={3} />}>
+        <Panel title={`${here.name} 수호자 격파`} art={<FxView mod={FX['arcane/portal']} scale={3} />}>
             <p className="panel-text">
-                아래로 이어지는 계단을 찾았다. 계단 아래에서 차가운 바람이 불어온다.
+                {here.farewell}
                 <br />
-                다음 층: <b>{next.name}</b> — {next.subtitle}
+                다음 목적지: <b>{next.name}</b> — {next.subtitle}
             </p>
-            <p className="panel-sub">내려가기 전에 숨을 고른다 (잃은 체력의 절반 회복)</p>
+            <Journey run={run} />
+            <p className="panel-sub">떠나기 전에 숨을 고른다 (잃은 체력의 절반 회복)</p>
             <button className="btn btn-primary" onClick={() => dispatch({ type: 'nextFloor' })}>
-                계단을 내려간다
+                다음 지역으로 떠난다
             </button>
         </Panel>
     );
 }
 
+/** 이번 탐험 여정: 지나온 지역 → 지금 → 앞으로 갈 곳 */
+export function Journey({ run }: { run: RunState }) {
+    return (
+        <ol className="journey">
+            {run.route.map((id, i) => {
+                const b = regionOf(run, i);
+                const state = i < run.floor + 1 ? 'done' : i === run.floor + 1 ? 'next' : 'later';
+                return (
+                    <li key={id} className={`journey-stop ${state}`}>
+                        <span className="journey-dot">{i + 1}</span>
+                        <span className="journey-name">{state === 'later' ? '???' : b.name}</span>
+                    </li>
+                );
+            })}
+        </ol>
+    );
+}
+
 export function EndScreen({ run, win, onTitle }: { run: RunState; win: boolean; onTitle: () => void }) {
     return (
-        <Panel title={win ? '그림자를 걷어냈다' : '모험은 여기까지'} className={win ? 'victory' : 'gameover'} art={
+        <Panel title={win ? `탐험 #${run.expedition} 완주!` : `탐험 #${run.expedition} 여기까지`} className={win ? 'victory' : 'gameover'} art={
                 <div className="art-stack">
                     <FxView mod={FX[win ? 'ui/level-up' : 'spawn/soul-rise']} scale={3} />
                     <HeroView char={run.hero} scale={3} />
@@ -255,11 +275,15 @@ export function EndScreen({ run, win, onTitle }: { run: RunState; win: boolean; 
             }
         >
             <p className="panel-text">
-                {win ? '성채 깊은 곳에서 마침내 빛이 새어 나왔다. 예상치 못한 모험은 이렇게 끝이 났다.' : `${FLOORS[run.floor].name}에서 쓰러졌다. 하지만 다음 모험가는 더 멀리 갈 것이다.`}
+                {win
+                    ? `${run.route.map((_, i) => regionOf(run, i).name).join(' → ')}. 예상치 못한 탐험 여행은 이렇게 끝이 났다.`
+                    : `${regionOf(run).name}에서 쓰러졌다. 하지만 다음 탐험대는 다른 길로 더 멀리 갈 것이다.`}
             </p>
             <dl className="stats">
-                <dt>도달한 층</dt>
-                <dd>{run.floor + 1}</dd>
+                <dt>도달한 지역</dt>
+                <dd>
+                    {run.floor + 1} · {regionOf(run).name}
+                </dd>
                 <dt>쓰러뜨린 적</dt>
                 <dd>{run.stats.kills}</dd>
                 <dt>탐험한 방</dt>

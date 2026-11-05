@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FLOORS } from '../game/enemies';
+import { regionOf } from '../game/biomes';
 import type { RunState } from '../game/types';
 import { CardGrid, Modal, RelicIcon } from './common';
 
@@ -16,7 +16,7 @@ export function Hud({ run, hp, onQuit }: { run: RunState; hp?: number; onQuit: (
                     <i className="ico ico-coin" /> {run.gold}
                 </span>
                 <span className="hud-stat floor" title="현재 층">
-                    {run.floor + 1}층 · {FLOORS[run.floor].name}
+                    지역 {run.floor + 1} · {regionOf(run).name}
                 </span>
             </div>
             <div className="hud-relics">

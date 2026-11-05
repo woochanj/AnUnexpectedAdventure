@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type Dispatch } from 'react';
-import { ENEMIES, FLOORS } from '../game/enemies';
+import { ENEMIES } from '../game/enemies';
 import { FLOOR_COUNT, type Action } from '../game/run';
 import type { Room, RoomType, RunState } from '../game/types';
 import { FxView, HeroView, monsterStill, SceneryView } from './Actors';
 import { FX } from './creatures';
 import { spriteStillStyle } from './SpriteActor';
 import { FxCanvas } from './FxCanvas';
-import { MAP_AMBIENT } from './vfx';
+import { AMBIENT } from './vfx';
+import { regionOf } from '../game/biomes';
 
 const ROOM_NAME: Record<RoomType, string> = {
     start: '입구', combat: '적', elite: '강적', treasure: '보물', rest: '모닥불', shop: '상인', event: '사건', boss: '보스',
@@ -66,22 +67,22 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
     const corridors: { a: Room; b: Room }[] = [];
     for (const r of rooms) for (const id of r.links) if (id > r.id) corridors.push({ a: r, b: map.cells[id]! });
 
-    const theme = FLOORS[run.floor];
+    const theme = regionOf(run);
     const visited = rooms.filter((r) => r.visited).length;
     const progress = Math.round((visited / rooms.length) * 100);
     const boss = rooms.find((r) => r.type === 'boss');
     const bossText = boss?.cleared ? '보스를 쓰러뜨렸다' : boss?.seen ? '보스의 방을 찾았다!' : '어딘가에 보스가 숨어 있다';
 
     return (
-        <div className={`map-scene floor-${run.floor}`} ref={sceneRef}>
+        <div className={`map-scene floor-${run.floor} biome-${theme.id}`} ref={sceneRef}>
             <div className="scenery" aria-hidden>
-                <SceneryView floor={run.floor} seed={run.floor + 11} />
+                <SceneryView biome={theme.id} seed={run.expedition + run.floor * 7} />
             </div>
-            <FxCanvas container={sceneRef} ambient={MAP_AMBIENT[run.floor]} className="fx-back" />
+            <FxCanvas container={sceneRef} ambient={AMBIENT[theme.id]} className="fx-back" />
 
             <header className="map-banner">
                 <span className="map-floor-badge">
-                    <small>FLOOR</small>
+                    <small>지역</small>
                     {run.floor + 1}
                     <small>/ {FLOOR_COUNT}</small>
                 </span>

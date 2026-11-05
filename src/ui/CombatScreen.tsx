@@ -10,7 +10,7 @@ import { HeroView, MonsterView, PROJECTILE_MS, SceneryView, type HeroAction, typ
 import { PROJECTILES } from './spriteManifest';
 import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
-import { FLOOR_AMBIENT } from './vfx';
+import { AMBIENT } from './vfx';
 
 function FxLayer({ fx, target }: { fx: Fx[]; target: string }) {
     // 피해 숫자는 pixelfx 캔버스가 그린다. 여기서는 방어·회복·상태이상 글자만
@@ -221,7 +221,7 @@ function useJuice(
     }, [c.fx, c.cues, fieldRef, clock, setHeroAction]);
 }
 
-export function CombatScreen({ combat: c, floor, hero, dispatch }: { combat: CombatState; floor: number; hero: string; dispatch: Dispatch<Action> }) {
+export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { combat: CombatState; biome: string; seed: number; hero: string; dispatch: Dispatch<Action> }) {
     const [selected, setSelected] = useState<number | null>(null);
     const [enemyTurn, setEnemyTurn] = useState(false);
     const [pile, setPile] = useState<null | 'draw' | 'discard' | 'exhaust'>(null);
@@ -293,9 +293,9 @@ export function CombatScreen({ combat: c, floor, hero, dispatch }: { combat: Com
         <div className={`combat ${selected !== null ? 'targeting' : ''}`}>
             <div className="battlefield" ref={fieldRef}>
                 <div className="scenery" aria-hidden>
-                    <SceneryView floor={floor} ground seed={floor + 3} />
+                    <SceneryView biome={biome} ground seed={seed} />
                 </div>
-                <FxCanvas container={fieldRef} ambient={FLOOR_AMBIENT[floor]} className="fx-back" clock={clock} />
+                <FxCanvas container={fieldRef} ambient={AMBIENT[biome]} className="fx-back" clock={clock} />
                 <div className="fighter player-side">
                     <div data-body="player">
                         <Shake fx={c.fx} target="player">

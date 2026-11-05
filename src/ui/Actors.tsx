@@ -281,7 +281,7 @@ function CatKnightView({
 }
 
 /** 층 배경 디오라마 캔버스: 컨테이너를 가득 채우고, 크기가 바뀌면 다시 그린다 */
-export function SceneryView({ floor, ground = false, seed = 1, scale = 3 }: { floor: number; ground?: boolean; seed?: number; scale?: number }) {
+export function SceneryView({ biome, ground = false, seed = 1, scale = 3 }: { biome: string; ground?: boolean; seed?: number; scale?: number }) {
     const ref = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
         const cv = ref.current;
@@ -296,13 +296,13 @@ export function SceneryView({ floor, ground = false, seed = 1, scale = 3 }: { fl
             cv.height = h;
             cv.style.width = `${w * s}px`;
             cv.style.height = `${h * s}px`;
-            paintScenery(cv.getContext('2d')!, w, h, floor, seed, ground);
+            paintScenery(cv.getContext('2d')!, w, h, biome, seed, ground);
         };
         draw();
         const ro = new ResizeObserver(draw);
         ro.observe(box);
         return () => ro.disconnect();
-    }, [floor, ground, seed, scale]);
+    }, [biome, ground, seed, scale]);
     return <canvas ref={ref} className="pixel-canvas scenery-canvas" aria-hidden />;
 }
 

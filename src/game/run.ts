@@ -1,5 +1,6 @@
 import { CARDS, cardLevel, cardPool, MAX_LEVEL } from './cards';
 import { CLASSES } from './classes';
+import { pickRoute } from './biomes';
 import { endTurn, playCard, startCombat } from './combat';
 import { EVENTS, type EventApi } from './events';
 import { generateFloor, reveal, revealAll } from './map';
@@ -8,7 +9,7 @@ import type { CardInst, ClassId, CombatKind, Dir, Room, RunState, ShopScreen } f
 import { pick, rand, shuffle } from './util';
 
 export const FLOOR_COUNT = 3;
-const SAVE_KEY = 'aua-run-v3';
+const SAVE_KEY = 'aua-run-v4';
 
 export type Action =
     | { type: 'new'; cls?: ClassId; hero?: string }
@@ -173,6 +174,8 @@ export function newRun(cls: ClassId = 'knight', hero?: string): RunState {
     const run: RunState = {
         cls,
         hero: hero && def.looks.includes(hero) ? hero : def.looks[0],
+        route: pickRoute(FLOOR_COUNT),
+        expedition: 1 + Math.floor(Math.random() * 9000),
         floor: 0,
         hp: def.hp,
         maxHp: def.hp,

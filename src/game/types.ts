@@ -191,6 +191,10 @@ export interface RunState {
     cls: ClassId;
     /** 주인공 모습 (ui/Actors.tsx HEROES의 id) */
     hero: string;
+    /** 이번 탐험에서 지나는 지역 순서 (biomes.ts) */
+    route: string[];
+    /** 탐험 번호 (보여주기용) */
+    expedition: number;
     floor: number;
     hp: number;
     maxHp: number;

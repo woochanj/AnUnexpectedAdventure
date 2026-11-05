@@ -11,39 +11,50 @@ export interface SceneryTheme {
     rockDark: string;
     flora: string[];
     ray: string;
-    props: 'cave' | 'graveyard' | 'castle';
+    props: 'cave' | 'graveyard' | 'castle' | 'forest' | 'ruins' | 'ice';
     /** 달 (없으면 그리지 않음) */
     moon?: string;
 }
 
-export const SCENERY: SceneryTheme[] = [
-    // 1층: 물에 잠긴 검푸른 동굴 — 빛나는 청록 버섯과 이끼
-    {
-        top: '#0c1e28', bottom: '#03070a', haze: '#163a44',
-        rock: '#1a2c34', rockTop: '#4e7078', rockDark: '#081014',
-        flora: ['#5af0d0', '#3ac4b0', '#a8ff7a', '#7ac8ff', '#2a6a5a'],
-        ray: 'rgba(120,230,230,0.07)',
-        props: 'cave',
+/** 지역별 풍경 (밝은 하이비트) */
+export const SCENERY: Record<string, SceneryTheme> = {
+    cave: {
+        top: '#86e6ff', bottom: '#1b74c0', haze: '#5fc4f2',
+        rock: '#3f7aa6', rockTop: '#bfeaf5', rockDark: '#1d3f66',
+        flora: ['#ff6fa8', '#ffd25a', '#7cf0a0', '#ff9a5a', '#c78cff', '#5ef0e0'],
+        ray: 'rgba(255,255,255,0.16)', props: 'cave',
     },
-    // 2층: 달빛 아래 안개 묘지
-    {
-        top: '#1e2438', bottom: '#06070c', haze: '#3a4258',
-        rock: '#242838', rockTop: '#666c84', rockDark: '#0a0c14',
-        flora: ['#4a5a3a', '#6a6a52', '#3a4a32', '#7a7e90'],
-        ray: 'rgba(200,215,255,0.07)',
-        props: 'graveyard',
-        moon: '#dfe6f4',
+    graveyard: {
+        top: '#c4d0ff', bottom: '#4656a8', haze: '#9eaee8',
+        rock: '#5d6894', rockTop: '#e2e6ff', rockDark: '#2a3062',
+        flora: ['#9af0ff', '#f0f4ff', '#8cf5c8', '#ffb8e6', '#b8a8ff'],
+        ray: 'rgba(255,255,255,0.14)', props: 'graveyard', moon: '#fffbea',
     },
-    // 3층: 핏빛 달 아래 그림자 성채
-    {
-        top: '#2c0a16', bottom: '#060208', haze: '#4a1428',
-        rock: '#28121e', rockTop: '#6a3848', rockDark: '#0c0408',
-        flora: ['#ff5a3a', '#c03050', '#ffb050', '#6a2a3a'],
-        ray: 'rgba(255,70,60,0.07)',
-        props: 'castle',
-        moon: '#e04a3a',
+    castle: {
+        top: '#7a5ac8', bottom: '#ffb070', haze: '#f0a0a8',
+        rock: '#7a4a7a', rockTop: '#ffd0d8', rockDark: '#3e2048',
+        flora: ['#ffd25a', '#ff8a6a', '#ff6aa8', '#ffffff', '#8af0ff'],
+        ray: 'rgba(255,230,180,0.16)', props: 'castle', moon: '#fff0a0',
     },
-];
+    forest: {
+        top: '#c8fad0', bottom: '#3aa880', haze: '#96e4b6',
+        rock: '#5aa86a', rockTop: '#e0ffd0', rockDark: '#2a6048',
+        flora: ['#ff6aa8', '#ffd25a', '#ff8a5a', '#c08aff', '#ffffff'],
+        ray: 'rgba(255,255,220,0.16)', props: 'forest',
+    },
+    ruins: {
+        top: '#ffe6a8', bottom: '#e0904a', haze: '#f8c88a',
+        rock: '#c08a54', rockTop: '#fff0c8', rockDark: '#7a4a2a',
+        flora: ['#6ac86a', '#ffd25a', '#ff8a6a', '#8ad4ff'],
+        ray: 'rgba(255,250,220,0.18)', props: 'ruins', moon: '#fff8d8',
+    },
+    ice: {
+        top: '#eaf8ff', bottom: '#6aa8e8', haze: '#bcdeff',
+        rock: '#7aa8d8', rockTop: '#ffffff', rockDark: '#3a5a98',
+        flora: ['#9af0ff', '#ffffff', '#c8b8ff', '#8ad4ff'],
+        ray: 'rgba(255,255,255,0.18)', props: 'ice',
+    },
+};
 
 function rng(seed: number) {
     let a = seed >>> 0;
@@ -145,6 +156,70 @@ function backdropProps(ctx: CanvasRenderingContext2D, w: number, h: number, th: 
         }
     }
 
+    if (th.props === 'forest') {
+        // 집채만 한 버섯 실루엣 (점박이 갓)
+        for (const [col, sc] of [[far, 1], [mid, 0.7]] as const) {
+            for (let x = Math.floor(R() * 30) + Math.round(w * 0.1); x < w * 0.92; x += 26 + Math.floor(R() * 40)) {
+                const stemH = Math.round(h * (0.25 + R() * 0.3) * sc);
+                const capW = Math.round((18 + R() * 22) * sc);
+                const baseY = Math.round(h * 0.78);
+                ctx.fillStyle = col;
+                ctx.fillRect(x - 2, baseY - stemH, 5, stemH);
+                ctx.beginPath();
+                ctx.ellipse(x, baseY - stemH, capW / 2, capW / 3.2, 0, Math.PI, 0);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                for (let k = 0; k < 4; k++) ctx.fillRect(x - capW / 3 + Math.round(R() * capW * 0.6), baseY - stemH - Math.round(R() * capW / 4) - 2, 2, 2);
+            }
+        }
+    }
+
+    if (th.props === 'ruins') {
+        // 모래 언덕 + 부러진 기둥과 아치
+        ctx.fillStyle = far;
+        ctx.beginPath();
+        ctx.moveTo(0, h * 0.7);
+        for (let x = 0; x <= w; x += 6) ctx.lineTo(x, h * 0.66 - Math.sin(x / 41) * h * 0.04);
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h);
+        ctx.fill();
+        ctx.fillStyle = mid;
+        for (let x = Math.floor(R() * 20) + Math.round(w * 0.15); x < w * 0.88; x += 18 + Math.floor(R() * 30)) {
+            const ph = Math.round(h * (0.12 + R() * 0.22));
+            const by = Math.round(h * 0.68);
+            ctx.fillRect(x, by - ph, 6, ph);
+            ctx.fillRect(x - 1, by - ph, 8, 2);
+            if (R() < 0.35) {
+                // 아치
+                ctx.fillRect(x + 6, by - ph, 14, 3);
+                ctx.fillRect(x + 20, by - ph, 6, ph);
+            } else if (R() < 0.5) {
+                // 부러진 윗부분
+                ctx.fillRect(x + 1, by - ph - 3, 3, 3);
+            }
+        }
+    }
+
+    if (th.props === 'ice') {
+        // 얼음 뾰족산과 수정
+        for (const [col, sc] of [[far, 1], [mid, 0.6]] as const) {
+            ctx.fillStyle = col;
+            for (let x = Math.floor(R() * 10); x < w; x += 10 + Math.floor(R() * 22)) {
+                const sh = Math.round(h * (0.15 + R() * 0.35) * sc);
+                const sw = 5 + Math.floor(R() * 10);
+                const by = Math.round(h * 0.75);
+                ctx.beginPath();
+                ctx.moveTo(x, by);
+                ctx.lineTo(x + sw / 2 + (R() - 0.5) * 4, by - sh);
+                ctx.lineTo(x + sw, by);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        for (let i = 0; i < 40; i++) ctx.fillRect(Math.floor(R() * w), Math.floor(R() * h * 0.7), 1, 1);
+    }
+
     if (th.props === 'castle') {
         // 고딕 첨탑 실루엣 + 불 켜진 창
         const baseY = Math.round(h * 0.72);
@@ -179,9 +254,9 @@ function backdropProps(ctx: CanvasRenderingContext2D, w: number, h: number, th: 
 /**
  * w×h 픽셀 캔버스에 배경을 그린다. ground가 있으면 아래쪽에 전투용 바닥 턱을 깐다.
  */
-export function paintScenery(ctx: CanvasRenderingContext2D, w: number, h: number, floor: number, seed: number, ground = false) {
-    const th = SCENERY[floor] ?? SCENERY[0];
-    const R = rng(seed * 9973 + floor * 131 + w);
+export function paintScenery(ctx: CanvasRenderingContext2D, w: number, h: number, biome: string, seed: number, ground = false) {
+    const th = SCENERY[biome] ?? SCENERY.cave;
+    const R = rng(seed * 9973 + biome.length * 131 + w);
     const top = hex(th.top), bottom = hex(th.bottom), haze = hex(th.haze);
     const rock = hex(th.rock), rockTop = hex(th.rockTop), rockDark = hex(th.rockDark);
 
@@ -330,7 +405,7 @@ export function paintScenery(ctx: CanvasRenderingContext2D, w: number, h: number
     // 5) 가장자리 어둡게 (비네트)
     const g = ctx.createRadialGradient(w / 2, h * 0.45, h * 0.3, w / 2, h * 0.5, Math.max(w, h) * 0.75);
     g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(4,10,30,0.45)');
+    g.addColorStop(1, 'rgba(20,20,60,0.22)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 }

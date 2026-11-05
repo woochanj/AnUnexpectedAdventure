@@ -26,9 +26,9 @@ export const CLASSES: Record<ClassId, ClassDef> = {
         id: 'mage',
         name: '마법사',
         desc: '화염·냉기·번개 주문으로 멀리서 적을 쓸어버린다. 체력이 낮다.',
-        hp: 70,
+        hp: 72,
         crit: 0.1,
-        deck: ['spark', 'spark', 'spark', 'spark', 'ward', 'ward', 'ward', 'ward', 'frost_bolt', 'focus'],
+        deck: ['spark', 'spark', 'spark', 'spark', 'ward', 'ward', 'ward', 'ward', 'frost_bolt', 'ignite'],
         looks: ['water-priestess'],
     },
     rogue: {

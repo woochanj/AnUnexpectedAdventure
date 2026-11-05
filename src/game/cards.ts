@@ -41,7 +41,7 @@ const LIST: CardDef[] = [
 
     // ═════════ 마법사 ═════════
     M({ id: 'spark', name: '불꽃 화살', type: 'attack', rarity: 'starter', cost: 1, effects: [dmg(6)], up: { effects: [dmg(9)] } }),
-    M({ id: 'ward', name: '마력 방벽', type: 'skill', rarity: 'starter', cost: 1, effects: [block(5)], up: { effects: [block(8)] } }),
+    M({ id: 'ward', name: '마력 방벽', type: 'skill', rarity: 'starter', cost: 1, effects: [block(6)], up: { effects: [block(9)] } }),
     M({
         id: 'frost_bolt', name: '서리 화살', type: 'attack', rarity: 'starter', cost: 1,
         effects: [dmg(6), apply('weak', 1, 'target')], up: { effects: [dmg(8), apply('weak', 2, 'target')] },

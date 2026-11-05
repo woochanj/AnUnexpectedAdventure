@@ -27,6 +27,8 @@ export interface CardDef {
     cls: ClassId | 'neutral';
     /** 원거리 공격 (주인공이 달려가지 않음) */
     ranged?: boolean;
+    /** 낼 수 없는 카드 (저주). 턴이 끝날 때 손에 있으면 사라진다 */
+    unplayable?: boolean;
     /** 강화 시 바뀌는 값 */
     up: { cost?: number; effects?: Effect[]; exhaust?: boolean };
 }
@@ -47,7 +49,14 @@ export interface Intent {
     buff?: { status: Status; amount: number };
     debuff?: { status: Status; amount: number };
     healAll?: number;
+    /** 막히지 않은 피해만큼 자신을 회복 */
+    drain?: boolean;
+    /** 저주 카드를 버린 카드 더미에 섞어 넣는다 */
+    curse?: number;
 }
+
+/** 정예/보스에게 붙는 무작위 성향 */
+export type Affix = 'brutal' | 'tough' | 'spiky' | 'regen' | 'venom';
 
 export interface EnemyDef {
     id: string;
@@ -70,6 +79,8 @@ export interface EnemyDef {
     /** true면 무작위 행동, 아니면 순서대로 반복 */
     random?: boolean;
     size?: 'normal' | 'large' | 'huge';
+    /** 체력이 절반 아래로 떨어지면 한 번 분노해 힘을 얻는다 (보스) */
+    enrage?: number;
 }
 
 export interface Fighter {
@@ -85,6 +96,8 @@ export interface EnemyState extends Fighter {
     moveIdx: number;
     intent: Intent;
     dead?: boolean;
+    affix?: Affix;
+    enraged?: boolean;
 }
 
 export interface Fx {
@@ -136,6 +149,8 @@ export interface CombatState {
     cueSeq: number;
     /** 주인공 공격의 치명타 확률 (0~1) */
     critChance: number;
+    /** 저주 카드 uid 번호 */
+    curseSeq: number;
     /** 지금 발생하는 fx/cue에 붙일 지연 시간 */
     delay: number;
     result?: 'win' | 'lose';

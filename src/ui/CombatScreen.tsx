@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
 import { cardStats, needsTarget, STATUS_INFO } from '../game/cards';
-import { ATTACK_WINDUP, canPlay, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
+import { AFFIXES, ATTACK_WINDUP, canPlay, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
 import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
@@ -65,6 +65,8 @@ function IntentBadge({ e, c }: { e: EnemyState; c: CombatState }) {
     if (it.block) parts.push({ cls: 'defend', text: `${it.block}`, tip: `방어: 방어도 ${it.block}` });
     if (it.buff) parts.push({ cls: 'buff', text: '강화', tip: `강화: ${STATUS_INFO[it.buff.status].name} +${it.buff.amount}` });
     if (it.debuff) parts.push({ cls: 'debuff', text: STATUS_INFO[it.debuff.status].name, tip: `방해: 당신에게 ${STATUS_INFO[it.debuff.status].name} ${it.debuff.amount}` });
+    if (it.drain) parts.push({ cls: 'heal', text: '흡혈', tip: '흡혈: 입힌 피해만큼 회복' });
+    if (it.curse) parts.push({ cls: 'debuff', text: `저주${it.curse}`, tip: `저주: 낼 수 없는 카드 ${it.curse}장을 버린 더미에 섞음` });
     if (it.healAll) parts.push({ cls: 'heal', text: `+${it.healAll}`, tip: `회복: 아군 전체 체력 ${it.healAll}` });
     return (
         <div className="intent" title={parts.map((p) => p.tip).join(' / ')}>
@@ -361,7 +363,14 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                                     </Shake>
                                 </div>
                                 <FxLayer fx={c.fx} target={e.uid} />
-                                <div className="enemy-name">{def.name}</div>
+                                <div className="enemy-name">
+                                    {e.affix && (
+                                        <em className={`affix affix-${e.affix}`} title={AFFIXES[e.affix].desc}>
+                                            {AFFIXES[e.affix].name}{' '}
+                                        </em>
+                                    )}
+                                    {def.name}
+                                </div>
                                 <HpBar hp={e.hp} max={e.maxHp} block={e.block} />
                                 <StatusList status={e.status} />
                             </div>

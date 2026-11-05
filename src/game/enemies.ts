@@ -23,11 +23,11 @@ const LIST: EnemyDef[] = [
         moves: [{ attack: 12 }, { block: 10, attack: 5 }, { buff: { status: 'strength', amount: 3 } }, { attack: 6, hits: 2 }],
     },
     {
-        id: 'goblin_chief', name: '익사한 기사', look: { kind: 'knight', variant: 'drowned', scale: 4 }, hp: [88, 88], size: 'huge',
+        id: 'goblin_chief', name: '익사한 기사', look: { kind: 'knight', variant: 'drowned', scale: 4 }, hp: [88, 88], size: 'huge', enrage: 3,
         moves: [
             { attack: 7, hits: 2 },
             { block: 14, buff: { status: 'strength', amount: 2 } },
-            { attack: 16 },
+            { attack: 14 },
             { debuff: { status: 'weak', amount: 2 }, attack: 6 },
         ],
     },
@@ -43,7 +43,7 @@ const LIST: EnemyDef[] = [
     },
     {
         id: 'witch_ghost', name: '저주받은 수도사', look: { kind: 'cultist', variant: 'crimson' }, hp: [22, 26],
-        moves: [{ debuff: { status: 'vulnerable', amount: 2 } }, { attack: 9 }, { debuff: { status: 'weak', amount: 2 }, attack: 4 }],
+        moves: [{ debuff: { status: 'vulnerable', amount: 2 } }, { attack: 9 }, { curse: 2, attack: 4 }],
     },
     {
         id: 'drop_ghost', name: '안개 망령', look: { kind: 'wraith' }, hp: [20, 24], random: true,
@@ -58,12 +58,12 @@ const LIST: EnemyDef[] = [
         moves: [{ attack: 18 }, { block: 16, buff: { status: 'strength', amount: 2 } }, { attack: 8, hits: 2 }, { debuff: { status: 'vulnerable', amount: 2 }, attack: 8 }],
     },
     {
-        id: 'old_shaman', name: '감시자의 눈', look: { kind: 'eye', scale: 5 }, hp: [150, 150], size: 'huge',
+        id: 'old_shaman', name: '감시자의 눈', look: { kind: 'eye', scale: 5 }, hp: [132, 132], size: 'huge', enrage: 3,
         moves: [
-            { debuff: { status: 'weak', amount: 2 }, block: 12 },
-            { attack: 11, hits: 2 },
-            { buff: { status: 'strength', amount: 3 }, healAll: 10 },
-            { attack: 24 },
+            { debuff: { status: 'weak', amount: 2 }, block: 12, curse: 1 },
+            { attack: 10, hits: 2 },
+            { buff: { status: 'strength', amount: 2 }, healAll: 8 },
+            { attack: 20 },
             { debuff: { status: 'vulnerable', amount: 2 }, attack: 10 },
         ],
     },
@@ -75,7 +75,7 @@ const LIST: EnemyDef[] = [
     },
     {
         id: 'violet_priest', name: '공허의 사제', look: { kind: 'cultist', variant: 'void' }, hp: [38, 42],
-        moves: [{ healAll: 10, block: 8 }, { attack: 10 }, { buff: { status: 'strength', amount: 2 }, attack: 6 }],
+        moves: [{ healAll: 10, block: 8 }, { attack: 10 }, { curse: 2, attack: 6 }],
     },
     {
         id: 'pumpkin', name: '저주받은 해골', look: { kind: 'flameskull', variant: 'void' }, hp: [44, 48], random: true,
@@ -83,20 +83,20 @@ const LIST: EnemyDef[] = [
     },
     {
         id: 'shade_wraith', name: '공허 망령', look: { kind: 'wraith', variant: 'void' }, hp: [32, 36],
-        moves: [{ attack: 4, hits: 3 }, { debuff: { status: 'vulnerable', amount: 2 }, attack: 7 }],
+        moves: [{ attack: 4, hits: 3 }, { debuff: { status: 'vulnerable', amount: 2 }, attack: 7 }, { attack: 9, drain: true }],
     },
     {
         id: 'imp_lord', name: '공허의 눈', look: { kind: 'eye', variant: 'void', scale: 4 }, hp: [100, 104], size: 'large',
-        moves: [{ attack: 9, hits: 2 }, { buff: { status: 'strength', amount: 3 }, block: 12 }, { attack: 22 }, { debuff: { status: 'weak', amount: 2 }, attack: 9 }],
+        moves: [{ attack: 9, hits: 2 }, { buff: { status: 'strength', amount: 3 }, block: 12 }, { attack: 16, drain: true }, { debuff: { status: 'weak', amount: 2 }, attack: 9 }],
     },
     {
-        id: 'endless_shadow', name: '끝없는 그림자', look: { kind: 'knight', variant: 'shadow', crown: true, scale: 5 }, hp: [240, 240], size: 'huge',
+        id: 'endless_shadow', name: '끝없는 그림자', look: { kind: 'knight', variant: 'shadow', crown: true, scale: 5 }, hp: [200, 200], size: 'huge', enrage: 3,
         moves: [
-            { attack: 14, hits: 2 },
-            { block: 20, buff: { status: 'strength', amount: 3 } },
-            { debuff: { status: 'vulnerable', amount: 3 }, attack: 10 },
-            { attack: 6, hits: 5 },
-            { attack: 32 },
+            { attack: 11, hits: 2 },
+            { block: 18, buff: { status: 'strength', amount: 2 }, curse: 2 },
+            { debuff: { status: 'vulnerable', amount: 2 }, attack: 9 },
+            { attack: 5, hits: 5 },
+            { attack: 26 },
         ],
     },
 
@@ -120,7 +120,7 @@ const LIST: EnemyDef[] = [
     },
     {
         id: 'bat_s', name: '동굴 박쥐', look: { kind: 'sprite', sprite: 'bat', scale: 4 }, hp: [11, 13], random: true,
-        moves: [{ attack: 3, hits: 2 }, { attack: 5 }],
+        moves: [{ attack: 3, hits: 2 }, { attack: 5, drain: true }],
     },
     {
         id: 'goblin', name: '고블린 약탈자', look: { kind: 'sprite', sprite: 'goblin', scale: 3 }, hp: [20, 24],
@@ -141,7 +141,7 @@ const LIST: EnemyDef[] = [
     },
     {
         id: 'ghost_s', name: '떠도는 유령', look: { kind: 'sprite', sprite: 'ghost', scale: 4 }, hp: [18, 22], random: true,
-        moves: [{ debuff: { status: 'vulnerable', amount: 2 } }, { attack: 8 }, { attack: 4, hits: 2 }],
+        moves: [{ debuff: { status: 'vulnerable', amount: 2 } }, { attack: 7, drain: true }, { attack: 4, hits: 2 }],
     },
     {
         id: 'crow', name: '안개 까마귀', look: { kind: 'sprite', sprite: 'bird', scale: 4, filter: 'saturate(0.35) brightness(0.75)' }, hp: [14, 17], random: true,

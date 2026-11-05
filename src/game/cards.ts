@@ -44,7 +44,7 @@ const LIST: CardDef[] = [
     M({ id: 'ward', name: '마력 방벽', type: 'skill', rarity: 'starter', cost: 1, effects: [block(5)], up: { effects: [block(8)] } }),
     M({
         id: 'frost_bolt', name: '서리 화살', type: 'attack', rarity: 'starter', cost: 1,
-        effects: [dmg(5), apply('weak', 1, 'target')], up: { effects: [dmg(7), apply('weak', 2, 'target')] },
+        effects: [dmg(6), apply('weak', 1, 'target')], up: { effects: [dmg(8), apply('weak', 2, 'target')] },
     }),
     M({ id: 'chain_lightning', name: '연쇄 번개', type: 'attack', rarity: 'common', cost: 1, effects: [dmgAll(5)], up: { effects: [dmgAll(8)] } }),
     M({
@@ -106,7 +106,13 @@ const LIST: CardDef[] = [
     N({ id: 'second_wind', name: '재정비', type: 'skill', rarity: 'uncommon', cost: 1, effects: [block(6), energy(1)], up: { effects: [block(9), energy(1)] } }),
     N({ id: 'regrowth', name: '재생의 숨결', type: 'power', rarity: 'rare', cost: 2, effects: [apply('regen', 3, 'self')], up: { effects: [apply('regen', 4, 'self')] } }),
     N({ id: 'frenzy', name: '광기', type: 'power', rarity: 'rare', cost: 2, effects: [apply('energize', 1, 'self')], up: { cost: 1 } }),
+
+    // ═════════ 저주 (적이 덱에 섞어 넣음, 전투가 끝나면 사라짐) ═════════
+    N({ id: 'dread', name: '불길한 예감', type: 'skill', rarity: 'starter', cost: 0, unplayable: true, effects: [], up: {} }),
 ];
+
+/** 저주 카드 id */
+export const CURSE_CARD = 'dread';
 
 export const CARDS: Record<string, CardDef> = Object.fromEntries(LIST.map((c) => [c.id, c]));
 
@@ -201,6 +207,7 @@ function describeEffect(e: Effect): string {
 
 export function describeCard(inst: { id: string; upgraded: boolean; level?: number }): string[] {
     const s = cardStats(inst);
+    if (s.def.unplayable) return ['낼 수 없음', '턴이 끝나면 사라짐'];
     const lines = s.effects.map(describeEffect);
     if (s.def.type === 'power') lines.push('지속 (전투 내내 유지)');
     if (s.exhaust) lines.push('소멸');

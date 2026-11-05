@@ -24,19 +24,19 @@ export function CardView({
             type="button"
             className={[
                 'card', `card-${s.def.type}`, `rarity-${s.def.rarity}`,
-                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', s.level > 1 && 'card-up',
+                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', s.level > 1 && 'card-up', s.def.unplayable && 'card-curse',
             ].filter(Boolean).join(' ')}
             onClick={onClick}
             aria-disabled={disabled}
         >
-            <span className="card-cost">{cost ?? s.cost}</span>
+            <span className="card-cost">{s.def.unplayable ? '✕' : (cost ?? s.cost)}</span>
             <span className="card-name">{s.name}</span>
             <span className="card-art">
                 {art ? <img src={art} alt="" draggable={false} /> : <span className={`card-art-fallback art-${s.def.type}`} />}
             </span>
             {s.level > 1 && <span className={`card-level lv${s.level}`}>Lv.{s.level}</span>}
             <span className="card-type">
-                {TYPE_LABEL[s.def.type]} · <em className={`rar rar-${s.def.rarity}`}>{RARITY_INFO[s.def.rarity].name}</em>
+                {s.def.unplayable ? '저주' : TYPE_LABEL[s.def.type]} · <em className={`rar rar-${s.def.rarity}`}>{RARITY_INFO[s.def.rarity].name}</em>
             </span>
             <span className="card-desc">
                 {describeCard(card).map((l, i) => (

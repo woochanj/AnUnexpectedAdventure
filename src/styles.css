@@ -3259,3 +3259,12 @@ kbd {
 .title-credits a {
     color: #ffd27a;
 }
+
+/* ── 정예/보스 성향, 저주 카드 ── */
+.enemy-name .affix { font-style: normal; color: #ff7a2a; }
+.enemy-name .affix-tough { color: #4a8ad0; }
+.enemy-name .affix-spiky { color: #b0602a; }
+.enemy-name .affix-regen { color: #2aa050; }
+.enemy-name .affix-venom { color: #8a3ad0; }
+.card.card-curse { filter: saturate(0.4) brightness(0.85); }
+.card.card-curse .card-name { color: #6a3a8a; }

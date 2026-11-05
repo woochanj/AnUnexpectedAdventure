@@ -1,6 +1,6 @@
-import { cardStats } from './cards';
+import { cardStats, CURSE_CARD } from './cards';
 import { ENEMIES } from './enemies';
-import type { CardInst, CombatKind, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, Status } from './types';
+import type { Affix, CardInst, CombatKind, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, Status } from './types';
 import { CLASSES } from './classes';
 import { pick, rand, shuffle } from './util';
 
@@ -32,6 +32,35 @@ function addStatus(f: Fighter, s: Status, n: number) {
 
 const alive = (c: CombatState) => c.enemies.filter((e) => e.hp > 0);
 
+/** 정예/보스 성향: 이름 앞에 붙는 말과 설명 */
+export const AFFIXES: Record<Affix, { name: string; desc: string }> = {
+    brutal: { name: '광폭한', desc: '힘을 가지고 시작한다' },
+    tough: { name: '단단한', desc: '체력이 30% 더 많다' },
+    spiky: { name: '가시 돋친', desc: '때리면 가시에 찔린다' },
+    regen: { name: '되살아나는', desc: '매 턴 체력을 회복한다' },
+    venom: { name: '맹독의', desc: '공격할 때마다 독을 묻힌다' },
+};
+
+function applyAffix(e: EnemyState, a: Affix, strong: boolean) {
+    e.affix = a;
+    if (a === 'brutal') addStatus(e, 'strength', strong ? 3 : 2);
+    if (a === 'tough') e.hp = e.maxHp = Math.round(e.maxHp * 1.3);
+    if (a === 'spiky') addStatus(e, 'thorns', strong ? 4 : 3);
+    if (a === 'regen') addStatus(e, 'regen', strong ? 5 : 3);
+}
+
+/** 보스가 체력 절반 아래로 떨어지면 한 번 분노한다 */
+function checkEnrage(c: CombatState) {
+    for (const e of alive(c)) {
+        const n = ENEMIES[e.defId].enrage;
+        if (!n || e.enraged || e.hp > e.maxHp / 2) continue;
+        e.enraged = true;
+        cue(c, { kind: 'enemyBuff', target: e.uid });
+        addStatus(e, 'strength', n);
+        fx(c, e.uid, `분노! 힘 +${n}`, 'status');
+    }
+}
+
 function pickIntent(e: EnemyState): Intent {
     const def = ENEMIES[e.defId];
     if (def.random) {
@@ -62,6 +91,7 @@ export function startCombat(run: RunState, kind: CombatKind, enemyIds: string[])
             e.intent = pickIntent(e);
             return e;
         }),
+        curseSeq: 0,
         draw: shuffle(deck),
         hand: [],
         discard: [],
@@ -76,6 +106,12 @@ export function startCombat(run: RunState, kind: CombatKind, enemyIds: string[])
         critChance: CLASSES[run.cls]?.crit ?? 0.1,
         delay: 0,
     };
+    // 정예와 보스는 무작위 성향을 하나 가진다 (같은 적이라도 매번 다르게)
+    if (kind !== 'normal') {
+        // 보스는 이미 단단하므로 체력 증가는 빼고, 수치도 정예와 같게
+        const pool = (Object.keys(AFFIXES) as Affix[]).filter((a) => kind !== 'boss' || a !== 'tough');
+        for (const e of c.enemies) applyAffix(e, pick(pool), false);
+    }
     if (run.relics.includes('whetstone')) addStatus(c.player, 'strength', 1);
     if (run.relics.includes('herb_pouch')) for (const e of c.enemies) addStatus(e, 'poison', 3);
     startPlayerTurn(c, run);
@@ -128,14 +164,15 @@ function hit(c: CombatState, key: string, f: Fighter, amount: number, crit = fal
 const ENEMY_CRIT = 0.05;
 
 function attack(c: CombatState, aKey: string, attacker: Fighter, dKey: string, defender: Fighter, base: number) {
-    if (attacker.hp <= 0 || defender.hp <= 0) return;
+    if (attacker.hp <= 0 || defender.hp <= 0) return 0;
     // 치명타: 피해 1.5배
     const chance = aKey === 'player' ? c.critChance : ENEMY_CRIT;
     const crit = Math.random() < chance;
     const d = attackDamage(base, attacker, defender);
-    hit(c, dKey, defender, crit ? Math.floor(d * 1.5) : d, crit);
+    const lost = hit(c, dKey, defender, crit ? Math.floor(d * 1.5) : d, crit);
     const thorns = defender.status.thorns ?? 0;
     if (thorns > 0 && attacker.hp > 0) hit(c, aKey, attacker, thorns);
+    return lost;
 }
 
 function loseHp(c: CombatState, key: string, f: Fighter, n: number, label: string) {
@@ -164,7 +201,8 @@ function startPlayerTurn(c: CombatState, run: RunState) {
 }
 
 export function canPlay(c: CombatState, card: CardInst): boolean {
-    return !c.result && cardStats(card).cost <= c.energy;
+    const s = cardStats(card);
+    return !c.result && !s.def.unplayable && s.cost <= c.energy;
 }
 
 export function playCard(c: CombatState, run: RunState, handIdx: number, targetUid: string | null) {
@@ -221,6 +259,7 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
     }
 
     for (const en of c.enemies) if (en.hp <= 0) markDead(c, en, run);
+    checkEnrage(c);
 
     if (s.def.type === 'power' || s.exhaust) c.exhaust.push(card);
     else c.discard.push(card);
@@ -244,7 +283,8 @@ export function endTurn(c: CombatState, run: RunState) {
     if (c.result) return;
 
     // 플레이어 턴 종료
-    c.discard.push(...c.hand);
+    // 저주 카드는 손에 남아 있으면 사라진다
+    for (const card of c.hand) (cardStats(card).def.unplayable ? c.exhaust : c.discard).push(card);
     c.hand = [];
     const regen = c.player.status.regen ?? 0;
     if (regen > 0) heal(c, 'player', c.player, regen);
@@ -265,7 +305,10 @@ export function endTurn(c: CombatState, run: RunState) {
                 markDead(c, e, run);
                 continue;
             }
+            checkEnrage(c);
         }
+        const regenE = e.status.regen ?? 0;
+        if (regenE > 0) heal(c, e.uid, e, regenE);
         const it = e.intent;
         if (it.attack !== undefined) cue(c, { kind: 'enemyAttack', source: e.uid, target: 'player', amount: attackDamage(it.attack, e, c.player), hits: it.hits ?? 1 });
         if (it.block) {
@@ -274,9 +317,16 @@ export function endTurn(c: CombatState, run: RunState) {
         }
         if (it.attack !== undefined) {
             const base = c.delay;
+            let dealt = 0;
             for (let i = 0; i < (it.hits ?? 1); i++) {
                 c.delay = base + IMPACT_DELAY + i * 0.14;
-                attack(c, e.uid, e, 'player', c.player, it.attack);
+                dealt += attack(c, e.uid, e, 'player', c.player, it.attack);
+                if (e.affix === 'venom' && c.player.hp > 0) addStatus(c.player, 'poison', 1);
+            }
+            if (e.affix === 'venom') fx(c, 'player', `독 +${it.hits ?? 1}`, 'status');
+            if (it.drain && dealt > 0 && e.hp > 0) {
+                cue(c, { kind: 'enemyHeal', target: e.uid });
+                heal(c, e.uid, e, dealt);
             }
             c.delay = base;
         }
@@ -295,6 +345,11 @@ export function endTurn(c: CombatState, run: RunState) {
             cue(c, { kind: 'enemyDebuff', source: e.uid, target: 'player' });
             addStatus(c.player, it.debuff.status, it.debuff.amount);
             fx(c, 'player', `${statusShort(it.debuff.status)} +${it.debuff.amount}`, 'status');
+        }
+        if (it.curse) {
+            cue(c, { kind: 'enemyDebuff', source: e.uid, target: 'player' });
+            for (let i = 0; i < it.curse; i++) c.discard.push({ uid: `curse${(c.curseSeq = (c.curseSeq ?? 0) + 1)}`, id: CURSE_CARD, upgraded: false });
+            fx(c, 'player', `저주 +${it.curse}`, 'status');
         }
         if (it.healAll)
             for (const a of alive(c)) {

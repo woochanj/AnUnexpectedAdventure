@@ -22,7 +22,7 @@ export const ATTACK_WINDUP = 0.3;
 export const IMPACT_DELAY = 0.08;
 
 /** 적 한 명의 행동 사이 간격(초) */
-export const ENEMY_STEP = 0.5;
+export const ENEMY_STEP = 0.8;
 
 function addStatus(f: Fighter, s: Status, n: number) {
     f.status[s] = (f.status[s] ?? 0) + n;

@@ -95,39 +95,63 @@ function useJuice(
         if (!field) return;
         const now = performance.now();
 
-        // 주인공 몸동작 + 돌진
+        // 몸동작 + 대상 앞까지 달려가기
+        const center = (el: Element) => {
+            const r = el.getBoundingClientRect();
+            return { x: r.left + r.width / 2, w: r.width };
+        };
+        /** el을 dx만큼 달려가게 했다가 돌아오게 한다. 시간은 ms */
+        const dash = (el: HTMLElement, dx: number, startIn: number, run: number, hold: number, back: number) => {
+            const total = run + hold + back;
+            const fighter = el.closest<HTMLElement>('.fighter');
+            const anim = el.animate(
+                [
+                    { transform: 'translateX(0)', easing: 'cubic-bezier(0.55, 0, 0.9, 0.6)' },
+                    { transform: `translateX(${dx}px)`, offset: run / total },
+                    { transform: `translateX(${dx}px)`, offset: (run + hold) / total, easing: 'cubic-bezier(0.2, 0.6, 0.4, 1)' },
+                    { transform: 'translateX(0)' },
+                ],
+                { duration: total, delay: Math.max(0, startIn) },
+            );
+            // 달려가는 동안은 다른 캐릭터보다 앞에 그린다
+            window.setTimeout(() => fighter && (fighter.style.zIndex = '4'), Math.max(0, startIn));
+            anim.finished.then(() => fighter && (fighter.style.zIndex = '')).catch(() => {});
+        };
+
         for (const q of c.cues.filter((q) => q.id > seenCue.current)) {
-            let who: string | undefined;
-            let dir = 1;
-            let lead = q.delay * 1000 - 60;
             if (q.kind === 'card') {
-                const attack = CARDS[q.card ?? '']?.type === 'attack';
-                setHeroAction({ id: q.id, act: CARD_ACT[q.card ?? ''] ?? (attack ? 'slash' : 'cast'), windup: attack ? ATTACK_WINDUP : 0.05 });
-                if (attack) {
-                    who = 'player';
-                    lead = (ATTACK_WINDUP - 0.1) * 1000;
+                const card = CARDS[q.card ?? ''];
+                const attack = card?.type === 'attack';
+                const act = CARD_ACT[q.card ?? ''] ?? (attack ? 'slash' : 'cast');
+                setHeroAction({ id: q.id, act, windup: attack ? ATTACK_WINDUP : 0.05 });
+                const hero = field.querySelector<HTMLElement>('[data-body="player"]');
+                if (attack && hero) {
+                    // 대상(광역 공격이면 적들 가운데) 바로 앞까지
+                    const all = card.effects.some((e) => e.kind === 'damageAll');
+                    const targets = all
+                        ? Array.from(field.querySelectorAll('[data-alive="1"] [data-body]'))
+                        : [field.querySelector(`[data-body="${q.target}"]`)].filter((x): x is Element => !!x);
+                    if (targets.length) {
+                        const tx = targets.map((t) => center(t).x).reduce((a, b) => a + b, 0) / targets.length;
+                        const me = center(hero);
+                        const gap = Math.max(56, me.w * 0.3);
+                        const multi = act === 'double' || act === 'dagger' || act === 'spin';
+                        dash(hero, tx - me.x - gap, 0, ATTACK_WINDUP * 1000 - 20, multi ? 420 : 240, 260);
+                    }
                 }
             }
             if (q.kind === 'enemyAttack') {
-                const at = (q.delay + IMPACT_DELAY) * 1000;
-                window.setTimeout(() => setHeroAction({ id: q.id, act: 'hurt', windup: 0 }), at);
+                const hitAt = (q.delay + IMPACT_DELAY) * 1000;
+                window.setTimeout(() => setHeroAction({ id: q.id, act: 'hurt', windup: 0 }), hitAt);
+                const el = q.source ? field.querySelector<HTMLElement>(`[data-body="${q.source}"]`) : null;
+                const hero = field.querySelector<HTMLElement>('[data-body="player"]');
+                if (el && hero) {
+                    const me = center(el);
+                    const gap = Math.max(56, me.w * 0.3);
+                    const run = 240;
+                    dash(el, center(hero).x - me.x + gap, hitAt - run, run, (q.hits ?? 1) * 140 + 120, 260);
+                }
             }
-            if (q.kind === 'enemyAttack') {
-                who = q.source;
-                dir = -1;
-            }
-            const el = who && field.querySelector<HTMLElement>(`[data-body="${who}"]`);
-            if (el)
-                el.animate(
-                    [
-                        { transform: 'translateX(0)' },
-                        { transform: `translateX(${-9 * dir}px)`, offset: 0.25 },
-                        { transform: `translateX(${36 * dir}px)`, offset: 0.45 },
-                        { transform: `translateX(${30 * dir}px)`, offset: 0.7 },
-                        { transform: 'translateX(0)' },
-                    ],
-                    { duration: 360, delay: Math.max(0, lead), easing: 'steps(12, end)' },
-                );
         }
         if (c.cues.length) seenCue.current = c.cues[c.cues.length - 1].id;
 

@@ -94,6 +94,7 @@ export const CARD_MOVE: Record<string, HeroMove> = {
     thousand_cuts: M(['combo', 'special'], 'pierce'),
     death_mark: M(['special', 'attack2'], 'uppercut'),
     dodge: M(['roll', 'defend'], 'backstep'),
+    dagger_parry: M(['defend', 'attack'], 'crouch'),
     scout: M(['idle'], 'lean'),
     sand_throw: M(['attack'], 'crouch'),
     poison_fog: M(['special', 'cast'], 'sway'),

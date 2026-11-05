@@ -72,7 +72,10 @@ const LIST: CardDef[] = [
 
     // ═════════ 도적 ═════════
     R({ id: 'stab', name: '찌르기', type: 'attack', rarity: 'starter', cost: 1, effects: [dmg(6)], up: { effects: [dmg(9)] } }),
-    R({ id: 'dodge', name: '회피', type: 'skill', rarity: 'starter', cost: 1, effects: [block(5)], up: { effects: [block(8)] } }),
+    // 회피: 방어도 대신 이번 적 턴 동안 공격을 확률로 피한다 (도적다운 방어)
+    R({ id: 'dodge', name: '회피', type: 'skill', rarity: 'starter', cost: 1, effects: [apply('evade', 40, 'self')], up: { effects: [apply('evade', 60, 'self')] } }),
+    // 단검 막기: 도적의 방어도 카드. 기사 막기(5/8)보다 조금 적다
+    R({ id: 'dagger_parry', name: '단검 막기', type: 'skill', rarity: 'starter', cost: 1, effects: [block(4)], up: { effects: [block(7)] } }),
     R({
         id: 'poison_stab', name: '독 찌르기', type: 'attack', rarity: 'starter', cost: 1,
         effects: [dmg(3), apply('poison', 3, 'target')], up: { effects: [dmg(4), apply('poison', 5, 'target')] },
@@ -197,7 +200,7 @@ function boost(e: Effect): Effect {
         case 'heal':
             return { ...e, amount: up(e.amount) };
         case 'apply':
-            return e.status === 'energize' ? e : { ...e, amount: up(e.amount) };
+            return e.status === 'energize' || e.status === 'evade' ? e : { ...e, amount: up(e.amount) };
         case 'combo':
         case 'shatter':
         case 'finisher':
@@ -243,6 +246,7 @@ export const STATUS_INFO: Record<Status, { name: string; desc: string; debuff: b
     energize: { name: '활력', desc: '매 턴 에너지를 수치만큼 추가로 얻음', debuff: false },
     frost: { name: '냉기', desc: '3 이상 쌓이면 다음 행동 때 얼어붙어 한 번 쉰다', debuff: true },
     burn: { name: '화상', desc: '턴 시작 시 수치만큼 피해, 그 뒤 절반으로 줄어듦', debuff: true },
+    evade: { name: '회피', desc: '적의 공격을 수치(%) 확률로 피한다 (최대 75%). 내 턴이 시작되면 사라진다', debuff: false },
 };
 
 const TYPE_NAME = { attack: '공격', skill: '기술', power: '지속' } as const;

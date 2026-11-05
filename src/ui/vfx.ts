@@ -122,6 +122,7 @@ import * as toxicPuddle from 'pixelfx/fx/nature/toxic-puddle';
 import * as graspingHands from 'pixelfx/fx/shadow/grasping-hands';
 import * as potion from 'pixelfx/fx/pickups/potion';
 import * as whipCrack from 'pixelfx/fx/melee/whip-crack';
+import * as ricochet from 'pixelfx/fx/impacts/ricochet';
 import { cardElement, type Element } from './cardElement';
 import { CARD_MOVE } from './heroMoves';
 import { ENEMIES } from '../game/enemies';
@@ -205,7 +206,8 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     archmage: [{ mod: magicCircle, at: 'self', speed: 1.4 }, { mod: manaBurst, at: 'self', delay: 0.25, speed: 1.2 }],
     // 도적
     stab: [{ mod: thrustFx, at: 'target', dx: -30 }],
-    dodge: [{ mod: blinkOut, at: 'self', speed: 1.8 }],
+    dodge: [{ mod: blinkOut, at: 'self', speed: 1.8 }, { mod: haste, at: 'self', delay: 0.1, stopAfter: 0.6, speed: 1.6 }],
+    dagger_parry: [{ ...BLOCK, speed: 1.6 }, { mod: ricochet, at: 'self', dx: -20, dy: -30, delay: 0.05, speed: 1.6 }],
     poison_stab: [{ mod: thrustFx, at: 'target', dx: -30, opts: { palette: VENOM } }, { mod: toxicPuddle, at: 'target', delay: 0.1, stopAfter: 0.7, speed: 1.6 }],
     dagger_throw: [{ mod: hitSpark, at: 'target', opts: { seed: 3 } }],
     shadow_step: [{ mod: blinkIn, at: 'self', speed: 1.8 }],
@@ -254,6 +256,24 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
 
 const HEAL: VfxSpec = { mod: heal, at: 'target', speed: 1.4 };
 
+/**
+ * 피해량 단계별 타격 연출 (하스스톤 미니언 타격 분석을 따름).
+ * 1: 작은 충격 · 2: +섬광 · 3: +맞은 방향으로 튀는 흙·돌 · 6: 모두 커짐 · 8: +충격파와 먼지구름
+ * 화면 흔들림(4부터)과 판 흔들림(9), 주변이 튀어 오르는 것(10)은 CombatScreen에서.
+ */
+export function impactTier(amount: number, toPlayer: boolean): VfxSpec[] {
+    const flip = toPlayer; // 흙은 맞은 쪽 뒤로 튄다
+    const big = amount >= 6;
+    const out: VfxSpec[] = [{ mod: hitSpark, at: 'target', dy: -24, speed: big ? 1.2 : 1.6, opts: { flip } }];
+    if (amount >= 2) out.push({ mod: hitFlash, at: 'target', dy: -20, speed: big ? 1.2 : 1.6 });
+    if (amount >= 3) out.push({ mod: dirtExplosion, at: 'target', dx: toPlayer ? -10 : 10, speed: big ? 1.3 : 2, opts: { flip } });
+    if (amount >= 8) {
+        out.push({ mod: groundSlam, at: 'target', delay: 0.03, speed: 1.3, opts: { flip } });
+        out.push({ mod: poof, at: 'target', delay: 0.25, speed: 0.9 });
+    }
+    return out;
+}
+
 /** 속성별 임팩트 섬광 색 */
 function cardTint(el: Element): string {
     const T: Record<Element, string> = {
@@ -266,6 +286,8 @@ function cardTint(el: Element): string {
 /** 카드 그림이 다른 카드와 겹칠 때 따로 정한 그림 */
 const CARD_ART: Record<string, VfxSpec> = {
     guard: BLOCK,
+    dagger_parry: { mod: ricochet, at: 'self' },
+    dodge: { mod: blinkOut, at: 'self' },
     counter_stance: { mod: parry, at: 'self' },
     chain_strike: { mod: whipCrack, at: 'target' },
     momentum: { mod: sparkArc, at: 'target', opts: { palette: ['#2a1406', '#5a2e0a', '#9a5a10', '#d89a20', '#ffd24a', '#fff2b0', '#ffffff'] } },

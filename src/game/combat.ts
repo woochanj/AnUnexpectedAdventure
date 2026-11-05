@@ -181,6 +181,12 @@ function attack(c: CombatState, aKey: string, attacker: Fighter, dKey: string, d
     if (attacker.hp <= 0 || defender.hp <= 0) return 0;
     // 치명타: 피해 1.5배
     const chance = aKey === 'player' ? c.critChance : ENEMY_CRIT;
+    // 회피: 확률로 공격을 통째로 피한다 (가시도 터지지 않음)
+    const evade = Math.min(75, defender.status.evade ?? 0);
+    if (evade > 0 && Math.random() * 100 < evade) {
+        fx(c, dKey, '회피!', 'status');
+        return 0;
+    }
     const crit = Math.random() < chance;
     const d = attackDamage(base, attacker, defender);
     const lost = hit(c, dKey, defender, crit ? Math.floor(d * 1.5) : d, crit);
@@ -213,6 +219,7 @@ function startPlayerTurn(c: CombatState, run: RunState) {
     c.lastType = null;
     run.stats.turns++;
     c.player.block = 0;
+    delete c.player.status.evade; // 회피는 적 턴 한 번만
     const poison = c.player.status.poison ?? 0;
     if (poison > 0) {
         loseHp(c, 'player', c.player, poison, '독');
@@ -350,7 +357,7 @@ function markDead(c: CombatState, e: EnemyState, run: RunState) {
 }
 
 function statusShort(s: Status): string {
-    return { strength: '힘', vulnerable: '취약', weak: '약화', poison: '독', thorns: '가시', regen: '재생', energize: '활력', frost: '냉기', burn: '화상' }[s];
+    return { strength: '힘', vulnerable: '취약', weak: '약화', poison: '독', thorns: '가시', regen: '재생', energize: '활력', frost: '냉기', burn: '화상', evade: '회피' }[s];
 }
 
 export function endTurn(c: CombatState, run: RunState) {

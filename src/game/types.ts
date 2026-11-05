@@ -1,4 +1,4 @@
-export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize' | 'frost' | 'burn';
+export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize' | 'frost' | 'burn' | 'evade';
 export type StatusMap = Partial<Record<Status, number>>;
 
 export type Effect =

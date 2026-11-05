@@ -12,7 +12,7 @@ const BY_CARD: Record<string, Element> = {
     chain_lightning: 'lightning', thunder: 'lightning',
     ward: 'arcane', arcane_shield: 'arcane', focus: 'arcane', arcane_missiles: 'arcane', archmage: 'arcane', frenzy: 'arcane',
     // 도적
-    stab: 'steel', dagger_throw: 'steel', backstab: 'shadow', blade_storm: 'wind', gale: 'wind', dodge: 'wind', scout: 'wind', sand_throw: 'wind',
+    stab: 'steel', dagger_throw: 'steel', backstab: 'shadow', blade_storm: 'wind', gale: 'wind', dodge: 'wind', dagger_parry: 'guard', scout: 'wind', sand_throw: 'wind',
     poison_stab: 'poison', venom_dagger: 'poison', poison_fog: 'poison', toxic_bloom: 'poison',
     expose: 'shadow', shadow_step: 'shadow', shadow_dance: 'shadow',
     // 공용

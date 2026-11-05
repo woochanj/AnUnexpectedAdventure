@@ -14,9 +14,24 @@ declare module 'pixelfx' {
         origin: [number, number];
         duration?: number;
         loop?: boolean;
+        /** 캐릭터에 거는 이펙트: 대역 캐릭터 크기 (1: 12x19, 2: 24x38) */
+        actor?: number;
     }
+    export interface StockActor {
+        mask: { w: number; h: number; data: Uint8Array };
+        pixels: Uint32Array;
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+        k: number;
+        [key: string]: unknown;
+    }
+    export function stockActor(k?: 1 | 2): StockActor;
     export interface FxModule {
         meta: FxMeta;
+        /** 이펙트가 몸을 대신 그릴 때 원래 캐릭터를 얼마나 보일지 (0이면 숨김) */
+        actorAlpha?: (t: number, o?: unknown) => number;
         act?: { poses?: [number, Record<string, unknown>, string?][]; hits?: { t: number }[] };
         create?: (opts: Record<string, unknown>) => unknown;
     }
@@ -34,6 +49,7 @@ declare module 'pixelfx' {
     export interface FxInstance {
         readonly t: number;
         meta: FxMeta;
+        options: Record<string, unknown>;
         update(dt: number): void;
         draw(frame: Frame, layer?: 'back' | 'front'): void;
         stop(): void;

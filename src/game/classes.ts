@@ -37,7 +37,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
         desc: '빠른 연속 공격과 독. 카드를 많이 뽑아 몰아친다.',
         hp: 72,
         crit: 0.2,
-        deck: ['stab', 'stab', 'stab', 'stab', 'stab', 'dodge', 'dodge', 'dodge', 'dodge', 'poison_stab'],
+        deck: ['stab', 'stab', 'stab', 'stab', 'stab', 'dodge', 'dodge', 'dagger_parry', 'dagger_parry', 'poison_stab'],
         looks: ['wind-hashashin'],
     },
 };

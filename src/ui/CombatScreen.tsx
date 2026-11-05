@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode, useMemo } from 'react';
 import { cardStats, needsTarget, STATUS_INFO } from '../game/cards';
 import { AFFIXES, ATTACK_WINDUP, FREEZE_AT, chargeOf, windupOf, canPlay, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
@@ -12,7 +12,8 @@ import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { sfx } from './sfx';
 import { DragArrow } from './DragArrow';
-import { barkFor } from '../game/story';
+import { barkFor, heroBark, type HeroBarks } from '../game/story';
+import type { ClassId } from '../game/types';
 import { CARD_MOVE, IN_PLACE, playHeroMotion, STILL_FOR } from './heroMoves';
 import { spawnAfterimages } from './afterimage';
 import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
@@ -124,21 +125,40 @@ function say(field: HTMLElement, c: CombatState, uid: string, kind: 'start' | 'a
     if (!foe || c.kind === 'boss') return;
     const look = ENEMIES[foe.defId].look;
     const text = barkFor(look.kind === 'sprite' ? look.sprite ?? '' : look.kind, kind);
-    if (!text) return;
+    if (text) bubble(field, `.enemy[data-uid="${uid}"]`, text, `bark-${kind}`, delayMs);
+}
+
+/** 주인공 말풍선: 직업마다 말투가 다르다 */
+function heroSay(field: HTMLElement, cls: ClassId, kind: keyof HeroBarks, delayMs: number) {
+    const text = heroBark(cls, kind);
+    // 주인공 그림판은 공격 범위까지 커서 그 위에 띄우면 화면 밖으로 나간다 → 발밑에서 머리 높이만큼 위에 띄운다
+    if (text)
+        bubble(field, '.player-side', text, `hero bark-${kind}`, delayMs, '-25%', (b) => {
+            const feet = field.querySelector('[data-anchor="player"]')?.getBoundingClientRect();
+            const box = field.getBoundingClientRect();
+            if (!feet) return;
+            const head = Math.min(150, box.height * 0.42);
+            Object.assign(b.style, { position: 'absolute', left: `${feet.left + feet.width / 2 - box.left}px`, top: `${Math.max(4, feet.bottom - box.top - head - 34)}px`, bottom: 'auto' });
+            field.appendChild(b);
+        });
+}
+
+function bubble(field: HTMLElement, hostSel: string, text: string, kind: string, delayMs: number, shift = '-50%', place?: (b: HTMLElement) => void) {
     window.setTimeout(() => {
-        const host = field.querySelector<HTMLElement>(`.enemy[data-uid="${uid}"]`);
+        const host = field.querySelector<HTMLElement>(hostSel);
         if (!host) return;
-        host.querySelector('.bark')?.remove();
+        (place ? field.querySelector('.bark.hero') : host.querySelector('.bark'))?.remove();
         const b = document.createElement('div');
-        b.className = `bark bark-${kind}`;
+        b.className = `bark ${kind}`;
         b.textContent = text;
-        host.appendChild(b);
+        if (place) place(b);
+        if (!b.parentElement) host.appendChild(b);
         const a = b.animate(
             [
-                { opacity: 0, transform: 'translate(-50%, 6px) scale(0.8)' },
-                { opacity: 1, transform: 'translate(-50%, 0) scale(1)', offset: 0.1 },
-                { opacity: 1, transform: 'translate(-50%, 0) scale(1)', offset: 0.85 },
-                { opacity: 0, transform: 'translate(-50%, -6px) scale(1)' },
+                { opacity: 0, transform: `translate(${shift}, 6px) scale(0.8)` },
+                { opacity: 1, transform: `translate(${shift}, 0) scale(1)`, offset: 0.1 },
+                { opacity: 1, transform: `translate(${shift}, 0) scale(1)`, offset: 0.85 },
+                { opacity: 0, transform: `translate(${shift}, -6px) scale(1)` },
             ],
             { duration: 1900, easing: 'steps(12, end)', fill: 'forwards' },
         );
@@ -230,7 +250,9 @@ function useJuice(
     fieldRef: React.RefObject<HTMLDivElement | null>,
     clock: React.RefObject<HitStopClock>,
     setHeroAction: (a: HeroAction) => void,
+    cls: ClassId,
 ) {
+    const saidLow = useRef(false);
     const seenFx = useRef(c.fx.length ? c.fx[c.fx.length - 1].id : 0);
     const seenCue = useRef(c.cues.length ? c.cues[c.cues.length - 1].id : 0);
 
@@ -282,6 +304,13 @@ function useJuice(
             if (q.kind === 'poison') sfx.poison(q.delay);
             if (q.kind === 'enemyAttack' && q.source && Math.random() < 0.35) say(field, c, q.source, 'attack', q.delay * 1000 - 150);
             if (q.kind === 'death' && q.target) say(field, c, q.target, 'death', q.delay * 1000 + 80);
+            if (q.kind === 'death' && Math.random() < 0.3) heroSay(field, cls, 'kill', q.delay * 1000 + 450);
+            if (q.kind === 'card') {
+                const cd = CARDS[q.card ?? ''];
+                if (cd?.ultimate) heroSay(field, cls, 'ultimate', 60);
+                else if (cd?.charge && Math.random() < 0.6) heroSay(field, cls, 'skill', 60);
+                else if (cd?.type === 'skill' && cd.effects.some((e) => e.kind === 'block') && Math.random() < 0.25) heroSay(field, cls, 'guard', 60);
+            }
             if (q.kind === 'death') {
                 sfx.death(q.delay + 0.1);
                 const body = q.target ? field.querySelector<HTMLElement>(`[data-body="${q.target}"]`) : null;
@@ -389,6 +418,11 @@ function useJuice(
                     { duration: (toPlayer ? 460 : 380) + Math.min(160, amt * 6), delay: at, composite: 'add' },
                 );
             }
+            if (toPlayer && amt >= 8 && Math.random() < 0.35) heroSay(field, cls, 'hurt', at + 200);
+            if (toPlayer && !saidLow.current && c.player.hp > 0 && c.player.hp <= c.player.maxHp * 0.3) {
+                saidLow.current = true;
+                heroSay(field, cls, 'low', at + 500);
+            }
             if (toPlayer) {
                 const v = document.createElement('div');
                 v.className = 'hurt-vignette' + (amt >= 12 || f.crit ? ' heavy' : '');
@@ -400,7 +434,8 @@ function useJuice(
         for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg')) {
             const dmg = dmgOf(f);
             const start = now + f.delay * 1000;
-            const hold = (dmg >= 15 ? 170 : dmg >= 7 ? 120 : 80) + (f.target === 'player' ? 40 : 0);
+            // 히트스톱도 피해 단계를 따라 길어진다
+            const hold = (dmg >= 10 ? 180 : dmg >= 8 ? 150 : dmg >= 6 ? 120 : dmg >= 3 ? 90 : 60) + (f.target === 'player' ? 40 : 0);
             clock.current.windows.push([start, start + hold]);
             // 히트스톱 동안 때린 쪽·맞은 쪽 몸 움직임도 멈춘다 (스프라이트만 멈추면 몸이 미끄러져 보임)
             const bodies = [field.querySelector<HTMLElement>('[data-body="player"]'), ...(f.target === 'player' ? [] : [field.querySelector<HTMLElement>(`[data-body="${f.target}"]`)])];
@@ -409,29 +444,50 @@ function useJuice(
                 anims.forEach((a) => a.pause());
                 window.setTimeout(() => anims.forEach((a) => a.play()), hold);
             }, f.delay * 1000);
-            const amp = (dmg >= 15 ? 3 : dmg >= 7 ? 2 : 1) * (f.target === 'player' ? 4 : 3);
-            field.animate(
-                [
-                    { transform: 'translate(0,0)' },
-                    { transform: `translate(${amp}px,${-amp / 3}px)` },
-                    { transform: `translate(${-amp}px,${amp / 3}px)` },
-                    { transform: `translate(${amp / 1.5}px,0)` },
-                    { transform: `translate(${-amp / 3}px,0)` },
-                    { transform: 'translate(0,0)' },
-                ],
-                { duration: 160 + amp * 10, delay: f.delay * 1000, easing: 'steps(1, end)', composite: 'replace' },
-            );
+            // 화면 흔들림은 피해 4부터, 6·8·10에서 한 단계씩 커진다 (하스스톤 미니언 타격 단계)
+            const amp = (dmg >= 10 ? 9 : dmg >= 8 ? 7 : dmg >= 6 ? 5 : dmg >= 4 ? 2 : 0) * (f.target === 'player' ? 1.3 : 1);
+            if (amp > 0)
+                field.animate(
+                    [
+                        { transform: 'translate(0,0)' },
+                        { transform: `translate(${amp}px,${-amp / 3}px)` },
+                        { transform: `translate(${-amp}px,${amp / 3}px)` },
+                        { transform: `translate(${amp / 1.5}px,0)` },
+                        { transform: `translate(${-amp / 3}px,0)` },
+                        { transform: 'translate(0,0)' },
+                    ],
+                    { duration: 160 + amp * 14, delay: f.delay * 1000, easing: 'steps(1, end)', composite: 'replace' },
+                );
+            // 9부터: 판 위 UI(의도·상태·손패·버튼)까지 덜컹
+            if (dmg >= 9)
+                for (const el of document.querySelectorAll<HTMLElement>('.hud, .hand-left, .hand-right, .intent'))
+                    el.animate(
+                        [{ transform: 'translateY(0)' }, { transform: 'translateY(-4px) rotate(-1deg)' }, { transform: 'translateY(2px) rotate(1deg)' }, { transform: 'translateY(0)' }],
+                        { duration: 260, delay: f.delay * 1000 + 30, easing: 'ease-out', composite: 'add' },
+                    );
+            // 10부터: 충격파에 맞지 않은 쪽들도 튀어 오른다
+            if (dmg >= 10)
+                field.querySelectorAll<HTMLElement>('[data-body]').forEach((b, i) => {
+                    if (b.dataset.body === f.target) return;
+                    b.animate(
+                        [{ transform: 'translateY(0)' }, { transform: 'translateY(-12px)', easing: 'cubic-bezier(0.4,0,1,1)' }, { transform: 'translateY(0) scale(1.06,0.94)' }, { transform: 'translateY(0)' }],
+                        { duration: 360, delay: f.delay * 1000 + 60 + i * 25, easing: 'cubic-bezier(0,0.6,0.4,1)', composite: 'add' },
+                    );
+                });
         }
         if (c.fx.length) seenFx.current = c.fx[c.fx.length - 1].id;
     }, [c.fx, c.cues, fieldRef, clock, setHeroAction]);
 }
 
-export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { combat: CombatState; biome: string; seed: number; hero: string; dispatch: Dispatch<Action> }) {
+export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { combat: CombatState; biome: string; seed: number; hero: string; cls: ClassId; dispatch: Dispatch<Action> }) {
     const [selected, setSelected] = useState<number | null>(null);
     const [enemyTurn, setEnemyTurn] = useState(false);
     const [pile, setPile] = useState<null | 'draw' | 'discard' | 'exhaust'>(null);
     const fieldRef = useRef<HTMLDivElement>(null);
     const clock = useRef<HitStopClock>({ windows: [] });
+    // 분위기 효과: 화면 전체에 깔리는 날씨(두 겹 원근) / 하나짜리 생물·횃불
+    const weather = useMemo(() => (AMBIENT[biome] ?? []).filter((a) => a.tile), [biome]);
+    const critters = useMemo(() => (AMBIENT[biome] ?? []).filter((a) => !a.tile), [biome]);
     const living = c.enemies.filter((e) => e.hp > 0);
     const locked = enemyTurn || !!c.result;
     const [showResult, setShowResult] = useState(false);
@@ -439,7 +495,8 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
     useEffect(() => {
         const field = fieldRef.current;
         const foes = c.enemies.filter((e) => e.hp > 0);
-        if (field && foes.length) say(field, c, foes[Math.floor(Math.random() * foes.length)].uid, 'start', 900);
+        if (field && Math.random() < 0.6) heroSay(field, cls, 'start', 250);
+        if (field && foes.length) say(field, c, foes[Math.floor(Math.random() * foes.length)].uid, 'start', 1300);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -470,7 +527,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
     // 쓰러지는 순간(초): 상태는 카드를 내자마자 바뀌지만, 연출은 일격이 닿을 때 시작한다
     const dies: Record<string, number> = {};
     for (const q of c.cues) if (q.kind === 'death' && q.target) dies[q.target] = q.delay;
-    useJuice(hero, c, fieldRef, clock, setHeroAction);
+    useJuice(hero, c, fieldRef, clock, setHeroAction, cls);
 
     const play = useCallback(
         (idx: number, target: string | null) => {
@@ -605,7 +662,11 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 <div className="scenery" aria-hidden>
                     <SceneryView biome={biome} ground seed={seed} />
                 </div>
-                <FxCanvas container={fieldRef} ambient={AMBIENT[biome]} className="fx-back" clock={clock} />
+                {/* 분위기 효과 두 겹: 먼 층(작고 흐리고 느림) + 가까운 층 → 원근감, 캐릭터는 가리지 않게 작게 */}
+                <FxCanvas container={fieldRef} ambient={weather} className="fx-back weather far" clock={clock} ambientScale={0.5} ambientSpeed={0.6} />
+                <FxCanvas container={fieldRef} ambient={weather} className="fx-back weather near" clock={clock} ambientScale={0.75} />
+                {/* 나비·새·도깨비불·횃불 같은 하나짜리는 한 겹만 */}
+                <FxCanvas container={fieldRef} ambient={critters} className="fx-back" clock={clock} ambientScale={0.75} />
                 <div className={`fighter player-side ${drag?.moved && !drag.target ? `self-aim ${drag.release ? "ready" : ""}` : ""}`}>
                     <div data-body="player">
                         <Shake fx={c.fx} target="player">
@@ -661,7 +722,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 </div>
 
                 <div className="bd-front" aria-hidden />
-                <FxCanvas cues={c.cues} container={fieldRef} className="fx-front" clock={clock} />
+                <FxCanvas cues={c.cues} impacts={c.fx} container={fieldRef} className="fx-front" clock={clock} />
                 <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={4} numberKind="normal" />
                 {/* 치명타 숫자는 그림이 커서 한 단계 작은 도트로, 몬스터 머리 위 비스듬히 */}
                 <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={2} numberKind="crit" />
@@ -703,7 +764,8 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                             style={{
                                 ['--i' as string]: i,
                                 ['--n' as string]: c.hand.length,
-                                ...(lift ? { transform: `translate(${drag.x - drag.x0}px, ${drag.y - drag.y0}px) scale(1.06)` } : {}),
+                                // 끄는 방향으로 카드가 살짝 기운다 (하스스톤처럼 손에 쥔 실물 느낌)
+                                ...(lift ? { transform: `translate(${drag.x - drag.x0}px, ${drag.y - drag.y0}px) rotate(${Math.max(-12, Math.min(12, (drag.x - drag.x0) * 0.05))}deg) scale(1.06)` } : {}),
                             }}
                             data-charging={drag?.idx === i ? '' : undefined}
                             onPointerDown={(ev) => startDrag(ev, i)}
@@ -717,7 +779,8 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 {drag?.moved && drag.target && <DragArrow d={drag} />}
                 <div className="hand-right">
                     <button className={`btn btn-end ${!locked && !c.hand.some((h) => canPlay(c, h)) ? 'no-plays' : ''}`} onClick={doEndTurn} disabled={locked}>
-                        <span className="end-face">
+                        {/* key가 바뀌면 다시 그려지며 판이 뒤집히는 동작이 나온다 */}
+                        <span className="end-face" key={locked ? 'enemy' : 'mine'}>
                             <span className="end-arrow" aria-hidden>➜</span>
                             <span className="end-label">{locked && !c.result ? '적의 차례' : '턴 종료'}</span>
                         </span>

@@ -26,6 +26,7 @@ export const CARD_ACT: Record<string, string> = {
     backstab: 'thrust',
     shadow_dance: 'dagger',
     dodge: 'block',
+    dagger_parry: 'block',
     shadow_step: 'block',
     ward: 'block',
     arcane_shield: 'block',

@@ -24,6 +24,8 @@ function value(c: CombatState) {
     let v = c.player.hp * 1.5;
     const inc = incoming(c);
     v += Math.min(c.player.block, inc) * 1.4 + Math.min(Math.max(0, c.player.block - inc), 10) * 0.1;
+    // 회피: 방어도로 못 막는 피해 중 기대값만큼 피한다
+    v += Math.max(0, inc - c.player.block) * (Math.min(75, c.player.status.evade ?? 0) / 100) * 1.4;
     for (const e of c.enemies) {
         if (e.hp <= 0) continue;
         v -= e.hp + 10;

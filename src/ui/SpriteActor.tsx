@@ -52,6 +52,30 @@ export function spriteImage(name: string, anim: string): HTMLImageElement {
     return im;
 }
 
+/**
+ * 동작 그림 중 캐릭터가 아예 없는 빈 프레임 (바람 암살자 special의 순간이동 등).
+ * 빈 프레임을 그대로 그리면 캐릭터가 잠깐 사라진 것처럼 보여서, 그 프레임은 건너뛴다.
+ */
+const empties = new Map<string, boolean[]>();
+function emptyFrames(key: string, im: HTMLImageElement, w: number, h: number): boolean[] {
+    let e = empties.get(key);
+    if (e) return e;
+    const n = Math.max(1, Math.round(im.naturalWidth / w));
+    const cv = document.createElement('canvas');
+    cv.width = im.naturalWidth;
+    cv.height = h;
+    const ctx = cv.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(im, 0, 0);
+    const d = ctx.getImageData(0, 0, cv.width, h).data;
+    e = Array.from({ length: n }, (_, f) => {
+        for (let y = 0; y < h; y += 1)
+            for (let x = f * w; x < (f + 1) * w; x += 1) if (d[(y * cv.width + x) * 4 + 3] > 40) return false;
+        return true;
+    });
+    empties.set(key, e);
+    return e;
+}
+
 export interface SpriteStep {
     anim: string;
     /** 반복 재생할 시간(ms). 없으면 한 번만 재생 */
@@ -161,7 +185,9 @@ export function SpriteActor({
                 im = spriteImage(name, 'idle');
                 frame = frame % (info.anims.idle?.frames ?? 1);
             }
-            if (ready(im)) {
+            // 빈 프레임이면 그리지 않고 직전 그림을 그대로 둔다 (캐릭터가 깜박 사라지지 않게)
+            const blank = ready(im) && emptyFrames(`${name}/${anim}`, im, info.w, info.h)[frame];
+            if (!blank && ready(im)) {
                 ctx.clearRect(0, 0, info.w, info.h);
                 ctx.drawImage(im, frame * info.w, 0, info.w, info.h, 0, 0, info.w, info.h);
             }

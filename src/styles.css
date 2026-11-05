@@ -1653,7 +1653,7 @@ h3 {
 
 .btn {
     border-radius: 14px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-panel-2);
     box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.18), inset 0 -4px 0 rgba(0, 0, 0, 0.3), 0 4px 0 var(--ui-ink);
     transition: transform 0.08s, box-shadow 0.08s, background 0.15s;
@@ -1681,7 +1681,7 @@ h3 {
 
 .panel {
     border-radius: 22px;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: linear-gradient(180deg, #2a3768 0 76px, var(--ui-panel) 76px);
     box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.08), 0 8px 0 var(--ui-ink), 0 24px 60px rgba(0, 0, 0, 0.55);
 }
@@ -1695,18 +1695,18 @@ h3 {
 }
 .modal {
     border-radius: 20px;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: var(--ui-panel);
     box-shadow: 0 8px 0 var(--ui-ink);
 }
 .modal-head {
     background: #2a3768;
-    border-bottom: 3px solid var(--ui-ink);
+    border-bottom: 2px solid var(--ui-ink);
 }
 .choice,
 .reward-item {
     border-radius: 14px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-panel-2);
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1), 0 3px 0 var(--ui-ink);
 }
@@ -1720,19 +1720,19 @@ h3 {
 }
 .pile {
     border-radius: 10px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-panel-2);
     color: var(--ui-cream);
     box-shadow: 0 3px 0 var(--ui-ink);
 }
 .title-help {
     border-radius: 16px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: rgba(28, 35, 64, 0.9);
 }
 .result-box {
     border-radius: 22px;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: var(--ui-panel);
     box-shadow: inset 0 0 0 3px var(--ui-yellow), 0 8px 0 var(--ui-ink);
 }
@@ -1740,13 +1740,13 @@ h3 {
 /* HUD: 둥근 알약 모양 수치 */
 .hud {
     background: linear-gradient(#18203c, #121830);
-    border-bottom: 4px solid var(--ui-ink);
+    border-bottom: 3px solid var(--ui-ink);
     box-shadow: none;
 }
 .hud-stat {
     padding: 4px 12px 5px;
     border-radius: 999px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-panel-2);
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12);
     font-size: 0.95rem;
@@ -1757,7 +1757,7 @@ h3 {
 }
 .relic {
     border-radius: 12px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-panel-2);
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12);
     width: 36px;
@@ -1765,7 +1765,7 @@ h3 {
 }
 .relic-tip {
     border-radius: 12px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-cream);
     color: #2a2040;
 }
@@ -1797,7 +1797,7 @@ h3 {
 }
 .intent {
     border-radius: 999px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-cream);
     color: #2a2040;
     box-shadow: 0 3px 0 var(--ui-ink);
@@ -1822,7 +1822,7 @@ h3 {
 }
 .target-hint {
     border-radius: 999px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-yellow);
     color: #3a2400;
 }
@@ -1835,7 +1835,7 @@ h3 {
 .card {
     border-radius: 14px;
     clip-path: none;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     padding: 5px;
     background: linear-gradient(180deg, var(--c) 0 26px, #1c2340 26px);
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.14), 0 4px 0 var(--ui-ink);
@@ -1857,7 +1857,7 @@ h3 {
 }
 .card-cost {
     border-radius: 50%;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-yellow);
     box-shadow: inset 0 2px 0 #fff3b0;
     width: 28px;
@@ -1891,7 +1891,7 @@ h3 {
 .energy {
     clip-path: none;
     border-radius: 50%;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: radial-gradient(circle at 36% 32%, #fff6c0 0 12%, var(--ui-yellow) 13% 58%, #f08a10 59%);
     color: #3a2400;
     box-shadow: 0 4px 0 var(--ui-ink), 0 0 22px rgba(255, 200, 60, 0.55);
@@ -2029,7 +2029,7 @@ h3 {
     align-self: flex-start;
     padding: 6px 18px 6px 6px;
     border-radius: 999px;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: var(--ui-cream);
     color: #2a2040;
     box-shadow: 0 5px 0 var(--ui-ink);
@@ -2043,7 +2043,7 @@ h3 {
     align-items: baseline;
     padding: 6px 14px 8px;
     border-radius: 999px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-yellow);
     font-family: var(--font-head);
     font-size: 1.6rem;
@@ -2082,7 +2082,7 @@ h3 {
 .map-frame {
     padding: 14px;
     border-radius: 24px;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: linear-gradient(#152040, #0c1428);
     box-shadow: inset 0 0 0 3px rgba(120, 170, 255, 0.12), 0 8px 0 var(--ui-ink), 0 30px 60px rgba(0, 0, 0, 0.5);
 }
@@ -2114,7 +2114,7 @@ h3 {
     display: grid;
     place-items: center;
     border-radius: 12px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background:
         linear-gradient(rgba(255, 255, 255, 0.08), transparent 40%),
         repeating-linear-gradient(0deg, transparent 0 11px, rgba(0, 0, 0, 0.16) 11px 13px),
@@ -2215,7 +2215,7 @@ h3 {
     transform: translate(-50%, 4px);
     padding: 4px 10px 5px;
     border-radius: 10px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-cream);
     color: #2a2040;
     font-size: 0.8rem;
@@ -2295,7 +2295,7 @@ h3 {
     gap: 10px;
     padding: 16px 18px 18px;
     border-radius: 20px;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: linear-gradient(180deg, #2a3768 0 50px, var(--ui-panel) 50px);
     box-shadow: 0 6px 0 var(--ui-ink);
 }
@@ -2317,7 +2317,7 @@ h3 {
 .progress {
     height: 16px;
     border-radius: 999px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: #0a1020;
     overflow: hidden;
 }
@@ -2536,7 +2536,7 @@ body {
 }
 
 .btn {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-panel-2);
     color: var(--ui-cream);
     box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.18), inset 0 -4px 0 rgba(0, 0, 0, 0.35), 0 4px 0 var(--ui-ink);
@@ -2563,7 +2563,7 @@ body {
 
 /* 패널: 노을 머리띠 + 짙은 보라 몸통 */
 .panel {
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: linear-gradient(180deg, transparent 0 64px, var(--ui-panel) 64px), var(--sunset) 0 0 / 100% 64px no-repeat;
     box-shadow: inset 0 0 0 3px rgba(255, 210, 140, 0.25), 0 6px 0 var(--ui-ink), 0 20px 50px rgba(10, 4, 20, 0.6);
 }
@@ -2583,25 +2583,25 @@ body {
 }
 .panel-result {
     border-left: none;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 6px;
     background: var(--ui-parch);
     color: #3a2416;
 }
 .modal {
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: var(--ui-panel);
     box-shadow: 0 6px 0 var(--ui-ink);
 }
 .modal-head {
     background: var(--sunset);
-    border-bottom: 4px solid var(--ui-ink);
+    border-bottom: 3px solid var(--ui-ink);
 }
 
 /* 선택지·보상: 양피지 */
 .choice,
 .reward-item {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-parch);
     color: #3a2416;
     box-shadow: inset 0 -4px 0 var(--ui-parch-dark), 0 4px 0 var(--ui-ink);
@@ -2622,11 +2622,11 @@ body {
 /* HUD: 짙은 보라 띠 + 금 테두리 + 노란 알약 */
 .hud {
     background: linear-gradient(#3c2a5a, #2a1c40);
-    border-bottom: 4px solid var(--ui-ink);
+    border-bottom: 3px solid var(--ui-ink);
     box-shadow: inset 0 -3px 0 #ffcf3e33;
 }
 .hud-stat {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-parch);
     color: #3a2416;
     box-shadow: inset 0 -3px 0 var(--ui-parch-dark), 0 3px 0 var(--ui-ink);
@@ -2637,18 +2637,18 @@ body {
     box-shadow: inset 0 -3px 0 #4e2050, 0 3px 0 var(--ui-ink);
 }
 .relic {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-parch);
     box-shadow: 0 3px 0 var(--ui-ink);
 }
 .pile {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-parch);
     color: #3a2416;
     box-shadow: 0 3px 0 var(--ui-ink);
 }
 .title-help {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-parch);
     color: #3a2416;
     box-shadow: 0 4px 0 var(--ui-ink);
@@ -2687,7 +2687,7 @@ body {
 }
 .intent,
 .status {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-parch);
     box-shadow: 0 3px 0 var(--ui-ink);
 }
@@ -2700,17 +2700,17 @@ body {
     background: linear-gradient(90deg, transparent, rgba(168, 72, 126, 0.92) 18% 82%, transparent);
 }
 .target-hint {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 6px;
     background: var(--ui-yellow);
 }
 .result-box {
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: linear-gradient(180deg, transparent 0 70px, var(--ui-panel) 70px), var(--sunset) 0 0 / 100% 70px no-repeat;
     box-shadow: 0 6px 0 var(--ui-ink);
 }
 .energy {
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: radial-gradient(circle at 36% 32%, #fff6c0 0 12%, var(--ui-yellow) 13% 56%, #e0861a 57%);
     box-shadow: 0 4px 0 var(--ui-ink), 0 0 20px rgba(255, 180, 60, 0.5);
 }
@@ -2720,7 +2720,7 @@ body {
 
 /* 카드: 검정 테두리 + 색 머리띠 + 양피지 설명칸 */
 .card {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     padding: 4px;
     background: linear-gradient(180deg, var(--c) 0 24px, var(--ui-panel) 24px);
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.16), 0 4px 0 var(--ui-ink);
@@ -2739,7 +2739,7 @@ body {
     text-shadow: 1px 0 0 var(--ui-ink), -1px 0 0 var(--ui-ink), 0 1px 0 var(--ui-ink), 0 2px 0 var(--ui-ink);
 }
 .card-art {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 4px;
 }
 .card-type {
@@ -2755,14 +2755,14 @@ body {
     box-shadow: inset 0 -3px 0 var(--ui-parch-dark);
 }
 .card-cost {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-yellow);
     color: #3a1e00;
 }
 
 /* 지도 위 UI */
 .map-banner {
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: var(--ui-parch);
     box-shadow: 0 5px 0 var(--ui-ink);
 }
@@ -2776,7 +2776,7 @@ body {
     color: #6a2a00;
 }
 .map-journal {
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     background: linear-gradient(180deg, transparent 0 48px, var(--ui-panel) 48px), var(--sunset) 0 0 / 100% 48px no-repeat;
     box-shadow: 0 6px 0 var(--ui-ink);
 }
@@ -2787,7 +2787,7 @@ body {
     background: linear-gradient(#ffe48a 0 30%, var(--ui-yellow) 30% 70%, #e0961e 70%);
 }
 .journal-boss {
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-parch);
     color: #3a2416;
 }
@@ -2840,7 +2840,7 @@ kbd {
     flex-direction: column;
     gap: 3px;
     padding: 10px 12px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 6px;
     background: var(--ui-parch);
     color: #3a2416;
@@ -2970,7 +2970,7 @@ kbd {
     flex-direction: column;
     gap: 4px;
     padding: 12px 12px 14px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 6px;
     background: var(--ui-parch);
     color: #3a2416;
@@ -3004,7 +3004,7 @@ kbd {
 }
 .look-option {
     padding: 5px 12px 6px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 999px;
     background: var(--ui-panel-2);
     color: var(--ui-cream);
@@ -3223,7 +3223,7 @@ kbd {
     display: grid;
     place-items: center;
     border-radius: 50%;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: var(--ui-panel-2);
     color: var(--ui-cream);
     font-family: var(--font-head);
@@ -3456,7 +3456,7 @@ kbd {
     top: -7px;
     width: 16px;
     height: 16px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 4px;
     background: var(--gem, #9aa6d0);
     z-index: 2;
@@ -3560,7 +3560,7 @@ kbd {
     font-size: 0.95rem;
     color: #fff6c8;
     background: #b0402a;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 10px;
     padding: 2px 10px;
     box-shadow: 0 3px 0 var(--ui-ink);
@@ -3795,6 +3795,8 @@ kbd {
 .dialogue-scene {
     position: relative;
     min-height: calc(100vh - 60px);
+    /* iOS Safari의 100vh는 툴바가 접힌 높이라 대화창이 화면 밖으로 밀린다 → 실제 보이는 높이 */
+    min-height: calc(100dvh - 60px);
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -3822,7 +3824,7 @@ kbd {
     font-size: 1.1rem;
     letter-spacing: 0.2em;
     padding: 4px 18px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     background: rgba(30, 20, 60, 0.75);
     border-radius: 10px;
 }
@@ -3835,7 +3837,7 @@ kbd {
     width: 100%;
     margin: 0 auto;
     padding: 16px 18px;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     border-radius: 16px;
     background: linear-gradient(var(--ui-parch), #e8d4a8);
     box-shadow: 0 6px 0 var(--ui-ink), 0 20px 50px rgba(0, 0, 0, 0.5);
@@ -3848,7 +3850,7 @@ kbd {
     margin-top: -70px;
     display: grid;
     place-items: end center;
-    border: 4px solid var(--ui-ink);
+    border: 3px solid var(--ui-ink);
     border-radius: 14px;
     background: radial-gradient(circle at 50% 70%, #5a6aa8, #1e2448);
     overflow: hidden;
@@ -3877,7 +3879,7 @@ kbd {
     font-size: 1rem;
     padding: 2px 12px;
     margin-bottom: 6px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 8px;
     background: var(--ui-orange);
     color: #2a1000;
@@ -3937,7 +3939,7 @@ kbd {
     white-space: nowrap;
     font-size: 0.85rem;
     padding: 4px 10px 5px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 10px;
     background: #fffbe8;
     color: #2a1a10;
@@ -4019,7 +4021,7 @@ kbd {
     position: relative;
     flex: 1;
     height: 16px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 3px;
     background: #2a1820;
     box-shadow: 0 0 0 2px #c89a3a, 0 0 0 4px var(--ui-ink), inset 0 3px 0 rgba(0, 0, 0, 0.5);
@@ -4210,7 +4212,7 @@ kbd {
     align-items: center;
     gap: 10px;
     padding: 8px 10px 8px 16px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 14px;
     background: var(--ui-parch);
     color: #2a1a10;
@@ -4235,7 +4237,7 @@ kbd {
     background:
         repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.08) 0 2px, transparent 2px 46px),
         linear-gradient(#5a3a28, #3e2618 55%, #2c190f);
-    border-bottom: 3px solid var(--ui-ink);
+    border-bottom: 2px solid var(--ui-ink);
     box-shadow:
         inset 0 2px 0 rgba(255, 220, 160, 0.25),
         inset 0 -5px 0 #b8862e,
@@ -4265,7 +4267,7 @@ kbd {
     align-items: center;
     gap: 6px;
     padding: 3px 12px 3px 4px;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 999px !important;
     background: linear-gradient(#2a1c40, #1a1028);
     color: #fff1d6;
@@ -4318,7 +4320,7 @@ kbd {
     place-items: center;
     padding: 0;
     cursor: pointer;
-    border: 3px solid var(--ui-ink);
+    border: 2px solid var(--ui-ink);
     border-radius: 10px;
     background: radial-gradient(circle at 50% 30%, #4a3a78, #241a40);
     color: #ffe9a8;
@@ -4381,7 +4383,7 @@ kbd {
 .btn-end {
     position: relative;
     padding: 4px !important;
-    border: 3px solid var(--ui-ink) !important;
+    border: 2px solid var(--ui-ink) !important;
     border-radius: 16px !important;
     background: linear-gradient(#ffe48a, #d8901c 50%, #8a5410) !important;
     box-shadow: 0 5px 0 var(--ui-ink), 0 8px 14px rgba(0, 0, 0, 0.35) !important;
@@ -4400,9 +4402,10 @@ kbd {
     background: radial-gradient(ellipse at 50% 20%, #ff9a5a, #d0402a 55%, #7a1a14);
     box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), inset 0 -4px 0 rgba(0, 0, 0, 0.35);
     font-family: var(--font-head);
-    font-size: 1.05rem;
+    font-size: 14px; /* Galmuri14 원래 크기: 어중간한 크기면 픽셀이 뭉개져 겹쳐 보인다 */
     letter-spacing: 0.04em;
-    text-shadow: 0 2px 0 var(--ui-ink);
+    /* 아래로 내린 그림자는 픽셀 글꼴에서 글자가 두 번 찍힌 것처럼 보여서 1px 외곽선만 */
+    text-shadow: 1px 0 0 var(--ui-ink), -1px 0 0 var(--ui-ink), 0 1px 0 var(--ui-ink), 0 -1px 0 var(--ui-ink);
     white-space: nowrap;
 }
 .btn-end .end-arrow {
@@ -4455,6 +4458,102 @@ kbd {
     .hud-stat { padding: 2px 9px 2px 3px; font-size: 0.85rem; }
     .hud-stat .ico { width: 16px; height: 16px; padding: 2px; }
     .hud-stat.floor { padding: 2px 16px; }
-    .btn-end .end-face { padding: 6px 10px 6px 8px; font-size: 0.88rem; gap: 5px; }
+    .btn-end .end-face { padding: 6px 10px 6px 8px; gap: 5px; }
     .btn-end .end-arrow { width: 18px; height: 18px; }
+}
+/* 턴이 바뀌면 턴 종료 판이 실물처럼 뒤집힌다 (지나치게 돌았다가 제자리) */
+.btn-end {
+    perspective: 400px;
+}
+.btn-end .end-face {
+    animation: end-flip 0.5s cubic-bezier(0.3, 1.4, 0.5, 1);
+    transform-origin: 50% 50%;
+}
+@keyframes end-flip {
+    from { transform: rotateX(-180deg); }
+    to { transform: rotateX(0deg); }
+}
+.btn-end:disabled .end-face {
+    background: radial-gradient(ellipse at 50% 20%, #8a7aa8, #4a3a6a 55%, #241a3a);
+}
+/* 분위기 효과: 날씨 판(180도트)이 화면보다 낮아도 위쪽 끝이 경계로 보이지 않게 서서히 사라지게.
+   먼 층은 작고 흐리게 → 원근감 */
+.fx-back.weather {
+    -webkit-mask-image: linear-gradient(to bottom, transparent var(--fade, 0%), #000 calc(var(--fade, 0%) + 18%));
+    mask-image: linear-gradient(to bottom, transparent var(--fade, 0%), #000 calc(var(--fade, 0%) + 18%));
+}
+.fx-back.far {
+    opacity: 0.45;
+    filter: saturate(0.7) brightness(0.9);
+}
+.fx-back.near {
+    opacity: 0.85;
+}
+/* 주인공 말풍선: 졸개와 구분되게 금테 양피지 */
+.bark.hero {
+    background: linear-gradient(#fff6e0, #f0dcae);
+    border-color: #8a5a10;
+    box-shadow: 0 2px 0 var(--ui-ink), inset 0 0 0 1px #ffd24a;
+    color: #3a2410;
+    z-index: 13;
+}
+.bark.hero.bark-ultimate,
+.bark.hero.bark-low {
+    background: linear-gradient(#ffe48a, #f5a03c);
+    font-weight: bold;
+}
+/* 타이틀 주인공: 그림판이 공격 범위까지 넓어(약 670px) 휴대폰 화면 밖으로 나가 옆으로 스크롤되던 것.
+   그림판은 가운데 아래에 고정하고 칸 밖은 잘라 낸다 */
+.title-art {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    height: 300px;
+    overflow: hidden;
+}
+.title-art > canvas {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    translate: -50% 0;
+    scale: 0.85;
+    transform-origin: 50% 100%;
+}
+@media (max-width: 640px) {
+    .title-art {
+        height: 220px;
+    }
+    .title-art > canvas {
+        scale: 0.62;
+    }
+}
+html,
+body {
+    overflow-x: clip;
+}
+/* 휴대폰: 탭한 카드에 hover가 계속 남아 선택하지 않은 카드가 들려(커져) 보이던 것 → 마우스가 있는 기기에서만 */
+@media (hover: none) {
+    .hand-slot:hover {
+        z-index: auto;
+        transform: rotate(calc((var(--i) - (var(--n) - 1) / 2) * 2.5deg));
+    }
+    .card:hover:not(.card-disabled) {
+        transform: none;
+    }
+}
+/* 발밑 그림자: 그림판(공격 범위까지 넓음) 기준이 아니라 몸 크기만큼 */
+.fighter-sprite::after {
+    left: 50%;
+    right: auto;
+    width: min(56%, 78px);
+    height: 7px;
+    translate: -50% 0;
+    background: rgba(0, 0, 0, 0.32);
+    clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 2px, 100% 5px, calc(100% - 5px) 7px, 5px 7px, 0 5px, 0 2px);
+}
+@media (max-width: 640px) {
+    .fighter-sprite::after {
+        width: min(56%, 54px);
+        height: 5px;
+    }
 }

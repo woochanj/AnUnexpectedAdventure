@@ -144,7 +144,7 @@ export default function App() {
             body = <MapScreen run={run} dispatch={dispatch} />;
             break;
         case 'combat':
-            body = <CombatScreen key={`${run.pos}-${run.stats.rooms}`} combat={sc.combat} biome={regionOf(run).id} seed={run.expedition + run.floor * 7 + 3} hero={run.hero} dispatch={dispatch} />;
+            body = <CombatScreen key={`${run.pos}-${run.stats.rooms}`} combat={sc.combat} biome={regionOf(run).id} seed={run.expedition + run.floor * 7 + 3} hero={run.hero} cls={run.cls} dispatch={dispatch} />;
             break;
         case 'reward':
             body = <RewardScreen s={sc} dispatch={dispatch} />;

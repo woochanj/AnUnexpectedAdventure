@@ -128,7 +128,7 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
                             );
                         })}
                         <div className="map-player" style={{ ['--x' as string]: here.x, ['--y' as string]: here.y }}>
-                            <HeroView scale={1} flip={run.facing === 'left'} className={walking ? 'walking' : ''} />
+                            <HeroView scale={1} flip={run.facing === 'left'} walking={walking} className={walking ? 'walking' : ''} />
                         </div>
                     </div>
                 </div>

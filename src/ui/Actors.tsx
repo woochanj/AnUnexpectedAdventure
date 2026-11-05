@@ -1,10 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type RefObject } from 'react';
-import {
-    actSpan, clearFrame, composite, createAct, createFrame, createFx, DUMMY_PAL, READY,
-    type ActInstance, type Frame, type FxInstance, type FxModule,
-} from 'pixelfx';
+import { clearFrame, composite, createFrame, createFx, type Frame, type FxInstance, type FxModule } from 'pixelfx';
 import type { HitStopClock } from './FxCanvas';
-import { HERO_ACTS, IDLE_ACT } from './heroActs';
+import { CHIBI_H, CHIBI_W, drawHero, IDLE_POSE, MOVES, moveSpan, samplePose, type Key, type Pose } from './chibi';
 import { paintScenery } from './scenery';
 import { cleanOpts } from './creatures';
 
@@ -20,6 +17,7 @@ function usePixelLoop(
     h: number,
     step: (dt: number, frame: Frame) => boolean | void,
     deps: unknown[],
+    post?: (rgba: Uint8ClampedArray, w: number, h: number) => void,
 ) {
     useEffect(() => {
         const cv = canvasRef.current;
@@ -37,6 +35,7 @@ function usePixelLoop(
             clearFrame(frame);
             const stop = step(dt, frame);
             composite(frame, img.data, null);
+            post?.(img.data, w, h);
             ctx.putImageData(img, 0, 0);
             if (stop !== true) raf = requestAnimationFrame(tick);
         };
@@ -46,13 +45,32 @@ function usePixelLoop(
     }, deps);
 }
 
+/** 불투명한 픽셀 바깥쪽에 진한 1px 외곽선 (빛 번짐은 그대로 둔다) */
+function inkOutline(d: Uint8ClampedArray, w: number, h: number) {
+    const solid = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) solid[i] = d[i * 4 + 3] >= 200 ? 1 : 0;
+    for (let y = 0; y < h; y++)
+        for (let x = 0; x < w; x++) {
+            const i = y * w + x;
+            if (solid[i] || d[i * 4 + 3] >= 140) continue;
+            if ((x > 0 && solid[i - 1]) || (x < w - 1 && solid[i + 1]) || (y > 0 && solid[i - w]) || (y < h - 1 && solid[i + w])) {
+                d[i * 4] = 0x16;
+                d[i * 4 + 1] = 0x0c;
+                d[i * 4 + 2] = 0x24;
+                d[i * 4 + 3] = 255;
+            }
+        }
+}
+
 /**
  * pixelfx 이펙트 하나를 제자리에서 재생하는 캔버스 (적, 모닥불, 상자 등).
  * 캔버스 아래 가장자리가 이펙트의 발밑(origin)에 오도록 잘라 그린다.
  */
 export function FxView({
-    mod, opts, scale = 3, clock, className, style, below = 4, seed = 1, speed = 1, maxW,
+    mod, opts, scale = 3, clock, className, style, below = 4, seed = 1, speed = 1, maxW, outline = false,
 }: {
+    /** 치비 주인공처럼 진한 외곽선을 두른다 */
+    outline?: boolean;
     /** 가로로 이 픽셀까지만 (가운데 기준) 잘라 그린다 */
     maxW?: number;
     mod: FxModule;
@@ -83,7 +101,8 @@ export function FxView({
             // 한 번만 재생하는 이펙트는 끝나면 마지막 장면에서 멈춘다
             return !mod.meta.loop && fx.current.t > (mod.meta.duration ?? 1) + 0.1;
         },
-        [mod, JSON.stringify(opts), seed],
+        [mod, JSON.stringify(opts), seed, outline],
+        outline ? inkOutline : undefined,
     );
     useEffect(() => {
         fx.current = null;
@@ -91,106 +110,90 @@ export function FxView({
     return <canvas ref={ref} className={`pixel-canvas ${className ?? ''}`} style={{ width: w * scale, height: h * scale, ...style }} />;
 }
 
-// ───────────── 주인공: pixelfx 포즈 리그를 모험가 색으로 칠해 그린다 ─────────────
-
-const u32 = (hex: string) => {
-    const n = parseInt(hex.slice(1), 16);
-    return ((0xff << 24) | ((n & 0xff) << 16) | (n & 0xff00) | (n >> 16)) >>> 0;
-};
-/** 회색 인형(DUMMY_PAL) → 모험가 색. 겉(A~D)은 청록 망토, 속(E~J)은 가죽, 표식(m)은 주황 스카프 */
-const HERO_COLORS: Record<string, string> = {
-    A: '#d8fff0', B: '#7fe0c4', C: '#3aa898', D: '#22707a',
-    E: '#b0784a', F: '#8a5636', G: '#5e3a2a', J: '#43281f',
-    m: '#ff8a3a', k: '#120c18',
-};
-const RECOLOR = new Map<number, number>(
-    Object.entries(HERO_COLORS)
-        .filter(([k]) => DUMMY_PAL[k])
-        .map(([k, v]) => [u32(DUMMY_PAL[k]), u32(v)]),
-);
-
-export function recolorHero(frame: Frame) {
-    const c = frame.color;
-    for (let i = 0; i < c.length; i++) {
-        const v = c[i];
-        if (v) {
-            const m = RECOLOR.get(v >>> 0);
-            if (m !== undefined) c[i] = m;
-        }
-    }
-}
-
-/** 효과는 그리지 않고 몸 동작(act)만 쓰기 위한 껍데기 모듈 */
-function bodyOnly(mod: FxModule): FxModule {
-    return { meta: mod.meta, act: mod.act, create: () => ({ draw() {}, update() {} }) };
-}
+// ───────────── 주인공: 치비 렌더러로 그린다 ─────────────
 
 export interface HeroAction {
     id: number;
-    /** heroActs.ts의 키 */
+    /** chibi.ts MOVES의 키 */
     act: string;
-    /** 이펙트 접촉 시점(t=0)까지 남길 예비동작 시간 */
+    /** 공격이 닿는 순간(t=0)까지 남길 예비동작 시간 */
     windup?: number;
 }
 
-/** 이 화면 픽셀 크기 안에서 주인공 발 위치 */
-const HERO_W = 84;
-const HERO_H = 64;
-const HERO_X = 34;
-const HERO_Y = 60;
-
 export function HeroView({
-    action, scale = 3, clock, flip = false, className,
+    action, scale = 3, clock, flip = false, walking = false, className,
 }: {
     action?: HeroAction | null;
     scale?: number;
     clock?: RefObject<HitStopClock>;
     flip?: boolean;
+    walking?: boolean;
     className?: string;
 }) {
     const ref = useRef<HTMLCanvasElement>(null);
-    const cur = useRef<{ act: ActInstance; id: number } | null>(null);
-    const idle = useRef<ActInstance | null>(null);
+    const cur = useRef<{ keys: Key[]; t: number; end: number; id: number } | null>(null);
     const pending = useRef<HeroAction | null>(null);
-    const x = flip ? HERO_W - HERO_X : HERO_X;
+    const lastId = useRef(-1);
+    const walk = useRef(walking);
+    walk.current = walking;
 
     useEffect(() => {
         if (action) pending.current = action;
     }, [action]);
 
-    usePixelLoop(
-        ref, HERO_W, HERO_H,
-        (dt, frame) => {
-            const p = pending.current;
-            if (p && p.id !== cur.current?.id) {
-                pending.current = null;
-                const mod = HERO_ACTS[p.act] ?? HERO_ACTS.slash;
-                const act = createAct(bodyOnly(mod), { x, y: HERO_Y, flip, seed: 3 });
-                // 예비동작이 길면 잘라서, 접촉이 windup 초 뒤에 오도록 맞춘다
-                const from = actSpan(mod).from;
-                const skip = Math.max(0, -from - (p.windup ?? 0.3));
-                if (skip > 0) act.update(skip);
-                cur.current = { act, id: p.id };
-            }
+    useEffect(() => {
+        const cv = ref.current;
+        if (!cv) return;
+        cv.width = CHIBI_W;
+        cv.height = CHIBI_H;
+        const ctx = cv.getContext('2d')!;
+        const img = new ImageData(CHIBI_W, CHIBI_H);
+        const px = new Uint32Array(img.data.buffer);
+        let raf = 0;
+        let prev = performance.now();
+        let time = Math.random() * 3;
+        const tick = (now: number) => {
+            const dt = Math.min(0.05, (now - prev) / 1000);
+            prev = now;
             const still = frozen(clock);
-            if (cur.current) {
-                if (!still) cur.current.act.update(dt);
-                if (cur.current.act.done()) cur.current = null;
+            const p = pending.current;
+            if (p && p.id !== lastId.current) {
+                lastId.current = p.id;
+                pending.current = null;
+                const keys = MOVES[p.act] ?? MOVES.slash;
+                const span = moveSpan(keys);
+                // 예비동작이 windup보다 길면 앞부분을 건너뛴다
+                const start = span.from < 0 ? Math.max(span.from, -(p.windup ?? 0.3)) : span.from;
+                cur.current = { keys, t: start, end: span.to, id: p.id };
             }
-            if (!idle.current) idle.current = createAct(bodyOnly(IDLE_ACT), { x, y: HERO_Y, flip, seed: 3 });
-            const a = cur.current?.act ?? idle.current;
-            if (!cur.current && !still) idle.current.update(dt);
-            a.draw(frame, { target: false });
-            recolorHero(frame);
-        },
-        [flip],
-    );
+            if (!still) {
+                time += dt;
+                if (cur.current) {
+                    cur.current.t += dt;
+                    if (cur.current.t > cur.current.end) cur.current = null;
+                }
+            }
+            let pose: Pose;
+            if (cur.current) pose = samplePose(cur.current.keys, cur.current.t);
+            else {
+                // 숨쉬기 + 가끔 눈 깜빡임 (+ 걷는 중이면 다리 교차)
+                const breathe = Math.floor(time * 2.2) % 2;
+                const blink = time % 3.4 < 0.12;
+                const step = walk.current ? (Math.floor(time * 10) % 2 ? 2 : -2) : 0;
+                pose = { ...IDLE_POSE, by: breathe, legs: step, eyes: blink ? 'blink' : 'open' };
+            }
+            drawHero(pose, px, flip);
+            ctx.putImageData(img, 0, 0);
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [flip, clock]);
+
     return (
-        <canvas ref={ref} className={`pixel-canvas hero-canvas ${className ?? ''}`} style={{ width: HERO_W * scale, height: HERO_H * scale }} />
+        <canvas ref={ref} className={`pixel-canvas hero-canvas ${className ?? ''}`} style={{ width: CHIBI_W * scale, height: CHIBI_H * scale }} />
     );
 }
-
-export { READY };
 
 /** 층 배경 디오라마 캔버스: 컨테이너를 가득 채우고, 크기가 바뀌면 다시 그린다 */
 export function SceneryView({ floor, ground = false, seed = 1, scale = 3 }: { floor: number; ground?: boolean; seed?: number; scale?: number }) {

@@ -227,7 +227,7 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
                 <div className="fighter player-side">
                     <div data-body="player">
                         <Shake fx={c.fx} target="player">
-                            <HeroView action={heroAction} clock={clock} />
+                            <HeroView action={heroAction} clock={clock} scale={4} />
                         </Shake>
                     </div>
                     <FxLayer fx={c.fx} target="player" />
@@ -253,6 +253,7 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
                                             opts={{ palette: def.look.palette, flip: def.look.flip ?? true }}
                                             scale={def.look.scale ?? 4}
                                             maxW={64}
+                                            outline
                                             seed={Number(e.uid.slice(1)) + 1}
                                             clock={clock}
                                         />

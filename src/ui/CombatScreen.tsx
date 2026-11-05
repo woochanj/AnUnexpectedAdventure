@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
 import { cardStats, needsTarget, STATUS_INFO } from '../game/cards';
-import { AFFIXES, ATTACK_WINDUP, canPlay, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
+import { AFFIXES, ATTACK_WINDUP, CHARGE_TIME, FREEZE_AT, windupOf, canPlay, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
 import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
@@ -12,6 +12,7 @@ import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { sfx } from './sfx';
 import { DragArrow } from './DragArrow';
+import { CARD_MOVE, playHeroMotion } from './heroMoves';
 import { spawnAfterimages } from './afterimage';
 import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
 import { hasAnim } from './SpriteActor';
@@ -82,10 +83,33 @@ interface Drag {
     release: boolean;
 }
 
+/** 강한 기술을 쓰기 직전: 화면이 살짝 어두워지고 기 모으는 소리 */
+function chargeMoment(field: HTMLElement, el: string) {
+    const v = document.createElement('div');
+    v.className = 'charge-dim';
+    field.appendChild(v);
+    const a = v.animate([{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: CHARGE_TIME * 1000 + 350, fill: 'both' });
+    a.finished.then(() => v.remove()).catch(() => v.remove());
+    sfx.chargeUp(el);
+}
+
+/** 지금 내면 연계 효과가 붙는 카드 */
+function comboReady(card: CardInst, c: CombatState): boolean {
+    const eff = cardStats(card).effects;
+    return eff.some((e) => (e.kind === 'after' && e.type === c.lastType) || ((e.kind === 'combo' || e.kind === 'finisher') && (c.played ?? 0) > 0));
+}
+
 function IntentBadge({ e, c }: { e: EnemyState; c: CombatState }) {
     const it: Intent = e.intent;
     const parts: { cls: string; text: string; tip: string }[] = [];
     const d = intentDamage(e, c.player);
+    if ((e.status.frost ?? 0) >= FREEZE_AT) {
+        return (
+            <div className="intent" title="얼어붙어 이번 행동을 쉰다">
+                <span className="intent-part intent-defend">빙결</span>
+            </div>
+        );
+    }
     if (d !== null) parts.push({ cls: 'attack', text: `${d}${it.hits && it.hits > 1 ? `×${it.hits}` : ''}`, tip: `공격: ${d} 피해${it.hits && it.hits > 1 ? ` ${it.hits}회` : ''}` });
     if (it.block) parts.push({ cls: 'defend', text: `${it.block}`, tip: `방어: 방어도 ${it.block}` });
     if (it.buff) parts.push({ cls: 'buff', text: '강화', tip: `강화: ${STATUS_INFO[it.buff.status].name} +${it.buff.amount}` });
@@ -221,8 +245,11 @@ function useJuice(
                 const card = CARDS[q.card ?? ''];
                 const attack = card?.type === 'attack';
                 const act = CARD_ACT[q.card ?? ''] ?? (attack ? 'slash' : 'cast');
-                const inPlace = !!card?.ranged || lookIsRanged(heroLook);
-                setHeroAction({ id: q.id, act, windup: attack ? ATTACK_WINDUP : 0.05, ranged: inPlace });
+                const move = CARD_MOVE[q.card ?? ''];
+                const inPlace = !!card?.ranged || lookIsRanged(heroLook) || move?.motion === 'stay';
+                const charge = card?.charge ? CHARGE_TIME : 0;
+                setHeroAction({ id: q.id, act, windup: card ? Math.max(windupOf(card), attack ? 0 : 0.05) : 0.05, ranged: inPlace, anims: move?.anims, charge });
+                if (charge) chargeMoment(field, cardElement(q.card ?? ''));
                 const hero = field.querySelector<HTMLElement>('[data-body="player"]');
                 if (attack && hero && !inPlace) {
                     // 대상(광역 공격이면 적들 가운데) 바로 앞까지
@@ -234,10 +261,14 @@ function useJuice(
                         const tx = targets.map((t) => center(t).x).reduce((a, b) => a + b, 0) / targets.length;
                         const me = center(hero);
                         const gap = Math.max(56, me.w * 0.3);
-                        const multi = act === 'double' || act === 'dagger' || act === 'spin';
-                        dash(hero, tx - me.x - gap, 0, ATTACK_WINDUP * 1000 - 20, multi ? 480 : 300, 460);
+                        const multi = act === 'double' || act === 'dagger' || act === 'spin' || !!move?.anims[0]?.includes('combo');
+                        const hold = multi ? 520 : 320;
+                        const motion = move?.motion ?? 'lunge';
+                        const run = ATTACK_WINDUP * 1000 - 20;
+                        if (motion === 'lunge') dash(hero, tx - me.x - gap, charge * 1000, run, hold, 460);
+                        else playHeroMotion(hero, motion, tx - me.x - gap, charge * 1000, run, hold, 460);
                         // 바람 암살자는 지나간 자리에 잔상이 남는다
-                        if (heroLook === 'wind-hashashin') spawnAfterimages(field, hero, 40, ATTACK_WINDUP * 1000 + (multi ? 480 : 300) + 200);
+                        if (heroLook === 'wind-hashashin') spawnAfterimages(field, hero, charge * 1000 + 40, run + hold + 200);
                     }
                 }
             }
@@ -540,6 +571,11 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
 
             <div className="hand-area">
                 <div className="hand-left">
+                    {(c.played ?? 0) > 0 && (
+                        <div className="combo-count" key={c.played} title="이번 턴에 낸 카드 수 (연계 카드가 강해진다)">
+                            연계 <b>{c.played}</b>
+                        </div>
+                    )}
                     <div className="energy" title="에너지">
                         {c.energy}/{c.maxEnergy}
                     </div>
@@ -554,7 +590,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                         return (
                         <div
                             key={card.uid}
-                            className={`hand-slot ${dragging ? 'dragging' : ''} ${lift && drag.release ? 'will-play' : ''}`}
+                            className={`hand-slot ${dragging ? 'dragging' : ''} ${lift && drag.release ? 'will-play' : ''} ${comboReady(card, c) ? 'combo-ready' : ''}`}
                             style={{
                                 ['--i' as string]: i,
                                 ['--n' as string]: c.hand.length,

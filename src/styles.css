@@ -3539,3 +3539,57 @@ kbd {
     55% { transform: translateX(calc(var(--kb, -12px) * 0.25)); filter: none; }
     100% { transform: translateX(0); filter: none; }
 }
+
+/* 강한 기술을 쓰기 직전 화면이 살짝 어두워진다 */
+.charge-dim {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 25% 65%, transparent 18%, rgba(10, 6, 30, 0.45) 60%, rgba(5, 2, 18, 0.65));
+}
+
+.status.st-frost { color: #2a8ad8; }
+.status.st-burn { color: #e0581e; }
+
+/* 연계: 이번 턴 낸 카드 수와, 지금 내면 연계가 붙는 카드 */
+.combo-count {
+    font-family: var(--font-head);
+    font-size: 0.95rem;
+    color: #fff6c8;
+    background: #b0402a;
+    border: 3px solid var(--ui-ink);
+    border-radius: 10px;
+    padding: 2px 10px;
+    box-shadow: 0 3px 0 var(--ui-ink);
+    animation: combo-pop 0.25s steps(3, end);
+}
+.combo-count b {
+    font-size: 1.2rem;
+    color: #ffd84a;
+}
+@keyframes combo-pop {
+    from { transform: scale(1.5); }
+    to { transform: scale(1); }
+}
+.hand-slot.combo-ready .card {
+    box-shadow: 0 0 0 3px #ff8a2a, 0 0 16px rgba(255, 138, 42, 0.9);
+}
+.hand-slot.combo-ready::after {
+    content: '연계';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    padding: 1px 8px;
+    border-radius: 8px;
+    border: 2px solid var(--ui-ink);
+    background: #ff8a2a;
+    color: #2a1020;
+    z-index: 5;
+    pointer-events: none;
+}
+.hand-slot {
+    position: relative;
+}

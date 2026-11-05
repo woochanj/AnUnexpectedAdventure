@@ -1,6 +1,6 @@
 import { cardStats, CURSE_CARD } from './cards';
 import { ENEMIES } from './enemies';
-import type { Affix, CardInst, CombatKind, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, Status } from './types';
+import type { Affix, CardInst, CombatKind, Effect, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, Status } from './types';
 import { CLASSES } from './classes';
 import { pick, rand, shuffle } from './util';
 
@@ -19,8 +19,16 @@ function cue(c: CombatState, q: Omit<Cue, 'id' | 'delay'>) {
 
 /** 공격 카드를 낸 뒤 주인공이 예비동작을 하고 이펙트가 시작되기까지(초) */
 export const ATTACK_WINDUP = 0.42;
+/** 강한 기술이 기를 모으는 시간(초) */
+export const CHARGE_TIME = 0.65;
+/** 이 카드를 낸 뒤 주인공이 움직이기 시작해 공격이 닿기 직전까지(초) */
+export const windupOf = (def: { type: string; charge?: boolean }) => (def.type === 'attack' ? ATTACK_WINDUP : 0) + (def.charge ? CHARGE_TIME : 0);
+
 /** 공격 이펙트가 대상에 닿기까지 걸리는 시간(초) */
 export const IMPACT_DELAY = 0.08;
+
+/** 냉기가 이만큼 쌓이면 적이 한 번 얼어붙는다 */
+export const FREEZE_AT = 3;
 
 /** 적 한 명의 행동 사이 간격(초) */
 export const ENEMY_STEP = 1.0;
@@ -187,6 +195,9 @@ function checkEnd(c: CombatState) {
 
 function startPlayerTurn(c: CombatState, run: RunState) {
     c.turn++;
+    c.played = 0;
+    c.attacksPlayed = 0;
+    c.lastType = null;
     run.stats.turns++;
     c.player.block = 0;
     const poison = c.player.status.poison ?? 0;
@@ -216,16 +227,35 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
     c.delay = 0;
     cue(c, { kind: 'card', card: card.id, target: target?.uid ?? null });
     // 숫자와 흔들림은 이펙트가 대상에 닿는 순간(약 0.08초 뒤)에 맞춘다
-    if (s.def.type === 'attack') c.delay = ATTACK_WINDUP + IMPACT_DELAY;
+    if (s.def.type === 'attack') c.delay = windupOf(s.def) + IMPACT_DELAY;
+    else if (s.def.charge) c.delay = windupOf(s.def);
 
+    // 연계: '직전 카드가 ~이면' 조건을 풀고, 이번 턴 앞서 낸 카드 수로 보너스를 정한다
+    const before = c.played ?? 0;
+    const flat: Effect[] = [];
+    let triggered = false;
     for (const e of s.effects) {
+        if (e.kind === 'after') {
+            if (c.lastType === e.type) {
+                flat.push(...e.effects);
+                triggered = true;
+            }
+        } else flat.push(e);
+    }
+    if (triggered) fx(c, 'player', '연계!', 'status');
+    const comboBonus = flat.reduce((n, e) => n + (e.kind === 'combo' ? e.per * before : 0), 0);
+    const strike = (amount: number) => {
+        if (target) attack(c, 'player', c.player, target.uid, target, amount);
+    };
+
+    for (const e of flat) {
         if (c.result) break;
         switch (e.kind) {
             case 'damage':
-                for (let i = 0; i < (e.hits ?? 1); i++) if (target) attack(c, 'player', c.player, target.uid, target, e.amount);
+                for (let i = 0; i < (e.hits ?? 1); i++) strike(e.amount + comboBonus);
                 break;
             case 'damageAll':
-                for (let i = 0; i < (e.hits ?? 1); i++) for (const en of alive(c)) attack(c, 'player', c.player, en.uid, en, e.amount);
+                for (let i = 0; i < (e.hits ?? 1); i++) for (const en of alive(c)) attack(c, 'player', c.player, en.uid, en, e.amount + comboBonus);
                 break;
             case 'block':
                 gainBlock(c, 'player', c.player, e.amount);
@@ -254,6 +284,32 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
                     addStatus(target, 'poison', target.status.poison);
                 }
                 break;
+            case 'blockDamage':
+                if (c.player.block > 0) strike(c.player.block);
+                break;
+            case 'shatter':
+                if (target && target.status.frost) {
+                    const n = target.status.frost;
+                    delete target.status.frost;
+                    fx(c, target.uid, `산산조각 ×${n}`, 'status');
+                    strike(n * e.per);
+                }
+                break;
+            case 'finisher':
+                strike((c.attacksPlayed ?? 0) * e.per);
+                break;
+            case 'bonusVs':
+                if (target && (target.status[e.status] ?? 0) > 0) strike(e.amount);
+                break;
+            case 'detonate':
+                if (target && (target.status[e.status] ?? 0) > 0) {
+                    const n = (target.status[e.status] ?? 0) * e.mult;
+                    fx(c, target.uid, `${statusShort(e.status)} 폭발!`, 'status');
+                    loseHp(c, target.uid, target, n, statusShort(e.status));
+                }
+                break;
+            case 'combo':
+                break;
         }
         checkEnd(c);
     }
@@ -261,6 +317,9 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
     for (const en of c.enemies) if (en.hp <= 0) markDead(c, en, run);
     checkEnrage(c);
 
+    c.played = before + 1;
+    if (s.def.type === 'attack') c.attacksPlayed = (c.attacksPlayed ?? 0) + 1;
+    c.lastType = s.def.type;
     if (s.def.type === 'power' || s.exhaust) c.exhaust.push(card);
     else c.discard.push(card);
     checkEnd(c);
@@ -276,7 +335,7 @@ function markDead(c: CombatState, e: EnemyState, run: RunState) {
 }
 
 function statusShort(s: Status): string {
-    return { strength: '힘', vulnerable: '취약', weak: '약화', poison: '독', thorns: '가시', regen: '재생', energize: '활력' }[s];
+    return { strength: '힘', vulnerable: '취약', weak: '약화', poison: '독', thorns: '가시', regen: '재생', energize: '활력', frost: '냉기', burn: '화상' }[s];
 }
 
 export function endTurn(c: CombatState, run: RunState) {
@@ -307,8 +366,30 @@ export function endTurn(c: CombatState, run: RunState) {
             }
             checkEnrage(c);
         }
+        // 화상: 수치만큼 피해, 그 뒤 절반으로
+        const burn = e.status.burn ?? 0;
+        if (burn > 0) {
+            loseHp(c, e.uid, e, burn, '화상');
+            e.status.burn = Math.floor(burn / 2);
+            if (!e.status.burn) delete e.status.burn;
+            if (e.hp <= 0) {
+                markDead(c, e, run);
+                continue;
+            }
+            checkEnrage(c);
+        }
         const regenE = e.status.regen ?? 0;
         if (regenE > 0) heal(c, e.uid, e, regenE);
+        // 냉기 3 이상이면 얼어붙어 이번 행동을 건너뛴다
+        if ((e.status.frost ?? 0) >= FREEZE_AT) {
+            delete e.status.frost;
+            fx(c, e.uid, '빙결! 행동 불가', 'status');
+            cue(c, { kind: 'enemyDebuff', target: e.uid });
+            addStatus(e, 'weak', e.status.weak ? -1 : 0);
+            addStatus(e, 'vulnerable', e.status.vulnerable ? -1 : 0);
+            c.delay += ENEMY_STEP * 0.6;
+            continue;
+        }
         const it = e.intent;
         if (it.attack !== undefined) cue(c, { kind: 'enemyAttack', source: e.uid, defId: e.defId, target: 'player', amount: attackDamage(it.attack, e, c.player), hits: it.hits ?? 1 });
         if (it.block) {

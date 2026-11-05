@@ -1,4 +1,4 @@
-export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize';
+export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize' | 'frost' | 'burn';
 export type StatusMap = Partial<Record<Status, number>>;
 
 export type Effect =
@@ -9,7 +9,21 @@ export type Effect =
     | { kind: 'energy'; amount: number }
     | { kind: 'heal'; amount: number }
     | { kind: 'apply'; status: Status; amount: number; to: 'target' | 'all' | 'self' }
-    | { kind: 'doublePoison' };
+    | { kind: 'doublePoison' }
+    /** 연계: 이번 턴 먼저 낸 카드 1장당 이 카드의 피해 +per */
+    | { kind: 'combo'; per: number }
+    /** 직전에 낸 카드가 type이면 effects를 추가로 */
+    | { kind: 'after'; type: 'attack' | 'skill' | 'power'; effects: Effect[] }
+    /** 현재 방어도만큼 피해 */
+    | { kind: 'blockDamage' }
+    /** 대상의 냉기 1당 피해 per, 냉기는 사라진다 */
+    | { kind: 'shatter'; per: number }
+    /** 이번 턴 앞서 낸 공격 카드 1장당 피해 per */
+    | { kind: 'finisher'; per: number }
+    /** 대상에게 status가 있으면 피해 +amount */
+    | { kind: 'bonusVs'; status: Status; amount: number }
+    /** 대상의 독/화상 수치 × mult 만큼 즉시 피해 */
+    | { kind: 'detonate'; status: 'poison' | 'burn'; mult: number };
 
 export type Rarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'unique';
 export type ClassId = 'knight' | 'mage' | 'rogue';
@@ -27,6 +41,8 @@ export interface CardDef {
     cls: ClassId | 'neutral';
     /** 원거리 공격 (주인공이 달려가지 않음) */
     ranged?: boolean;
+    /** 강한 기술: 기를 모은 뒤 터진다 (연출 시간이 길어짐) */
+    charge?: boolean;
     /** 낼 수 없는 카드 (저주). 턴이 끝날 때 손에 있으면 사라진다 */
     unplayable?: boolean;
     /** 강화 시 바뀌는 값 */
@@ -153,6 +169,10 @@ export interface CombatState {
     critChance: number;
     /** 저주 카드 uid 번호 */
     curseSeq: number;
+    /** 이번 턴에 낸 카드 수 / 그중 공격 수 / 마지막으로 낸 카드 종류 (연계용) */
+    played?: number;
+    attacksPlayed?: number;
+    lastType?: 'attack' | 'skill' | 'power' | null;
     /** 지금 발생하는 fx/cue에 붙일 지연 시간 */
     delay: number;
     result?: 'win' | 'lose';

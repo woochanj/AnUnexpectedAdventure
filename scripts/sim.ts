@@ -27,7 +27,7 @@ function value(c: CombatState) {
     for (const e of c.enemies) {
         if (e.hp <= 0) continue;
         v -= e.hp + 10;
-        v += (e.status.vulnerable ?? 0) * 2 + (e.status.weak ?? 0) * 2 + (e.status.poison ?? 0) * 1.5;
+        v += (e.status.vulnerable ?? 0) * 2 + (e.status.weak ?? 0) * 2 + (e.status.poison ?? 0) * 1.5 + (e.status.burn ?? 0) * 1.2 + Math.min(e.status.frost ?? 0, 3) * 3;
         v -= (e.status.strength ?? 0) * 2;
     }
     const s = c.player.status;

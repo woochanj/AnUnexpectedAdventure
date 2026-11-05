@@ -57,12 +57,17 @@ import * as magicMissile from 'pixelfx/fx/projectiles/magic-missile';
 import * as dirtExplosion from 'pixelfx/fx/explosions/dirt-explosion';
 import * as poisonCloud from 'pixelfx/fx/nature/poison-cloud';
 import * as tornado from 'pixelfx/fx/nature/tornado';
+import * as waterSplash from 'pixelfx/fx/water/splash';
+import * as ripples from 'pixelfx/fx/water/ripples';
+import * as waveCrash from 'pixelfx/fx/water/wave-crash';
+import * as magicCircle from 'pixelfx/fx/arcane/magic-circle-cast';
 import * as hitFlash from 'pixelfx/fx/impacts/hit-flash';
 import { cardElement, type Element } from './cardElement';
 import { ENEMIES } from '../game/enemies';
 import type { Cue } from '../game/types';
 import { CARDS } from '../game/cards';
-import { ATTACK_WINDUP } from '../game/combat';
+import { ATTACK_WINDUP, CHARGE_TIME, windupOf } from '../game/combat';
+import * as chargeUp from 'pixelfx/fx/lightning/charge-up';
 
 export interface VfxSpec {
     mod: FxModule;
@@ -140,6 +145,32 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     shadow_step: [{ mod: blinkIn, at: 'self', speed: 1.8 }],
     backstab: [{ mod: critHit, at: 'target' }],
     shadow_dance: [{ mod: shadowTendrils, at: 'target', speed: 2 }, { mod: daggerFlurry, at: 'target', dx: -28, delay: 0.1, opts: { palette: VENOM } }],
+    // 연계 카드
+    shield_slam: [{ mod: bluntHit, at: 'target', speed: 1.3 }, { mod: shieldBlock, at: 'target', dx: -20, speed: 1.4 }],
+    chain_strike: [{ mod: swordSlash, at: 'target', dx: SLASH_DX }, { mod: doubleSlash, at: 'target', dx: -34, delay: 0.18 }],
+    war_cry: [{ mod: rage, at: 'self', stopAfter: 0.9 }],
+    counter_stance: [BLOCK, { mod: thorns, at: 'self', dx: -40, speed: 1.6 }],
+    execution: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.4, opts: { palette: BLOOD } }, { mod: critHit, at: 'target', delay: 0.08 }],
+    rally: [{ ...BLOCK, speed: 1 }],
+    rising_slash: [{ mod: uppercut, at: 'target', dx: -26, speed: 1.3 }],
+    momentum: [{ mod: swordSlash, at: 'target', dx: SLASH_DX, opts: { angle: 0.4 } }],
+    frost_touch: [{ mod: iceShatter, at: 'target', speed: 2.4 }],
+    shatter: [{ mod: iceSpikes, at: 'target', speed: 2 }, { mod: iceShatter, at: 'target', delay: 0.15, speed: 2 }],
+    glacier: [{ mod: frostNova, at: 'all', speed: 1.8 }, { ...BLOCK, delay: 0.1 }],
+    ignite: [{ mod: smallExplosion, at: 'target', speed: 3, stopAfter: 1, opts: { palette: FIRE } }],
+    combust: [{ mod: bigExplosion, at: 'target', speed: 3, stopAfter: 1.4 }],
+    flame_chain: [{ mod: fireRing, at: 'all', speed: 2.6 }],
+    mana_flow: [{ mod: spellCharge, at: 'self', stopAfter: 0.7, speed: 1.4 }],
+    tidal_wave: [{ mod: frostNova, at: 'all', speed: 1.6, opts: { palette: ['#06142e', '#0c2c5a', '#14508c', '#2a86c8', '#5ac0ec', '#a8e6ff', '#ffffff'] } }],
+    quick_slash: [{ mod: thrustFx, at: 'target', dx: -30, speed: 1.4 }],
+    finisher: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.5 }, { mod: critHit, at: 'target', delay: 0.1 }],
+    venom_burst: [{ mod: acidSplash, at: 'target', speed: 1.8 }, { mod: sporeBurst, at: 'target', delay: 0.1, speed: 2 }],
+    shred: [{ mod: daggerFlurry, at: 'target', dx: -28 }],
+    smoke_bomb: [{ mod: blinkOut, at: 'self', speed: 1.6 }, { ...BLOCK, delay: 0.1 }],
+    assassinate: [{ mod: shadowTendrils, at: 'target', speed: 2 }, { mod: critHit, at: 'target', delay: 0.1 }],
+    shadow_chain: [{ mod: blinkIn, at: 'self', speed: 1.8 }],
+    bandage: [{ mod: healingBloom, at: 'self', speed: 1.6 }],
+    adrenaline: [{ mod: rage, at: 'self', stopAfter: 0.9 }, { mod: manaBurst, at: 'self', speed: 1.4, delay: 0.1 }],
 };
 
 const HEAL: VfxSpec = { mod: heal, at: 'target', speed: 1.4 };
@@ -154,8 +185,13 @@ export function cueVfx(c: Cue): VfxSpec[] {
             const specs = alts ? alts[c.id % alts.length] : CARD_VFX[id] ?? [];
             const attack = CARDS[id]?.type === 'attack';
             // 공격 카드는 주인공이 칼을 젖히는 동안 기다렸다가 터진다
-            const wait = attack ? ATTACK_WINDUP : 0;
+            const def = CARDS[id];
+            const wait = def ? windupOf(def) : attack ? ATTACK_WINDUP : 0;
             const out = specs.map((s) => ({ ...s, delay: (s.delay ?? 0) + wait }));
+            // 강한 기술: 발밑에서 기를 모은다 (속성 색)
+            if (def?.charge) for (const ch of chargeVfx(cardElement(id))) out.push({ ...ch, delay: ch.delay ?? 0 });
+            // 마법사(물 사제): 발밑 물의 마법진, 물방울이 모였다가 물줄기로 날아가 물보라
+            if (CARDS[id]?.cls === 'mage') for (const w of waterFlourish(id, c.id, attack, wait)) out.push({ ...w, delay: w.delay ?? 0 });
             // 도적(바람 암살자): 바람 칼날이 덧붙는다
             if (attack && CARDS[id].cls === 'rogue') for (const w of windFlourish(id, c.id)) out.push({ ...w, delay: wait + (w.delay ?? 0) });
             // 맞는 자리에 속성별 여운 (불씨, 눈꽃, 전기, 독, 피 …)
@@ -397,4 +433,49 @@ function windFlourish(id: string, seed: number): VfxSpec[] {
     if (BIG_ROGUE.has(id) || id === 'gale') out.push({ mod: tornado, at, delay: 0.05, speed: 1.8, stopAfter: 0.7, opts: { palette: WIND } });
     if (BIG_ROGUE.has(id)) out.push({ mod: hitFlash, at, delay: 0.08, opts: { palette: WIND } });
     return out;
+}
+
+const WATER = ['#06142e', '#0c2c5a', '#14508c', '#2a86c8', '#5ac0ec', '#a8e6ff', '#ffffff'];
+/** 밝은 배경 위에서 검게 뭉치지 않도록 어두운 색을 뺀 물빛 */
+const WATER_LIGHT = ['#1a5a9c', '#2a86c8', '#4aaee0', '#7ad0f4', '#b4ecff', '#e4faff', '#ffffff'];
+const BIG_MAGE = new Set(['fireball', 'thunder', 'blizzard', 'fire_ring', 'chain_lightning', 'ice_lance', 'archmage']);
+
+/** 물 사제 주문 연출. 시전(발밑) → 물방울 모임 → 대상에 물줄기·물보라, 큰 주문은 파도 */
+function waterFlourish(id: string, seed: number, attack: boolean, wait: number): VfxSpec[] {
+    const out: VfxSpec[] = [
+        { mod: magicCircle, at: 'self', speed: 1.6, stopAfter: wait + 0.5, opts: { palette: WATER } },
+        { mod: bubbles, at: 'self', speed: 1.6, stopAfter: wait + 0.4, opts: { palette: WATER } },
+    ];
+    if (!attack) {
+        out.push({ mod: ripples, at: 'self', speed: 1.6, stopAfter: 0.8, opts: { palette: WATER_LIGHT } });
+        return out;
+    }
+    const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
+    const at = all ? ('all' as const) : ('target' as const);
+    out.push({ mod: magicMissile, at, dx: -60, dy: -6, delay: wait - 0.12, speed: 1.6, opts: { palette: WATER_LIGHT, seed } });
+    out.push({ mod: waterSplash, at, delay: wait + 0.02, speed: 1.4, opts: { palette: WATER_LIGHT, stone: false } });
+    out.push({ mod: ripples, at, delay: wait + 0.05, speed: 1.6, stopAfter: 0.8, opts: { palette: WATER } });
+    if (BIG_MAGE.has(id)) out.push({ mod: waveCrash, at, dx: -10, delay: wait + 0.04, speed: 1.4, opts: { palette: WATER_LIGHT } });
+    return out;
+}
+
+const ELEMENT_FX_PAL: Partial<Record<Element, string[]>> = {
+    fire: FIRE,
+    ice: ICE,
+    poison: VENOM,
+    blood: BLOOD,
+    arcane: ARCANE,
+    shadow: ['#08040e', '#1e1036', '#3a2468', '#6a4aa8', '#a88ae0', '#e0d0ff', '#ffffff'],
+    wind: WIND,
+    steel: ['#141824', '#2a3448', '#4a5a78', '#7a90b0', '#b8c8e0', '#e8f0ff', '#ffffff'],
+};
+
+/** 기 모으기: 빛이 빨려들고(charge-up) 마력 소용돌이(spell-charge)가 커진다 */
+function chargeVfx(el: Element): VfxSpec[] {
+    const palette = ELEMENT_FX_PAL[el];
+    const opts = palette ? { palette } : {};
+    return [
+        { mod: chargeUp, at: 'self', speed: 1.3, stopAfter: CHARGE_TIME + 0.1, opts },
+        { mod: spellCharge, at: 'self', speed: 1.2, stopAfter: CHARGE_TIME, opts },
+    ];
 }

@@ -107,12 +107,54 @@ const LIST: CardDef[] = [
     N({ id: 'regrowth', name: '재생의 숨결', type: 'power', rarity: 'rare', cost: 2, effects: [apply('regen', 3, 'self')], up: { effects: [apply('regen', 4, 'self')] } }),
     N({ id: 'frenzy', name: '광기', type: 'power', rarity: 'rare', cost: 2, effects: [apply('energize', 1, 'self')], up: { cost: 1 } }),
 
+    // ═════════ 연계 카드 ═════════
+    // 기사: 방어도와 연계
+    K({ id: 'shield_slam', name: '방패 강타', type: 'attack', rarity: 'uncommon', cost: 1, effects: [{ kind: 'blockDamage' }], up: { cost: 0 } }),
+    K({ id: 'chain_strike', name: '연계 베기', type: 'attack', rarity: 'common', cost: 1, effects: [dmg(4), { kind: 'combo', per: 3 }], up: { effects: [dmg(6), { kind: 'combo', per: 4 }] } }),
+    K({ id: 'war_cry', name: '함성', type: 'skill', rarity: 'common', cost: 0, effects: [draw(1), { kind: 'after', type: 'attack', effects: [energy(1)] }], up: { effects: [draw(2), { kind: 'after', type: 'attack', effects: [energy(1)] }] } }),
+    K({ id: 'counter_stance', name: '반격 태세', type: 'skill', rarity: 'common', cost: 1, effects: [block(6), apply('thorns', 1, 'self')], up: { effects: [block(8), apply('thorns', 2, 'self')] } }),
+    K({ id: 'execution', name: '처형', type: 'attack', rarity: 'rare', cost: 2, effects: [dmg(12), { kind: 'bonusVs', status: 'vulnerable', amount: 12 }], up: { effects: [dmg(15), { kind: 'bonusVs', status: 'vulnerable', amount: 15 }] } }),
+    K({ id: 'rally', name: '전열 정비', type: 'skill', rarity: 'uncommon', cost: 1, effects: [block(7), { kind: 'after', type: 'skill', effects: [block(5), draw(1)] }], up: { effects: [block(10), { kind: 'after', type: 'skill', effects: [block(6), draw(1)] }] } }),
+    K({ id: 'rising_slash', name: '치켜베기', type: 'attack', rarity: 'common', cost: 1, effects: [dmg(7), { kind: 'after', type: 'skill', effects: [dmg(5)] }], up: { effects: [dmg(9), { kind: 'after', type: 'skill', effects: [dmg(7)] }] } }),
+
+    // 마법사: 냉기(얼리기)와 화상
+    M({ id: 'frost_touch', name: '냉기 손길', type: 'attack', rarity: 'common', cost: 1, effects: [dmg(5), apply('frost', 2, 'target')], up: { effects: [dmg(7), apply('frost', 2, 'target')] } }),
+    M({ id: 'shatter', name: '산산조각', type: 'attack', rarity: 'uncommon', cost: 1, effects: [dmg(3), { kind: 'shatter', per: 5 }], up: { effects: [dmg(5), { kind: 'shatter', per: 7 }] } }),
+    M({ id: 'glacier', name: '빙하 감옥', type: 'skill', rarity: 'rare', cost: 2, effects: [apply('frost', 3, 'all'), block(8)], up: { effects: [apply('frost', 3, 'all'), block(12)] } }),
+    M({ id: 'ignite', name: '점화', type: 'attack', rarity: 'common', cost: 1, effects: [dmg(4), apply('burn', 5, 'target')], up: { effects: [dmg(5), apply('burn', 7, 'target')] } }),
+    M({ id: 'combust', name: '연소 폭발', type: 'attack', rarity: 'uncommon', cost: 1, effects: [{ kind: 'detonate', status: 'burn', mult: 2 }], up: { effects: [dmg(4), { kind: 'detonate', status: 'burn', mult: 2 }] } }),
+    M({ id: 'flame_chain', name: '불꽃 연쇄', type: 'attack', rarity: 'uncommon', cost: 1, effects: [dmgAll(3), { kind: 'combo', per: 2 }], up: { effects: [dmgAll(5), { kind: 'combo', per: 3 }] } }),
+    M({ id: 'mana_flow', name: '마나 흐름', type: 'skill', rarity: 'common', cost: 0, effects: [draw(1), { kind: 'after', type: 'attack', effects: [energy(1)] }], up: { effects: [draw(2), { kind: 'after', type: 'attack', effects: [energy(1)] }] } }),
+    M({ id: 'tidal_wave', name: '해일', type: 'attack', rarity: 'rare', cost: 2, effects: [dmgAll(9), apply('weak', 1, 'all'), { kind: 'after', type: 'skill', effects: [dmgAll(5)] }], up: { effects: [dmgAll(12), apply('weak', 2, 'all'), { kind: 'after', type: 'skill', effects: [dmgAll(6)] }] } }),
+
+    // 도적: 공격을 이어 붙여 마무리
+    R({ id: 'quick_slash', name: '재빠른 베기', type: 'attack', rarity: 'common', cost: 0, effects: [dmg(3), { kind: 'after', type: 'attack', effects: [draw(1)] }], up: { effects: [dmg(5), { kind: 'after', type: 'attack', effects: [draw(1)] }] } }),
+    R({ id: 'finisher', name: '마무리 일격', type: 'attack', rarity: 'uncommon', cost: 1, effects: [dmg(2), { kind: 'finisher', per: 5 }], up: { effects: [dmg(4), { kind: 'finisher', per: 6 }] } }),
+    R({ id: 'venom_burst', name: '독 폭발', type: 'attack', rarity: 'uncommon', cost: 1, effects: [{ kind: 'detonate', status: 'poison', mult: 1 }, dmg(3)], up: { effects: [{ kind: 'detonate', status: 'poison', mult: 2 }, dmg(3)] } }),
+    R({ id: 'shred', name: '난도질', type: 'attack', rarity: 'common', cost: 1, effects: [dmg(2, 3), { kind: 'combo', per: 1 }], up: { effects: [dmg(3, 3), { kind: 'combo', per: 1 }] } }),
+    R({ id: 'smoke_bomb', name: '연막탄', type: 'skill', rarity: 'common', cost: 1, effects: [block(6), apply('weak', 1, 'all')], up: { effects: [block(8), apply('weak', 2, 'all')] } }),
+    R({ id: 'assassinate', name: '암살', type: 'attack', rarity: 'rare', cost: 2, effects: [dmg(10), { kind: 'bonusVs', status: 'poison', amount: 10 }], up: { effects: [dmg(13), { kind: 'bonusVs', status: 'poison', amount: 13 }] } }),
+    R({ id: 'shadow_chain', name: '그림자 연계', type: 'skill', rarity: 'uncommon', cost: 0, effects: [draw(1), { kind: 'after', type: 'attack', effects: [energy(1), draw(1)] }], up: { effects: [draw(2), { kind: 'after', type: 'attack', effects: [energy(1), draw(1)] }] } }),
+
+    // 공용
+    N({ id: 'bandage', name: '붕대 감기', type: 'skill', rarity: 'common', cost: 1, exhaust: true, effects: [heal(7)], up: { effects: [heal(10)] } }),
+    N({ id: 'adrenaline', name: '아드레날린', type: 'skill', rarity: 'rare', cost: 0, exhaust: true, effects: [energy(1), draw(2)], up: { effects: [energy(2), draw(2)] } }),
+    N({ id: 'momentum', name: '기세', type: 'attack', rarity: 'uncommon', cost: 1, effects: [dmg(4), { kind: 'combo', per: 2 }, { kind: 'after', type: 'attack', effects: [block(4)] }], up: { effects: [dmg(6), { kind: 'combo', per: 3 }, { kind: 'after', type: 'attack', effects: [block(5)] }] } }),
+
     // ═════════ 저주 (적이 덱에 섞어 넣음, 전투가 끝나면 사라짐) ═════════
     N({ id: 'dread', name: '불길한 예감', type: 'skill', rarity: 'starter', cost: 0, unplayable: true, effects: [], up: {} }),
 ];
 
 /** 저주 카드 id */
 export const CURSE_CARD = 'dread';
+
+/** 기를 모으는 강한 기술 */
+const CHARGED = new Set([
+    'heavy_blow', 'cleave_line', 'oath_blade', 'execution',
+    'fireball', 'thunder', 'blizzard', 'tidal_wave', 'archmage', 'glacier', 'shatter',
+    'backstab', 'blade_storm', 'shadow_dance', 'finisher', 'assassinate',
+]);
+for (const c of LIST) if (CHARGED.has(c.id)) c.charge = true;
 
 export const CARDS: Record<string, CardDef> = Object.fromEntries(LIST.map((c) => [c.id, c]));
 
@@ -143,6 +185,14 @@ function boost(e: Effect): Effect {
             return { ...e, amount: up(e.amount) };
         case 'apply':
             return e.status === 'energize' ? e : { ...e, amount: up(e.amount) };
+        case 'combo':
+        case 'shatter':
+        case 'finisher':
+            return { ...e, per: up(e.per) };
+        case 'bonusVs':
+            return { ...e, amount: up(e.amount) };
+        case 'after':
+            return { ...e, effects: e.effects.map(boost) };
         default:
             return e;
     }
@@ -178,7 +228,11 @@ export const STATUS_INFO: Record<Status, { name: string; desc: string; debuff: b
     thorns: { name: '가시', desc: '공격받을 때 공격자에게 수치만큼 피해', debuff: false },
     regen: { name: '재생', desc: '턴 종료 시 수치만큼 체력 회복', debuff: false },
     energize: { name: '활력', desc: '매 턴 에너지를 수치만큼 추가로 얻음', debuff: false },
+    frost: { name: '냉기', desc: '3 이상 쌓이면 다음 행동 때 얼어붙어 한 번 쉰다', debuff: true },
+    burn: { name: '화상', desc: '턴 시작 시 수치만큼 피해, 그 뒤 절반으로 줄어듦', debuff: true },
 };
+
+const TYPE_NAME = { attack: '공격', skill: '기술', power: '지속' } as const;
 
 function describeEffect(e: Effect): string {
     switch (e.kind) {
@@ -202,6 +256,20 @@ function describeEffect(e: Effect): string {
         }
         case 'doublePoison':
             return '대상의 독을 두 배로';
+        case 'combo':
+            return `연계: 이번 턴 먼저 낸 카드 1장당 피해 +${e.per}`;
+        case 'after':
+            return `직전 카드가 ${TYPE_NAME[e.type]}이면: ${e.effects.map(describeEffect).join(', ')}`;
+        case 'blockDamage':
+            return '현재 방어도만큼 피해';
+        case 'shatter':
+            return `대상의 냉기 1당 피해 ${e.per} (냉기 사라짐)`;
+        case 'finisher':
+            return `이번 턴 먼저 낸 공격 1장당 피해 ${e.per}`;
+        case 'bonusVs':
+            return `대상이 ${STATUS_INFO[e.status].name} 상태면 피해 +${e.amount}`;
+        case 'detonate':
+            return `대상의 ${STATUS_INFO[e.status].name} ×${e.mult}만큼 즉시 피해`;
     }
 }
 
@@ -215,7 +283,9 @@ export function describeCard(inst: { id: string; upgraded: boolean; level?: numb
 }
 
 export function needsTarget(inst: CardInst): boolean {
-    return cardStats(inst).effects.some(
-        (e) => e.kind === 'damage' || e.kind === 'doublePoison' || (e.kind === 'apply' && e.to === 'target'),
-    );
+    const targeted = (e: Effect): boolean =>
+        e.kind === 'damage' || e.kind === 'doublePoison' || (e.kind === 'apply' && e.to === 'target') ||
+        e.kind === 'blockDamage' || e.kind === 'shatter' || e.kind === 'finisher' || e.kind === 'bonusVs' || e.kind === 'detonate' ||
+        (e.kind === 'after' && e.effects.some(targeted));
+    return cardStats(inst).effects.some(targeted);
 }

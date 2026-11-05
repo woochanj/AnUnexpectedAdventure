@@ -77,6 +77,13 @@ function noise(dur: number, freq: number, vol = 0.3, at = 0, type: BiquadFilterT
 }
 
 export const sfx = {
+    /** 강한 기술: 기를 모으는 상승음 */
+    chargeUp(el: string) {
+        const base = el === 'fire' ? 140 : el === 'ice' ? 520 : el === 'lightning' ? 220 : el === 'shadow' ? 90 : 180;
+        tone(base, base * 4, 0.6, 'sawtooth', 0.05);
+        tone(base * 1.5, base * 6, 0.6, 'triangle', 0.04, 0.05);
+        noise(0.6, 400, 0.08, 0, 'bandpass', 3200);
+    },
     /** 카드를 집어 기운을 모을 때 (속성별) */
     charge(el: string) {
         switch (el) {

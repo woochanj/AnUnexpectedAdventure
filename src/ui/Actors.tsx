@@ -124,6 +124,10 @@ export interface HeroAction {
     act: string;
     /** 공격이 닿는 순간(t=0)까지 남길 예비동작 시간 */
     windup?: number;
+    /** 카드 고유 동작: 앞에서부터 있는 스프라이트 동작을 쓴다 */
+    anims?: string[];
+    /** 기를 모으는 시간(초). 그동안 제자리에서 자세를 잡는다 */
+    charge?: number;
 }
 
 /** 고를 수 있는 주인공 */
@@ -164,27 +168,33 @@ function heroSteps(char: string, a: HeroAction): SpriteStep[] {
     const cfg = LOOK[char] ?? {};
     const caster = !!cfg.caster;
     const multi0 = a.act === 'double' || a.act === 'dagger' || a.act === 'spin';
+    const pick = a.anims?.find((n) => hasAnim(char, n));
+    const pose: SpriteStep[] = a.charge ? [{ anim: cfg.block && hasAnim(char, cfg.block) ? cfg.block : 'idle', ms: a.charge * 1000 }] : [];
     if (ATTACK_ACTS.has(a.act) && (a.ranged || caster || cfg.ranged)) {
         // 제자리에서 휘둘러 주문/투척/활 — 무기가 닿는 프레임을 피해 순간에 맞춘다
-        const anim = cfg.shoot ?? (multi0 && hasAnim(char, 'combo') && !cfg.ranged ? 'combo' : (a.act === 'cleave' || a.act === 'smash') && hasAnim(char, 'attack2') && !cfg.ranged ? 'attack2' : 'attack');
+        const anim = pick ?? cfg.shoot ?? (multi0 && hasAnim(char, 'combo') && !cfg.ranged ? 'combo' : (a.act === 'cleave' || a.act === 'smash') && hasAnim(char, 'attack2') && !cfg.ranged ? 'attack2' : 'attack');
         const hitMs = ((a.windup ?? 0.3) + 0.08) * 1000;
         const lead = (hitFrame(char, anim) / animFps(anim)) * 1000;
-        return [{ anim: 'idle', ms: Math.max(0, hitMs - lead) }, { anim }];
+        const before = Math.max(0, hitMs - lead);
+        // 기를 모으는 동안은 자세, 그 뒤 동작이 닿는 순간에 맞춰 시작
+        const p = pose.length ? [{ ...pose[0], ms: Math.min(pose[0].ms ?? 0, before) }] : [];
+        return [...p, { anim: 'idle', ms: Math.max(0, before - (p[0]?.ms ?? 0)) }, { anim }];
     }
-    if ((a.act === 'cast' || a.act === 'heal' || a.act === 'charge') && cfg.cast && hasAnim(char, cfg.cast)) return [{ anim: cfg.cast }];
+    if ((a.act === 'cast' || a.act === 'heal' || a.act === 'charge') && cfg.cast && hasAnim(char, cfg.cast)) return [...pose, { anim: pick ?? cfg.cast }];
     if (a.act === 'rage' && cfg.power && hasAnim(char, cfg.power)) return [{ anim: cfg.power }];
     if (a.act === 'block' && cfg.block && hasAnim(char, cfg.block)) return [{ anim: cfg.block }];
     if (ATTACK_ACTS.has(a.act)) {
         const heavy = a.act === 'cleave' || a.act === 'smash' || a.act === 'reap';
         const multi = a.act === 'double' || a.act === 'dagger' || a.act === 'spin';
         const hasCombo = hasAnim(char, 'combo');
-        const first = multi && hasCombo ? 'combo' : heavy && hasAnim(char, 'attack2') ? 'attack2' : 'attack';
-        const second = !hasCombo && multi && hasAnim(char, 'attack2') ? 'attack2' : null;
+        const first = pick ?? (multi && hasCombo ? 'combo' : heavy && hasAnim(char, 'attack2') ? 'attack2' : 'attack');
+        const second = !pick && !hasCombo && multi && hasAnim(char, 'attack2') ? 'attack2' : null;
         void fk;
         // 무기가 닿는 프레임이 피해 순간(예비동작 + 접촉)에 오도록 달리기 시간을 맞춘다
         const hitMs = ((a.windup ?? 0.3) + 0.08) * 1000;
         const lead = (hitFrame(char, first) / animFps(first)) * 1000;
-        const steps: SpriteStep[] = [{ anim: 'run', ms: Math.max(0, hitMs - lead) }, { anim: first }];
+        const chargeMs = a.charge ? a.charge * 1000 : 0;
+        const steps: SpriteStep[] = [...pose, { anim: 'run', ms: Math.max(0, hitMs - lead - chargeMs) }, { anim: first }];
         if (second) steps.push({ anim: second });
         steps.push({ anim: 'run', ms: 240, turn: true });
         return steps;

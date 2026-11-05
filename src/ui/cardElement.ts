@@ -18,6 +18,11 @@ const BY_CARD: Record<string, Element> = {
     // 공용
     catch_breath: 'wind', second_wind: 'wind', regrowth: 'nature',
     dread: 'shadow',
+    // 연계 카드
+    shield_slam: 'guard', chain_strike: 'steel', war_cry: 'blood', counter_stance: 'guard', execution: 'blood', rally: 'guard', rising_slash: 'steel',
+    frost_touch: 'ice', shatter: 'ice', glacier: 'ice', ignite: 'fire', combust: 'fire', flame_chain: 'fire', mana_flow: 'arcane', tidal_wave: 'arcane',
+    quick_slash: 'wind', finisher: 'wind', venom_burst: 'poison', shred: 'steel', smoke_bomb: 'shadow', assassinate: 'shadow', shadow_chain: 'shadow',
+    bandage: 'nature', adrenaline: 'blood', momentum: 'steel',
 };
 
 export const cardElement = (id: string): Element => BY_CARD[id] ?? 'steel';

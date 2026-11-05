@@ -1,7 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type RefObject } from 'react';
 import { clearFrame, composite, createFrame, createFx, type Frame, type FxInstance, type FxModule } from 'pixelfx';
 import type { HitStopClock } from './FxCanvas';
-import { CHIBI_H, CHIBI_W, drawHero, IDLE_POSE, MOVES, moveSpan, samplePose, type Key, type Pose } from './chibi';
+import { drawKnight, IDLE_POSE, KNIGHT_H, KNIGHT_W, MOVES, moveSpan, samplePose, type Key, type Pose } from './knight';
 import { paintScenery } from './scenery';
 import { cleanOpts } from './creatures';
 
@@ -110,11 +110,11 @@ export function FxView({
     return <canvas ref={ref} className={`pixel-canvas ${className ?? ''}`} style={{ width: w * scale, height: h * scale, ...style }} />;
 }
 
-// ───────────── 주인공: 치비 렌더러로 그린다 ─────────────
+// ───────────── 주인공: 다크 판타지 기사 렌더러로 그린다 ─────────────
 
 export interface HeroAction {
     id: number;
-    /** chibi.ts MOVES의 키 */
+    /** knight.ts MOVES의 키 */
     act: string;
     /** 공격이 닿는 순간(t=0)까지 남길 예비동작 시간 */
     windup?: number;
@@ -144,10 +144,10 @@ export function HeroView({
     useEffect(() => {
         const cv = ref.current;
         if (!cv) return;
-        cv.width = CHIBI_W;
-        cv.height = CHIBI_H;
+        cv.width = KNIGHT_W;
+        cv.height = KNIGHT_H;
         const ctx = cv.getContext('2d')!;
-        const img = new ImageData(CHIBI_W, CHIBI_H);
+        const img = new ImageData(KNIGHT_W, KNIGHT_H);
         const px = new Uint32Array(img.data.buffer);
         let raf = 0;
         let prev = performance.now();
@@ -176,13 +176,14 @@ export function HeroView({
             let pose: Pose;
             if (cur.current) pose = samplePose(cur.current.keys, cur.current.t);
             else {
-                // 숨쉬기 + 가끔 눈 깜빡임 (+ 걷는 중이면 다리 교차)
-                const breathe = Math.floor(time * 2.2) % 2;
-                const blink = time % 3.4 < 0.12;
-                const step = walk.current ? (Math.floor(time * 10) % 2 ? 2 : -2) : 0;
-                pose = { ...IDLE_POSE, by: breathe, legs: step, eyes: blink ? 'blink' : 'open' };
+                // 숨쉬기 + 망토 펄럭임 + 가끔 투구 안 눈빛 (+ 걷는 중이면 다리 교차)
+                const breathe = Math.floor(time * 1.6) % 2;
+                const glint = time % 4.2 < 0.25;
+                const step = walk.current ? (Math.floor(time * 10) % 2 ? 3 : -3) : 0;
+                const cape = Math.round(Math.sin(time * 2.1) * 1.5);
+                pose = { ...IDLE_POSE, by: breathe, legs: step, cape, visor: glint ? 'glow' : 'dim' };
             }
-            drawHero(pose, px, flip);
+            drawKnight(pose, px, flip);
             ctx.putImageData(img, 0, 0);
             raf = requestAnimationFrame(tick);
         };
@@ -191,7 +192,7 @@ export function HeroView({
     }, [flip, clock]);
 
     return (
-        <canvas ref={ref} className={`pixel-canvas hero-canvas ${className ?? ''}`} style={{ width: CHIBI_W * scale, height: CHIBI_H * scale }} />
+        <canvas ref={ref} className={`pixel-canvas hero-canvas ${className ?? ''}`} style={{ width: KNIGHT_W * scale, height: KNIGHT_H * scale }} />
     );
 }
 

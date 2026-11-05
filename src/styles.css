@@ -2487,3 +2487,11 @@ kbd {
 .hand-area {
     background: linear-gradient(transparent, rgba(8, 14, 36, 0.82) 32%);
 }
+
+/* 기사(64px)에 맞춘 지도 배율 */
+.map-scene .map-player .hero-canvas {
+    transform: scale(1.35);
+}
+@keyframes hop {
+    50% { transform: scale(1.35) translateY(-3px); }
+}

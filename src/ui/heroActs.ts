@@ -1,4 +1,4 @@
-// 카드 → 주인공 동작 (chibi.ts MOVES의 키). 없으면 공격은 slash, 기술은 cast.
+// 카드 → 주인공 동작 (knight.ts MOVES의 키). 없으면 공격은 slash, 기술은 cast.
 export const CARD_ACT: Record<string, string> = {
     slash: 'slash',
     torch_swing: 'slash',

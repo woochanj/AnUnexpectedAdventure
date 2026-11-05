@@ -595,10 +595,18 @@ const MULTI_ROGUE = new Set(['twin_cut', 'gale', 'blade_storm', 'shadow_dance', 
 const BIG_ROGUE = new Set(['backstab', 'shadow_dance', 'blade_storm']);
 
 /** 바람 암살자 공격에 덧붙는 바람 칼날: 회오리 베기, 엇갈린 X자, 큰 기술은 돌풍과 번쩍임 */
+/** 도적 장검: 차가운 강철빛 / 단검: 짧고 날카로운 청록빛 */
+const ROGUE_STEEL = ['#10141e', '#283246', '#4a5a7a', '#8a9ac0', '#cfdcf0', '#f2f8ff', '#ffffff'];
+const ROGUE_DAGGER = ['#0a2a30', '#145058', '#2a9a8a', '#5ae0c8', '#b0fff0', '#eafffb', '#ffffff'];
 function windFlourish(id: string, seed: number): VfxSpec[] {
     const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
     const at = all ? ('all' as const) : ('target' as const);
     const out: VfxSpec[] = [{ mod: spinSlash, at, speed: 1.7, opts: { palette: WIND, angle: seed % 2 ? 0.4 : -0.4 } }];
+    // 이도류: 한 손 장검의 긴 호가 먼저 크게 긋고, 다른 손 단검이 바로 짧고 빠르게 찌른다 (근접 공격만)
+    if (!CARDS[id].ranged) {
+        out.push({ mod: swordSlash, at, dx: SLASH_DX, dy: -4, speed: 1.5, opts: { palette: ROGUE_STEEL, angle: seed % 2 ? -0.35 : 0.3 } });
+        out.push({ mod: thrustFx, at, dx: -18, dy: -10, delay: 0.09, speed: 1.9, opts: { palette: ROGUE_DAGGER, angle: seed % 2 ? 0.2 : -0.15 } });
+    }
     if (MULTI_ROGUE.has(id)) {
         out.push({ mod: doubleSlash, at, dx: -20, delay: 0.1, speed: 1.4, opts: { palette: WIND } });
         out.push({ mod: doubleSlash, at, dx: -20, delay: 0.22, speed: 1.4, opts: { palette: WIND, flip: true } });

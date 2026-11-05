@@ -3330,3 +3330,40 @@ kbd {
     z-index: 8;
     filter: drop-shadow(0 3px 0 rgba(20, 10, 30, 0.85)) drop-shadow(0 0 6px rgba(20, 10, 30, 0.6));
 }
+
+/* 주인공이 맞을 때 화면 가장자리가 붉게 번쩍 */
+.hurt-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 30% 60%, transparent 45%, rgba(220, 30, 40, 0.35) 75%, rgba(160, 10, 30, 0.6) 100%);
+}
+.hurt-vignette.heavy {
+    background: radial-gradient(ellipse at 30% 60%, rgba(255, 60, 60, 0.12) 30%, rgba(220, 30, 40, 0.5) 70%, rgba(150, 0, 20, 0.8) 100%);
+}
+
+/* 쓰러지는 동작(monsterMoves)을 다 보여준 뒤에 사라진다 */
+.enemy-row .fighter.enemy.dead {
+    opacity: 0;
+    transform: none;
+    transition: opacity 0.4s linear 1.5s;
+}
+.enemy-row .fighter.enemy.dead .enemy-name,
+.enemy-row .fighter.enemy.dead .hp-bar,
+.enemy-row .fighter.enemy.dead .status-list {
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+/* 대상이 없는 카드(방어·강화)를 끄는 동안: 주인공이 받는다는 표시 */
+.player-side.self-aim [data-body] {
+    filter: drop-shadow(0 0 8px rgba(255, 220, 110, 0.9));
+}
+.player-side.self-aim.ready [data-body] {
+    filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 16px rgba(255, 220, 110, 1));
+}
+.target-hint.self {
+    background: #2a4a8a;
+    color: #fff6c8;
+}

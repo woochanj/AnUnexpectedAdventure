@@ -20,7 +20,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
         hp: 80,
         crit: 0.1,
         deck: ['slash', 'slash', 'slash', 'slash', 'slash', 'guard', 'guard', 'guard', 'guard', 'torch_swing'],
-        looks: ['adventurer', 'ground-monk', 'adventurer-fist', 'hero-knight', 'fantasy-knight-1', 'fantasy-knight-2', 'cat-knight'],
+        looks: ['adventurer'],
     },
     mage: {
         id: 'mage',
@@ -29,7 +29,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
         hp: 70,
         crit: 0.1,
         deck: ['spark', 'spark', 'spark', 'spark', 'ward', 'ward', 'ward', 'ward', 'frost_bolt', 'focus'],
-        looks: ['water-priestess', 'adventurer', 'wizard'],
+        looks: ['water-priestess'],
     },
     rogue: {
         id: 'rogue',
@@ -38,7 +38,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
         hp: 72,
         crit: 0.2,
         deck: ['stab', 'stab', 'stab', 'stab', 'stab', 'dodge', 'dodge', 'dodge', 'dodge', 'poison_stab'],
-        looks: ['wind-hashashin', 'leaf-ranger', 'adventurer-bow', 'martial-hero'],
+        looks: ['wind-hashashin'],
     },
 };
 

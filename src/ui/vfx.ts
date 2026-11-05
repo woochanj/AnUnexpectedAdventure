@@ -152,7 +152,8 @@ export function cueVfx(c: Cue): VfxSpec[] {
         case 'poison':
             return [{ mod: poisoned, at: 'target', stopAfter: 0.8 }];
         case 'death':
-            return [{ mod: poof, at: 'target' }];
+            // 쓰러지는 동작을 먼저 보여 주고 연기
+            return [{ mod: poof, at: 'target', delay: 0.6 }];
     }
 }
 

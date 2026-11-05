@@ -12,6 +12,8 @@ import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
 import { sfx } from './sfx';
 import { DragArrow } from './DragArrow';
+import { pickAttack, pickDeath, playAttack, playDeath } from './monsterMoves';
+import { hasAnim } from './SpriteActor';
 import { ChargeFx } from './ChargeFx';
 import { cardElement } from './cardElement';
 import { AMBIENT } from './vfx';
@@ -194,7 +196,20 @@ function useJuice(
             if (q.kind === 'enemyBuff') sfx.buff(q.delay);
             if (q.kind === 'enemyDebuff') sfx.debuff(q.delay);
             if (q.kind === 'poison') sfx.poison(q.delay);
-            if (q.kind === 'death') sfx.death(q.delay + 0.1);
+            if (q.kind === 'death') {
+                sfx.death(q.delay + 0.1);
+                const body = q.target ? field.querySelector<HTMLElement>(`[data-body="${q.target}"]`) : null;
+                const foe = c.enemies.find((e) => e.uid === q.target);
+                if (body && foe) {
+                    const look = ENEMIES[foe.defId].look;
+                    // 마지막으로 맞은 피해가 크거나 치명타면 날려 보낸다
+                    let last: Fx | undefined;
+                    for (let i = c.fx.length - 1; i >= 0; i--) if (c.fx[i].target === foe.uid && c.fx[i].kind === 'dmg') { last = c.fx[i]; break; }
+                    const big = !!last && (!!last.crit || (last.amount ?? 0) >= 15);
+                    const anim = look.kind === 'sprite' && hasAnim(look.sprite ?? '', 'death');
+                    playDeath(body, pickDeath(look, anim, big), q.delay * 1000 + 40);
+                }
+            }
             if (q.kind === 'card') {
                 const card = CARDS[q.card ?? ''];
                 const attack = card?.type === 'attack';
@@ -227,11 +242,12 @@ function useJuice(
                 if (el && hero && look?.ranged) {
                     // 원거리: 제자리에서 던지고, 투사체가 날아가 맞는 순간에 닿는다
                     for (let i = 0; i < (q.hits ?? 1); i++) throwProjectile(field, look.ranged, el, hero, hitAt + i * 140 - PROJECTILE_MS);
-                } else if (el && hero) {
+                } else if (el && hero && look) {
+                    // 몬스터마다 다른 몸동작으로 덮친다 (뛰어들기, 급강하, 돌진, 연타 …)
                     const me = center(el);
                     const gap = Math.max(56, me.w * 0.3);
-                    const run = 240;
-                    dash(el, center(hero).x - me.x + gap, hitAt - run, run, (q.hits ?? 1) * 140 + 120, 260);
+                    const move = pickAttack(look, q.hits ?? 1, q.amount ?? 0, q.id);
+                    playAttack(el, move, center(hero).x - me.x + gap, hitAt, q.hits ?? 1, (q.amount ?? 0) >= 14);
                 }
             }
         }
@@ -247,12 +263,39 @@ function useJuice(
                 else sfx.hit(f.amount ?? 5, f.delay);
             }
         }
+        // 피격 반응: 맞은 쪽이 뒤로 밀리고 번쩍인다. 주인공이 맞으면 화면 가장자리도 붉게
+        for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg' && !f.dot && (f.amount ?? 0) > 0)) {
+            const toPlayer = f.target === 'player';
+            const body = field.querySelector<HTMLElement>(`[data-body="${f.target}"]`);
+            const sprite = body?.querySelector<HTMLElement>('.fighter-sprite') ?? body?.firstElementChild as HTMLElement | null;
+            const amt = f.amount ?? 0;
+            const push = Math.min(28, 8 + amt * 0.9) * (toPlayer ? -1 : 1) * (f.crit ? 1.5 : 1);
+            const at = f.delay * 1000;
+            if (sprite) {
+                sprite.animate(
+                    [
+                        { transform: 'translateX(0)', filter: toPlayer ? 'brightness(2) sepia(1) saturate(6) hue-rotate(-30deg)' : 'brightness(3) saturate(0)' },
+                        { transform: `translateX(${push}px) rotate(${toPlayer ? -4 : 4}deg)`, filter: toPlayer ? 'brightness(1.4) sepia(1) saturate(4) hue-rotate(-30deg)' : 'brightness(1.6)', offset: 0.25 },
+                        { transform: `translateX(${push * 0.6}px)`, filter: 'none', offset: 0.55 },
+                        { transform: 'translateX(0)', filter: 'none' },
+                    ],
+                    { duration: toPlayer ? 420 : 320, delay: at, easing: 'steps(6, end)', composite: 'add' },
+                );
+            }
+            if (toPlayer) {
+                const v = document.createElement('div');
+                v.className = 'hurt-vignette' + (amt >= 12 || f.crit ? ' heavy' : '');
+                field.appendChild(v);
+                const a = v.animate([{ opacity: 0 }, { opacity: 1, offset: 0.15 }, { opacity: 0 }], { duration: 520, delay: at, fill: 'both' });
+                a.finished.then(() => v.remove()).catch(() => v.remove());
+            }
+        }
         for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg')) {
             const dmg = dmgOf(f);
             const start = now + f.delay * 1000;
-            const hold = dmg >= 15 ? 170 : dmg >= 7 ? 120 : 80;
+            const hold = (dmg >= 15 ? 170 : dmg >= 7 ? 120 : 80) + (f.target === 'player' ? 40 : 0);
             clock.current.windows.push([start, start + hold]);
-            const amp = (dmg >= 15 ? 3 : dmg >= 7 ? 2 : 1) * 3;
+            const amp = (dmg >= 15 ? 3 : dmg >= 7 ? 2 : 1) * (f.target === 'player' ? 4 : 3);
             field.animate(
                 [
                     { transform: 'translate(0,0)' },
@@ -426,7 +469,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                     <SceneryView biome={biome} ground seed={seed} />
                 </div>
                 <FxCanvas container={fieldRef} ambient={AMBIENT[biome]} className="fx-back" clock={clock} />
-                <div className="fighter player-side">
+                <div className={`fighter player-side ${drag?.moved && !drag.target ? `self-aim ${drag.release ? "ready" : ""}` : ""}`}>
                     <div data-body="player">
                         <Shake fx={c.fx} target="player">
                             <HeroView char={hero} action={heroAction} clock={clock} scale={4} dead={c.result === 'lose'} />
@@ -482,6 +525,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, dispatch }: { comba
                 <FxCanvas cues={c.cues} container={fieldRef} className="fx-front" clock={clock} />
                 <FxCanvas numbers={c.fx} container={fieldRef} className="fx-numbers" clock={clock} pixel={4} />
                 {enemyTurn && !c.result && <div className="turn-banner">적의 차례</div>}
+                {drag?.moved && !drag.target && <div className="target-hint self">[{cardStats(c.hand[drag.idx] ?? { id: drag.card, upgraded: false }).name}] 대상이 필요 없어요 · 위로 끌어 올려 놓으면 사용</div>}
                 {selectedCard && <div className="target-hint">[{cardStats(selectedCard).name}] 적에게 끌어다 놓거나 적을 누르세요 · Esc 취소</div>}
             </div>
 

@@ -5,6 +5,7 @@ import {
 } from 'pixelfx';
 import type { HitStopClock } from './FxCanvas';
 import { HERO_ACTS, IDLE_ACT } from './heroActs';
+import { paintScenery } from './scenery';
 import { cleanOpts } from './creatures';
 
 const frozen = (clock?: RefObject<HitStopClock>) => {
@@ -190,3 +191,29 @@ export function HeroView({
 }
 
 export { READY };
+
+/** 층 배경 디오라마 캔버스: 컨테이너를 가득 채우고, 크기가 바뀌면 다시 그린다 */
+export function SceneryView({ floor, ground = false, seed = 1, scale = 3 }: { floor: number; ground?: boolean; seed?: number; scale?: number }) {
+    const ref = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        const cv = ref.current;
+        const box = cv?.parentElement;
+        if (!cv || !box) return;
+        const draw = () => {
+            const s = box.clientWidth < 640 ? 2 : scale;
+            const w = Math.max(1, Math.ceil(box.clientWidth / s));
+            const h = Math.max(1, Math.ceil(box.clientHeight / s));
+            if (cv.width === w && cv.height === h) return;
+            cv.width = w;
+            cv.height = h;
+            cv.style.width = `${w * s}px`;
+            cv.style.height = `${h * s}px`;
+            paintScenery(cv.getContext('2d')!, w, h, floor, seed, ground);
+        };
+        draw();
+        const ro = new ResizeObserver(draw);
+        ro.observe(box);
+        return () => ro.disconnect();
+    }, [floor, ground, seed, scale]);
+    return <canvas ref={ref} className="pixel-canvas scenery-canvas" aria-hidden />;
+}

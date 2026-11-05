@@ -116,10 +116,10 @@ export function cueVfx(c: Cue): VfxSpec[] {
 }
 
 // ───────────── 층별 배경 앰비언트 (전투 화면 뒤쪽 캔버스에 계속 재생) ─────────────
-import * as torch from 'pixelfx/fx/fire/torch';
 import * as spiritFlame from 'pixelfx/fx/fire/spirit-flame';
 import * as fog from 'pixelfx/fx/weather/fog';
-import * as fireflies from 'pixelfx/fx/weather/fireflies';
+import * as bubbles from 'pixelfx/fx/water/bubbles';
+import * as fishSchool from 'pixelfx/fx/critters/fish-school';
 import * as bat from 'pixelfx/fx/critters/bat';
 import * as wisp from 'pixelfx/fx/critters/wisp';
 
@@ -137,10 +137,9 @@ const VIOLET_FOG = ['#0e0a18', '#1c1430', '#2c1f48', '#43306a', '#5f4890', '#846
 
 export const FLOOR_AMBIENT: Ambient[][] = [
     [
-        { mod: torch, fx: 0.07, fy: 0.42 },
-        { mod: torch, fx: 0.93, fy: 0.42, opts: { seed: 9 } },
-        { mod: bat, fx: 0.62, fy: 0.16 },
-        { mod: fireflies, fx: 0.5, fy: 0.98, tile: 320, opts: { light: 0.8 } },
+        { mod: bubbles, fx: 0.12, fy: 0.7 },
+        { mod: bubbles, fx: 0.88, fy: 0.7, opts: { seed: 6 } },
+        { mod: fishSchool, fx: 0.55, fy: 0.2 },
     ],
     [
         { mod: fog, fx: 0.5, fy: 1.02, tile: 320, opts: { light: 0.7 } },
@@ -152,5 +151,25 @@ export const FLOOR_AMBIENT: Ambient[][] = [
         { mod: spiritFlame, fx: 0.93, fy: 0.42, opts: { seed: 3, palette: ['#10041a', '#2a0838', '#4a1060', '#6e1c8a', '#9a34b8', '#c264de', '#e6a8f6', '#f8e0ff', '#ffffff'] } },
         { mod: bat, fx: 0.4, fy: 0.15, opts: { seed: 2 } },
         { mod: fog, fx: 0.5, fy: 1.02, tile: 320, opts: { palette: VIOLET_FOG, light: 0.6 } },
+    ],
+];
+
+/** 지도 화면 배경 앰비언트 (전투보다 잔잔하게) */
+export const MAP_AMBIENT: Ambient[][] = [
+    [
+        { mod: fishSchool, fx: 0.8, fy: 0.22 },
+        { mod: fishSchool, fx: 0.18, fy: 0.62, opts: { seed: 4 } },
+        { mod: bubbles, fx: 0.06, fy: 1.0 },
+        { mod: bubbles, fx: 0.95, fy: 0.9, opts: { seed: 9 } },
+    ],
+    [
+        { mod: fog, fx: 0.5, fy: 1.02, tile: 320, opts: { light: 0.6 } },
+        { mod: wisp, fx: 0.1, fy: 0.55, opts: { seed: 8 } },
+        { mod: wisp, fx: 0.9, fy: 0.75, opts: { seed: 2 } },
+    ],
+    [
+        { mod: fog, fx: 0.5, fy: 1.02, tile: 320, opts: { palette: VIOLET_FOG, light: 0.5 } },
+        { mod: bat, fx: 0.15, fy: 0.2, opts: { seed: 7 } },
+        { mod: wisp, fx: 0.88, fy: 0.6, opts: { seed: 3, palette: ['#0e0618', '#241040', '#3e1a6a', '#6a2ea0', '#9a52d0', '#c99af0', '#f2e2ff'] } },
     ],
 ];

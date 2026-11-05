@@ -6,7 +6,7 @@ import { ENEMIES } from '../game/enemies';
 import type { Action } from '../game/run';
 import type { CardInst, CombatState, EnemyState, Fx, Intent } from '../game/types';
 import { CardGrid, CardView, HpBar, Modal, StatusList } from './common';
-import { FxView, HeroView, type HeroAction } from './Actors';
+import { FxView, HeroView, SceneryView, type HeroAction } from './Actors';
 import { FX } from './creatures';
 import { CARD_ACT } from './heroActs';
 import { FxCanvas, type HitStopClock } from './FxCanvas';
@@ -220,11 +220,8 @@ export function CombatScreen({ combat: c, floor, dispatch }: { combat: CombatSta
     return (
         <div className={`combat ${selected !== null ? 'targeting' : ''}`}>
             <div className="battlefield" ref={fieldRef}>
-                <div className={`backdrop floor-${floor}`} aria-hidden>
-                    <div className="bd-far" />
-                    <div className="bd-mid" />
-                    <div className="bd-floor" />
-                    <div className="bd-light" />
+                <div className="scenery" aria-hidden>
+                    <SceneryView floor={floor} ground seed={floor + 3} />
                 </div>
                 <FxCanvas container={fieldRef} ambient={FLOOR_AMBIENT[floor]} className="fx-back" clock={clock} />
                 <div className="fighter player-side">

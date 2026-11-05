@@ -120,8 +120,8 @@ export interface FloorTheme {
 
 export const FLOORS: FloorTheme[] = [
     {
-        name: '이끼 동굴',
-        subtitle: '축축한 흙냄새와 낡은 횃불 자국',
+        name: '잠긴 동굴',
+        subtitle: '물에 잠긴 동굴, 빛이 물결 따라 일렁인다',
         encounters: [['blob', 'blob'], ['goblin_spear'], ['goblin_archer', 'blob'], ['imp', 'imp'], ['goblin_spear', 'goblin_archer']],
         elites: [['goblin_brute']],
         boss: ['goblin_chief'],

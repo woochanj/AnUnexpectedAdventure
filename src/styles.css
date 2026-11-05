@@ -4182,3 +4182,32 @@ kbd {
         display: block;
     }
 }
+
+/* 새 버전 알림 */
+.update-banner {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px 8px 16px;
+    border: 3px solid var(--ui-ink);
+    border-radius: 14px;
+    background: var(--ui-parch);
+    color: #2a1a10;
+    box-shadow: 0 5px 0 var(--ui-ink), 0 12px 30px rgba(0, 0, 0, 0.4);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    animation: combo-pop 0.25s steps(3, end);
+}
+.update-close {
+    border: none;
+    background: none;
+    color: #6a5040;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px;
+}

@@ -1,8 +1,8 @@
-// 새 버전 알림: 몇 분마다(그리고 앱으로 돌아올 때마다) 서버의 index.html을 캐시 없이 받아,
+// 새 버전 알림: 10분마다(그리고 앱으로 돌아올 때마다) 서버의 index.html을 캐시 없이 받아,
 // 지금 실행 중인 스크립트와 다른 버전이면 "새로고침" 버튼을 띄운다. 세이브는 localStorage라 그대로 남는다.
 import { useEffect, useState } from 'react';
 
-const CHECK_EVERY = 3 * 60 * 1000;
+const CHECK_EVERY = 10 * 60 * 1000;
 const SCRIPT_RE = /assets\/index-[\w-]+\.js/;
 
 /** 지금 페이지가 불러온 메인 스크립트 이름 */

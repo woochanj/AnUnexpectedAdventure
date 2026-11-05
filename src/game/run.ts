@@ -319,8 +319,8 @@ function move(run: RunState, to: number) {
     const here = room(run);
     if (!here.links.includes(to)) return;
     const there = run.map.cells[to]!;
-    // 지나온 아래쪽으로는 돌아가지 않는다
-    if (!canStep(here, there)) return;
+    // 지나온 쪽(아래·옆으로 지나온 방)으로는 돌아가지 않는다
+    if (!canStep(here, there, run.map.cells)) return;
     const dx = there.x - here.x;
     const dy = there.y - here.y;
     run.facing = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';

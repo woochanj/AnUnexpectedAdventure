@@ -1,6 +1,7 @@
 // 밸런스 시뮬레이터: 탐욕 AI가 런을 끝까지 돌려 직업별 승률과 사망 지점을 잰다.
 // 실행: npx esbuild scripts/sim.ts --bundle --platform=node --outfile=/tmp/sim.cjs && node /tmp/sim.cjs 100
 import { reducer, type Action, type GameState } from '../src/game/run';
+import { canStep } from '../src/game/map';
 import { canPlay, intentDamage } from '../src/game/combat';
 import { cardStats, needsTarget, CARDS } from '../src/game/cards';
 import { EVENTS } from '../src/game/events';
@@ -165,22 +166,11 @@ export function playRun(cls: ClassId): Result {
                 const cells = run.map.cells;
                 const here = cells[run.pos]!;
                 const hp = run.hp / run.maxHp;
-                const canUp = here.links.some((id) => cells[id]!.y < here.y);
-                if (!canUp) {
-                    // 위로 갈 길이 없으면 같은 줄에서 위로 이어진 방까지 곧장 간다
-                    const path = bfsPath(run, (id) => cells[id]!.y === here.y && cells[id]!.links.some((n) => cells[n]!.y < here.y));
-                    if (path) {
-                        st = reducer(st, { type: 'move', to: path[0] });
-                        break;
-                    }
-                }
-                // 위로 갈 길이 없으면 옆으로는 몇 번이든 간다
-                const side = canUp && (sideSteps.get(here.y) ?? 0) >= 2;
+                // 게임과 같은 규칙: 위로, 또는 아직 안 간 옆방으로만 (되돌아가지 않는다)
                 let best: { id: number; v: number } | null = null;
                 for (const id of here.links) {
                     const r = cells[id]!;
-                    if (r.y > here.y) continue;
-                    if (r.y === here.y && side) continue;
+                    if (!canStep(here, r, cells)) continue;
                     let v = r.y < here.y ? 2 : -1;
                     if (r.cleared || r.visited) v -= 3;
                     else if (r.type === 'rest') v += hp < 0.55 ? 6 : 1;

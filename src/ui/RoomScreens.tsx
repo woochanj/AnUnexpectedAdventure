@@ -25,6 +25,15 @@ function Panel({ title, art, children, className }: { title: string; art?: React
 }
 
 export function RewardScreen({ s, dispatch }: { s: Extract<Screen, { kind: 'reward' }>; dispatch: D }) {
+    // 고른 카드: 번쩍 커졌다가 덱으로 날아가고, 나머지는 물러난다. 연출이 끝나면 덱에 넣는다
+    const [picked, setPicked] = useState<string | null>(null);
+    const pick = (id: string) => {
+        if (picked) return;
+        sfx.card();
+        sfx.upgrade();
+        setPicked(id);
+        window.setTimeout(() => dispatch({ type: 'takeCard', id }), 720);
+    };
     return (
         <Panel title={s.combatKind === 'boss' ? '보스 처치!' : s.combatKind === 'elite' ? '강적을 쓰러뜨렸다' : '전리품'}>
             <div className="reward-list">
@@ -59,12 +68,14 @@ export function RewardScreen({ s, dispatch }: { s: Extract<Screen, { kind: 'rewa
             {!s.cardsDone ? (
                 <>
                     <p className="panel-sub">카드 한 장을 덱에 넣을 수 있다</p>
-                    <div className="card-row">
-                        {s.cards.map((id) => (
-                            <CardView key={id} card={{ id, upgraded: false }} onClick={() => (sfx.card(), dispatch({ type: 'takeCard', id }))} />
+                    <div className={`card-row reward-cards ${picked ? 'has-pick' : ''}`}>
+                        {s.cards.map((id, i) => (
+                            <div key={id} className={`reward-card ${picked === id ? 'picked' : picked ? 'unpicked' : ''}`} style={{ ['--i' as string]: i }}>
+                                <CardView card={{ id, upgraded: false }} onClick={() => pick(id)} />
+                            </div>
                         ))}
                     </div>
-                    <button className="btn btn-ghost" onClick={() => dispatch({ type: 'skipCards' })}>
+                    <button className="btn btn-ghost" disabled={!!picked} onClick={() => dispatch({ type: 'skipCards' })}>
                         카드 건너뛰기
                     </button>
                 </>

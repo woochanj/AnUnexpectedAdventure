@@ -165,8 +165,29 @@ function reachBackward(cells: (Room | null)[], to: number): Set<number> {
     return seen;
 }
 
-/** 앞으로 갈 수 있는 이동인가 (아래로는 돌아가지 않는다) */
-export const canStep = (from: Room, to: Room) => to.y <= from.y;
+/**
+ * 앞으로 갈 수 있는 이동인가.
+ * - 위로는 늘 갈 수 있고, 아래로는 돌아가지 않는다.
+ * - 옆으로는 아직 안 간 방으로만 (지나온 방으로 되돌아가지 않는다: 한 번 고른 길에 책임진다).
+ * - 옆으로 갔다가 위로 올라갈 길이 하나도 없으면 막다른 곳이니 처음부터 가지 않는다.
+ */
+export function canStep(from: Room, to: Room, cells: (Room | null)[]): boolean {
+    if (to.y < from.y) return true;
+    if (to.y > from.y || to.visited) return false;
+    const seen = new Set([from.id]);
+    const q = [to];
+    while (q.length) {
+        const r = q.pop()!;
+        seen.add(r.id);
+        for (const id of r.links) {
+            const m = cells[id];
+            if (!m) continue;
+            if (m.y < r.y) return true;
+            if (m.y === r.y && !m.visited && !seen.has(m.id)) q.push(m);
+        }
+    }
+    return false;
+}
 
 export function bfs(cells: (Room | null)[], from: number): Map<number, number> {
     const dist = new Map<number, number>([[from, 0]]);

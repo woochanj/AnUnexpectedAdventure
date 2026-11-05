@@ -103,7 +103,10 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
             </header>
 
             <div className="map-layout">
-                <div className="map-frame">
+                {/* 탐험대가 직접 그려 나가는 양피지 지도: 안 간 곳은 그림자에 지워진 여백, 다가가면 잉크로 그려진다 */}
+                <div className="map-frame parchment">
+                    <span className="map-compass" aria-hidden />
+                    <span className={`map-doodle doodle-${theme.id}`} aria-hidden />
                     <div className="map-board" style={{ ['--cols' as string]: map.w, ['--rows' as string]: map.h }}>
                         {corridors.map(({ a, b }) => {
                             if (!a.seen || !b.seen) return null;
@@ -117,13 +120,14 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
                             );
                         })}
                         {rooms.map((r) => {
-                            const reachable = here.links.includes(r.id) && canStep(here, r);
+                            const reachable = here.links.includes(r.id) && canStep(here, r, map.cells);
                             const cls = [
                                 'room', `room-${r.type}`,
                                 r.seen ? 'seen' : 'hidden', r.visited && 'visited', r.cleared && 'cleared', reachable && 'reachable', r.id === run.pos && 'current',
                             ].filter(Boolean).join(' ');
                             const label = roomLabel(r);
-                            const showIcon = r.seen && r.id !== run.pos && (!r.cleared || r.type === 'shop' || r.type === 'boss');
+                            // 지나온 방은 그림 대신 붉은 잉크 X 하나만 (모닥불 등이 그대로 타고 있으면 아직 안 쓴 방처럼 보인다)
+                            const showIcon = r.seen && r.id !== run.pos && !r.visited;
                             return (
                                 <button
                                     key={r.id}
@@ -157,14 +161,17 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
                         <div className="progress-fill" style={{ width: `${progress}%` }} />
                     </div>
                     <p className={`journal-boss ${boss?.seen ? 'found' : ''}`}>{bossText}</p>
-                    <div className="legend">
-                        {LEGEND.map((t) => (
-                            <span key={t} className="legend-chip">
-                                <span className={`legend-ico ico-room-${t}`} aria-hidden />
-                                {ROOM_NAME[t]}
-                            </span>
-                        ))}
-                    </div>
+                    <details className="legend-fold">
+                        <summary>표식 보기</summary>
+                        <div className="legend">
+                            {LEGEND.map((t) => (
+                                <span key={t} className="legend-chip">
+                                    <span className={`legend-ico ico-room-${t}`} aria-hidden />
+                                    {ROOM_NAME[t]}
+                                </span>
+                            ))}
+                        </div>
+                    </details>
                     <p className="journal-hint">
                         <kbd>W</kbd>
                         <kbd>A</kbd>

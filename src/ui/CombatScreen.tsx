@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode, useMemo } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Dispatch, type ReactNode, useMemo } from 'react';
 import { cardStats, needsTarget, STATUS_INFO } from '../game/cards';
 import { AFFIXES, ATTACK_WINDUP, FREEZE_AT, chargeOf, windupOf, canPlay, ENEMY_LEAD, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
@@ -563,6 +563,38 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
     const suppressClick = useRef(false);
     const handRef = useRef<HTMLDivElement>(null);
 
+    // 카드를 내면 남은 카드가 빈자리 쪽으로 한 장씩 차례로 미끄러져 놓인다.
+    // (레이아웃은 바로 바뀌므로, 바뀌기 전 자리에서 새 자리로 옮겨 가는 것처럼 보이게 한다)
+    const handPos = useRef(new Map<string, DOMRect>());
+    useLayoutEffect(() => {
+        const el = handRef.current;
+        if (!el) return;
+        const slots = Array.from(el.querySelectorAll<HTMLElement>('.hand-slot[data-uid]'));
+        const next = new Map<string, DOMRect>();
+        const moves: { card: HTMLElement; dx: number; dy: number; dist: number }[] = [];
+        for (const s of slots) {
+            const r = s.getBoundingClientRect();
+            next.set(s.dataset.uid!, r);
+            const prev = handPos.current.get(s.dataset.uid!);
+            const card = s.querySelector<HTMLElement>('.card');
+            if (!prev || !card || s.classList.contains('dragging')) continue;
+            const dx = prev.left - r.left;
+            const dy = prev.top - r.top;
+            if (Math.abs(dx) + Math.abs(dy) > 2) moves.push({ card, dx, dy, dist: Math.abs(dx) });
+        }
+        // 가장 조금 움직이는 카드(빈자리 바로 옆)부터 차례로
+        moves.sort((a, b) => a.dist - b.dist);
+        moves.forEach((m, k) =>
+            m.card.animate([{ transform: `translate(${m.dx}px, ${m.dy}px)` }, { transform: `translate(0, -6px)`, offset: 0.8 }, { transform: 'none' }], {
+                duration: 340,
+                delay: k * 60,
+                easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)',
+                fill: 'backwards',
+            }),
+        );
+        handPos.current = next;
+    }, [c.hand]);
+
     const startDrag = (ev: React.PointerEvent<HTMLDivElement>, idx: number) => {
         if (ev.button !== 0 || locked) return;
         const card = c.hand[idx];
@@ -769,6 +801,7 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                         return (
                         <div
                             key={card.uid}
+                            data-uid={card.uid}
                             className={`hand-slot ${dragging ? 'dragging' : ''} ${lift && drag.release ? 'will-play' : ''} ${comboReady(card, c) ? 'combo-ready' : ''} ${!locked && canPlay(c, card) ? 'playable' : ''}`}
                             style={{
                                 ['--i' as string]: i,

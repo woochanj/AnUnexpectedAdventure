@@ -4557,7 +4557,7 @@ body {
         height: 5px;
     }
 }
-/* 카드 뽑기: 왼쪽 아래 뽑을 더미에서 날아와 손에 자리 잡는다 (빠르게 출발, 부드럽게 멈춤).
+/* 카드 뽑기: 오른쪽에서 날아와 손에 자리 잡는다 (빠르게 출발, 부드럽게 멈춤).
    새로 생긴 카드만 (React가 카드마다 key로 유지하므로 기존 카드는 다시 재생되지 않는다) */
 .hand-slot > .card {
     /* backwards: 끝난 뒤에는 애니메이션 값이 남지 않아 hover·선택 들림이 그대로 동작 */
@@ -4567,13 +4567,13 @@ body {
 @keyframes card-draw {
     0% {
         opacity: 0;
-        transform: translate(-46vw, 40px) rotate(-24deg) scale(0.45);
+        transform: translate(46vw, 40px) rotate(24deg) scale(0.45);
     }
     55% {
         opacity: 1;
     }
     80% {
-        transform: translate(0, -10px) rotate(2deg) scale(1.02);
+        transform: translate(0, -10px) rotate(-2deg) scale(1.02);
     }
     100% {
         transform: none;

@@ -1,10 +1,9 @@
 import { canStep } from '../game/map';
-import { useEffect, useRef, useState, type Dispatch } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch } from 'react';
 import { ENEMIES } from '../game/enemies';
 import { FLOOR_COUNT, type Action } from '../game/run';
 import type { Room, RoomType, RunState } from '../game/types';
-import { FxView, HeroView, monsterStill, SceneryView } from './Actors';
-import { FX } from './creatures';
+import { HeroView, monsterStill, SceneryView } from './Actors';
 import { sfx } from './sfx';
 import { spriteStillStyle } from './SpriteActor';
 import { FxCanvas } from './FxCanvas';
@@ -24,10 +23,33 @@ function RoomIcon({ room }: { room: Room }) {
             return <span className={`room-enemy room-sprite room-enemy-${room.type}`} style={{ ...spriteStillStyle(def.look.sprite ?? 'slime', room.type === 'combat' ? 30 : 40), filter: def.look.filter }} />;
         return <img src={monsterStill(def.id, def.look)} alt="" className={`room-enemy room-enemy-${room.type}`} draggable={false} />;
     }
-    // 모닥불은 지도에서도 실제로 타오른다
-    if (room.type === 'rest') return <FxView mod={FX['fire/campfire']} scale={1} maxW={44} className="room-fire" />;
+    // 모닥불은 지도에서는 깔끔한 불꽃 표식으로 (진짜 불 이펙트는 연기가 위 칸까지 번져 지저분하다)
     return <span className={`room-glyph glyph-${room.type}`} aria-hidden />;
 }
+
+/**
+ * 해적 보물지도처럼 찢긴 종이 가장자리. 지역마다 찢긴 모양이 다르다 (같은 지역에서는 늘 같은 모양).
+ * 네 변을 따라 조금씩 안쪽으로 들쭉날쭉한 점을 찍고, 귀퉁이는 크게 떨어져 나간 것처럼.
+ */
+function tornEdge(seed: number): string {
+    let x = seed * 9301 + 49297;
+    const rnd = () => ((x = (x * 9301 + 49297) % 233280) / 233280);
+    const pts: string[] = [];
+    const bite = (base: number) => base + rnd() * 2.6 + (rnd() < 0.12 ? 2.2 : 0);
+    const step = 3.2;
+    for (let t = 4; t <= 96; t += step * (0.6 + rnd() * 0.8)) pts.push(`${t.toFixed(1)}% ${bite(0).toFixed(1)}%`);
+    pts.push(`${(97 + rnd()).toFixed(1)}% ${(2.5 + rnd() * 2).toFixed(1)}%`);
+    for (let t = 4; t <= 96; t += step * (0.6 + rnd() * 0.8)) pts.push(`${(100 - bite(0)).toFixed(1)}% ${t.toFixed(1)}%`);
+    pts.push(`${(96 - rnd() * 2).toFixed(1)}% ${(97 + rnd()).toFixed(1)}%`);
+    for (let t = 96; t >= 4; t -= step * (0.6 + rnd() * 0.8)) pts.push(`${t.toFixed(1)}% ${(100 - bite(0)).toFixed(1)}%`);
+    pts.push(`${(2.5 + rnd() * 2).toFixed(1)}% ${(96 - rnd() * 2).toFixed(1)}%`);
+    for (let t = 96; t >= 4; t -= step * (0.6 + rnd() * 0.8)) pts.push(`${bite(0).toFixed(1)}% ${t.toFixed(1)}%`);
+    pts.push(`${(3 + rnd() * 2).toFixed(1)}% ${(2 + rnd() * 2).toFixed(1)}%`);
+    return `polygon(${pts.join(', ')})`;
+}
+
+/** 지역에 처음 들어왔을 때만 지도가 날아와 펼쳐진다 (방에서 돌아올 때마다 펼치면 번거롭다) */
+const unfolded = new Set<string>();
 
 function roomLabel(r: Room): string {
     if (!r.seen) return '안개에 가려진 방';
@@ -78,6 +100,12 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
     for (const r of rooms) for (const id of r.links) if (id > r.id) corridors.push({ a: r, b: map.cells[id]! });
 
     const theme = regionOf(run);
+    const edge = useMemo(() => tornEdge(run.expedition * 7 + run.floor * 31 + 3), [run.expedition, run.floor]);
+    const unfoldKey = `${run.expedition}-${run.floor}`;
+    const [unfold] = useState(() => !unfolded.has(unfoldKey));
+    useEffect(() => {
+        unfolded.add(unfoldKey);
+    }, [unfoldKey]);
     const visited = rooms.filter((r) => r.visited).length;
     const progress = Math.round((visited / rooms.length) * 100);
     const boss = rooms.find((r) => r.type === 'boss');
@@ -104,7 +132,7 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
 
             <div className="map-layout">
                 {/* 탐험대가 직접 그려 나가는 양피지 지도: 안 간 곳은 그림자에 지워진 여백, 다가가면 잉크로 그려진다 */}
-                <div className="map-frame parchment">
+                <div className={`map-frame parchment ${unfold ? 'unfold' : ''}`} style={{ clipPath: edge }}>
                     <span className="map-compass" aria-hidden />
                     <span className={`map-doodle doodle-${theme.id}`} aria-hidden />
                     <div className="map-board" style={{ ['--cols' as string]: map.w, ['--rows' as string]: map.h }}>
@@ -144,7 +172,7 @@ export function MapScreen({ run, dispatch }: { run: RunState; dispatch: Dispatch
                             );
                         })}
                         <div className="map-player" style={{ ['--x' as string]: here.x, ['--y' as string]: here.y }}>
-                            <HeroView char={run.hero} scale={1} flip={run.facing === 'left'} walking={walking} className={walking ? 'walking' : ''} />
+                            <HeroView char={run.hero} scale={1.9} flip={run.facing === 'left'} walking={walking} className={walking ? 'walking' : ''} />
                         </div>
                     </div>
                 </div>

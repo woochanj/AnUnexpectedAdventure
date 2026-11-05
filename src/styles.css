@@ -4961,3 +4961,105 @@ body {
     opacity: 0.85;
     clip-path: polygon(14% 0, 50% 36%, 86% 0, 100% 14%, 64% 50%, 100% 86%, 86% 100%, 50% 64%, 14% 100%, 0 86%, 36% 50%, 0 14%);
 }
+
+/* ═════ 해적 보물지도: 찢기고 그을린 낡은 종이, 얼룩, 나침반 장미 ═════ */
+.map-scene .map-frame.parchment {
+    border-radius: 0;
+    -webkit-mask-image: none;
+    mask-image: none;
+    box-shadow: none;
+    /* 찢긴 모양(clip-path)을 따라 그림자를 주려면 filter를 쓴다 */
+    filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.5));
+    background:
+        /* 가장자리가 불에 그을린 듯 짙어진다 */
+        radial-gradient(ellipse 72% 70% at 50% 50%, transparent 58%, rgba(110, 60, 20, 0.35) 78%, rgba(70, 35, 10, 0.75) 92%, rgba(40, 18, 5, 0.95) 100%),
+        /* 커피 얼룩·물 자국 */
+        radial-gradient(circle at 22% 18%, rgba(140, 90, 40, 0.22) 0 7%, transparent 7.5% 9%, rgba(140, 90, 40, 0.12) 9.5% 10%, transparent 10.5%),
+        radial-gradient(circle at 78% 64%, rgba(140, 90, 40, 0.16) 0 9%, transparent 12%),
+        radial-gradient(circle at 35% 82%, rgba(120, 70, 30, 0.14) 0 6%, transparent 9%),
+        radial-gradient(ellipse at 65% 25%, rgba(255, 245, 215, 0.35), transparent 40%),
+        repeating-linear-gradient(17deg, rgba(120, 80, 40, 0.05) 0 2px, transparent 2px 7px),
+        repeating-linear-gradient(-31deg, rgba(120, 80, 40, 0.04) 0 1px, transparent 1px 9px),
+        linear-gradient(160deg, #f0dba6, #e2c285 55%, #cfa765);
+}
+.map-scene .map-frame.parchment::before,
+.map-scene .map-frame.parchment::after {
+    display: none;
+}
+/* 나침반 장미: 바깥 고리 + 8방향 별 + N 표시 */
+.map-compass {
+    right: 18px;
+    top: 18px;
+    width: 64px;
+    height: 64px;
+    opacity: 0.85;
+    clip-path: none;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><g fill='none' stroke='%234a2c14' stroke-width='1.2'><circle cx='32' cy='34' r='22'/><circle cx='32' cy='34' r='18' stroke-dasharray='2 2'/></g><g fill='%234a2c14'><path d='M32 6 L36 30 L32 34 L28 30 Z'/><path d='M32 62 L28 38 L32 34 L36 38 Z' fill='%23a06a3a'/><path d='M4 34 L28 30 L32 34 L28 38 Z' fill='%23a06a3a'/><path d='M60 34 L36 38 L32 34 L36 30 Z' fill='%23a06a3a'/></g><g fill='%238a1a14'><path d='M32 6 L34 30 L32 34 Z'/></g><g fill='%23a06a3a' opacity='0.8'><path d='M15 17 L30 32 L32 34 L28 32 Z'/><path d='M49 17 L34 32 L32 34 L32 30 Z'/><path d='M15 51 L30 36 L32 34 L32 38 Z'/><path d='M49 51 L34 36 L32 34 L36 36 Z'/></g><text x='32' y='5' font-size='7' text-anchor='middle' font-family='serif' font-weight='bold' fill='%238a1a14'>N</text></svg>") center / contain no-repeat;
+}
+.map-doodle {
+    left: 22px;
+    bottom: 20px;
+    font-size: 30px;
+}
+/* 지도에 내 캐릭터: 크게 (스프라이트가 transform을 매 프레임 쓰므로 scale 속성으로) */
+.map-scene .map-player .hero-canvas {
+    transform-origin: 50% 90%;
+}
+.map-scene .map-player .hero-canvas.walking {
+    animation: none;
+    translate: 0 -4px;
+}
+.map-scene .map-player {
+    z-index: 5;
+}
+
+/* 지역에 처음 들어오면: 말린 지도가 부드럽게 날아와 쫙 펼쳐진다 */
+.map-scene .map-frame.parchment.unfold {
+    animation: map-unfold 1.15s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+    transform-origin: 50% 50%;
+}
+@keyframes map-unfold {
+    0% {
+        opacity: 0;
+        transform: translate(-30vw, 50vh) rotate(-14deg) scale(0.35, 0.06);
+    }
+    38% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(-3deg) scale(0.42, 0.9);
+    }
+    62% {
+        transform: rotate(1deg) scale(1.04, 0.98);
+    }
+    80% {
+        transform: rotate(-0.5deg) scale(0.99, 1.01);
+    }
+    100% {
+        transform: none;
+    }
+}
+.map-scene .map-frame.parchment.unfold .map-board {
+    animation: map-ink 0.6s ease-out 0.75s both;
+}
+@keyframes map-ink {
+    from { opacity: 0; filter: blur(2px); }
+    to { opacity: 1; filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .map-scene .map-frame.parchment.unfold,
+    .map-scene .map-frame.parchment.unfold .map-board {
+        animation: none;
+    }
+}
+/* 그을린 가장자리를 더 진하게: 세로로 긴 지도에서도 네 변 모두 타 들어가게 (closest-side) */
+.map-scene .map-frame.parchment {
+    background:
+        radial-gradient(ellipse 62% 56% at 50% 50%, transparent 80%, rgba(120, 66, 22, 0.22) 100%),
+        linear-gradient(90deg, rgba(60, 28, 8, 0.7), rgba(90, 45, 15, 0.25) 3%, transparent 6%, transparent 94%, rgba(90, 45, 15, 0.25) 97%, rgba(60, 28, 8, 0.7)),
+        linear-gradient(180deg, rgba(60, 28, 8, 0.65), rgba(90, 45, 15, 0.2) 2%, transparent 4%, transparent 96%, rgba(90, 45, 15, 0.2) 98%, rgba(60, 28, 8, 0.65)),
+        radial-gradient(circle at 22% 18%, rgba(140, 90, 40, 0.22) 0 7%, transparent 7.5% 9%, rgba(140, 90, 40, 0.12) 9.5% 10%, transparent 10.5%),
+        radial-gradient(circle at 78% 64%, rgba(140, 90, 40, 0.16) 0 9%, transparent 12%),
+        radial-gradient(circle at 35% 82%, rgba(120, 70, 30, 0.14) 0 6%, transparent 9%),
+        radial-gradient(ellipse at 65% 25%, rgba(255, 245, 215, 0.35), transparent 40%),
+        repeating-linear-gradient(17deg, rgba(120, 80, 40, 0.05) 0 2px, transparent 2px 7px),
+        linear-gradient(160deg, #f0dba6, #e2c285 55%, #cfa765);
+}

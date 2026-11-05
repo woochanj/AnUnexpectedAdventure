@@ -3593,3 +3593,72 @@ kbd {
 .hand-slot {
     position: relative;
 }
+
+/* ── 코스트: 픽셀 마나 수정 (육각 보석) ── */
+.card .card-cost {
+    width: 30px;
+    height: 34px;
+    top: -10px;
+    left: -10px;
+    border: none;
+    border-radius: 0;
+    background: var(--ui-ink);
+    clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
+    color: #fffbe8;
+    text-shadow: 0 2px 0 #1a3a6a, 2px 0 0 #1a3a6a, -2px 0 0 #1a3a6a, 0 -2px 0 #1a3a6a;
+    isolation: isolate;
+    z-index: 3;
+}
+.card .card-cost::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    z-index: -1;
+    clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
+    /* 왼쪽 위 밝은 면, 오른쪽 아래 어두운 면 */
+    background:
+        linear-gradient(135deg, #bff0ff 0 28%, transparent 28%),
+        linear-gradient(315deg, #1e5aa8 0 30%, transparent 30%),
+        linear-gradient(#5ab8ff, #2a7ae0);
+}
+/* 강화로 코스트가 줄었으면 초록 수정 */
+.card.cost-down .card-cost::before {
+    background:
+        linear-gradient(135deg, #d8ffc8 0 28%, transparent 28%),
+        linear-gradient(315deg, #1e7a3a 0 30%, transparent 30%),
+        linear-gradient(#6ae070, #2aa04a);
+}
+.card.cost-down .card-cost {
+    text-shadow: 0 2px 0 #145a28, 2px 0 0 #145a28, -2px 0 0 #145a28, 0 -2px 0 #145a28;
+}
+/* 저주: 회색 수정 */
+.card.card-curse .card-cost::before {
+    background: linear-gradient(#8a8aa0, #4a4a60);
+}
+
+/* 전투 에너지도 같은 큰 마나 수정 */
+.hand-left .energy {
+    width: 64px;
+    height: 72px;
+    border: none;
+    border-radius: 0;
+    background: var(--ui-ink);
+    clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
+    box-shadow: none;
+    color: #fffbe8;
+    text-shadow: 0 2px 0 #1a3a6a, 2px 0 0 #1a3a6a, -2px 0 0 #1a3a6a, 0 -2px 0 #1a3a6a;
+    position: relative;
+    isolation: isolate;
+    filter: drop-shadow(0 4px 0 var(--ui-ink)) drop-shadow(0 0 12px rgba(90, 184, 255, 0.6));
+}
+.hand-left .energy::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    z-index: -1;
+    clip-path: polygon(50% 0, 100% 26%, 100% 74%, 50% 100%, 0 74%, 0 26%);
+    background:
+        linear-gradient(135deg, #bff0ff 0 26%, transparent 26%),
+        linear-gradient(315deg, #1e5aa8 0 30%, transparent 30%),
+        linear-gradient(#5ab8ff, #2a7ae0);
+}

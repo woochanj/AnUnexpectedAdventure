@@ -24,12 +24,12 @@ export function CardView({
             type="button"
             className={[
                 'card', `card-${s.def.type}`, `rarity-${s.def.rarity}`,
-                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', s.level > 1 && 'card-up', s.def.unplayable && 'card-curse',
+                disabled && 'card-disabled', selected && 'card-selected', small && 'card-small', s.level > 1 && 'card-up', s.def.unplayable && 'card-curse', s.cost < s.def.cost && 'cost-down',
             ].filter(Boolean).join(' ')}
             onClick={onClick}
             aria-disabled={disabled}
         >
-            <span className="card-cost">{s.def.unplayable ? '✕' : (cost ?? s.cost)}</span>
+            <span className="card-cost" title={s.cost < s.def.cost ? `강화로 코스트 ${s.def.cost} → ${s.cost}` : '코스트 (에너지)'}>{s.def.unplayable ? '✕' : (cost ?? s.cost)}</span>
             <span className="card-name">{s.name}</span>
             <span className="card-art">
                 {art ? <img src={art} alt="" draggable={false} /> : <span className={`card-art-fallback art-${s.def.type}`} />}

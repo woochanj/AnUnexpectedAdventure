@@ -2,11 +2,12 @@ import { useEffect, useRef, type RefObject } from 'react';
 import { clearFrame, composite, createFrame, createFx, type Frame, type FxInstance } from 'pixelfx';
 import type { Cue, Fx } from '../game/types';
 import * as damageNumber from 'pixelfx/fx/ui/damage-number';
-import * as critNumber from 'pixelfx/fx/ui/crit-number';
+import { critNumberHeavy as critNumber, critSlam } from './critFx';
 
 /** 내가 준 피해: 금색, 독: 초록, 받은 피해: 기본(빨강) */
 const GOLD = ['#1a0e02', '#4a2a06', '#8a5a0c', '#d8961a', '#ffc23a', '#ffe08a', '#fff4cc', '#ffffff'];
 const CRIT_GOLD = ['#2a1402', '#5e2a06', '#a3500c', '#e0861a', '#ffb93b', '#ffe068', '#fff6b8', '#ffffff'];
+const CRIT_RED = ['#1a0306', '#4a0a12', '#8a1424', '#d42a2e', '#ff5a4a', '#ff9a86', '#ffd8cc', '#ffffff'];
 const POISON = ['#04140a', '#0a3a14', '#167a24', '#34b83a', '#7ae05a', '#b8ff8a', '#e8ffd0', '#ffffff'];
 import { cueVfx, impactTier, type Ambient, type VfxSpec } from './vfx';
 
@@ -248,11 +249,11 @@ export function FxCanvas({
                 const jitter = ((f.id * 37) % 5) * 6 - 12;
                 const x = Math.round((r.left + r.width / 2 - box.left) / st.scale + jitter);
                 // 치명타는 몸을 가리지 않게 머리 위, 공격자 쪽으로 비켜서
-                const y = Math.round((f.crit ? r.top - r.height * 0.15 : r.top + r.height * 0.2) - box.top) / st.scale;
+                const y = Math.max(46, Math.round((f.crit ? r.top + r.height * 0.02 : r.top + r.height * 0.2) - box.top) / st.scale);
                 const xShift = f.crit ? (f.target === 'player' ? 40 : -40) / st.scale : 0;
                 const toPlayer = f.target === 'player';
                 const opts = f.crit
-                    ? { text: `${f.amount}!`, label: 'CRIT', palette: toPlayer ? undefined : CRIT_GOLD }
+                    ? { text: `${f.amount}!`, palette: toPlayer ? CRIT_RED : CRIT_GOLD }
                     : { text: `-${f.amount}`, palette: f.dot ? POISON : toPlayer ? undefined : GOLD };
                 const fx = createFx(f.crit ? critNumber : damageNumber, { seed: f.id, ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)), x: Math.round(x + xShift), y: Math.round(y) });
                 live.current.push({ fx, speed: f.crit ? 0.8 : 0.75, stopAt: Infinity });
@@ -274,7 +275,10 @@ export function FxCanvas({
         seenHit.current = fresh[fresh.length - 1].id;
         for (const f of fresh) {
             if (f.kind !== 'dmg' || f.dot || !f.amount) continue;
-            for (const spec of impactTier(f.amount, f.target === 'player')) {
+            const tier = impactTier(f.amount, f.target === 'player');
+            // 치명타: 별 폭발 대신 굵은 베임 한 줄과 바닥 충격파
+            if (f.crit) tier.push({ mod: critSlam, at: 'target', speed: 1, opts: { flip: f.target === 'player' } });
+            for (const spec of tier) {
                 if (layer && !!spec.behind !== (layer === 'behind')) continue;
                 const run = () => spawn(spec, f.target);
                 const ms = (f.delay + (spec.delay ?? 0)) * 1000;

@@ -5937,3 +5937,14 @@ body {
         top: -18px;
     }
 }
+
+/* 치명타 한 프레임 섬광 */
+.crit-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 29;
+    background: #fff;
+    pointer-events: none;
+    opacity: 0;
+    mix-blend-mode: screen;
+}

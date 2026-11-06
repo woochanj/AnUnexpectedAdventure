@@ -1,3 +1,4 @@
+import { hitOffsets } from '../game/combat';
 // 적의 공격 몸동작과 쓰러지는 방식. 스프라이트 동작이 적은 몬스터도
 // 몸 전체를 움직여(뛰어들기·급강하·돌진·연타) 매번 다르게 보이게 한다.
 import type { EnemyDef } from '../game/types';
@@ -45,7 +46,10 @@ export const TELEGRAPH_MS = 380;
 
 export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt: number, hits: number, heavy: boolean) {
     const S = ENEMY_TEMPO;
-    const hold = (hits * 140 + 160) * S;
+    // 연타 시각은 게임 쪽과 같은 리듬 (가속 후 마지막에 멈칫)
+    const offs = hitOffsets(hits, false).map((o) => o * 800);
+    const span = offs[offs.length - 1];
+    const hold = (span + 160) * S;
     // 돌아가는 길은 느긋하게 (천천히 출발, 천천히 멈춤)
     const back = 440 * S;
     let approach = 340 * S;
@@ -107,12 +111,18 @@ export function playAttack(el: HTMLElement, move: AttackMove, dx: number, hitAt:
         case 'flurry': {
             // 붙어서 앞뒤로 들썩이며 연타
             const per = 140;
-            const total = approach + hits * per + 120 + back;
+            const total = approach + span + per + 120 + back;
             frames = [{ transform: 'translate(0,0)', offset: 0, easing: 'cubic-bezier(0.55,0,0.9,0.6)' }, { transform: `translate(${dx}px,0)`, offset: t(approach, total) }];
+            let lastMs = approach;
             for (let i = 0; i < hits; i++) {
-                const s = approach + i * per;
-                frames.push({ transform: `translate(${dx - 16}px,-6px) rotate(-6deg)`, offset: t(s + per * 0.3, total) });
-                frames.push({ transform: `translate(${dx + 10}px,0) rotate(4deg)`, offset: t(s + per * 0.75, total) });
+                // 닿는 순간(approach + offs[i]) 직전에 뒤로 젖혔다가 앞으로 친다
+                const hitMs = approach + offs[i] + 10;
+                const pre = Math.min(60, i ? (offs[i] - offs[i - 1]) * 0.5 : 10);
+                // 키프레임은 앞으로만 (첫 타는 도착하자마자)
+                const backMs = Math.max(lastMs, hitMs - pre);
+                frames.push({ transform: `translate(${dx - 16}px,-6px) rotate(-6deg)`, offset: t(backMs, total) });
+                frames.push({ transform: `translate(${dx + 10}px,0) rotate(4deg)`, offset: t(Math.max(backMs, hitMs), total) });
+                lastMs = Math.max(backMs, hitMs);
             }
             frames.push({ transform: `translate(${dx}px,0)`, offset: t(total - back, total), easing: 'cubic-bezier(0.45,0,0.35,1)' });
             frames.push({ transform: 'translate(0,0)', offset: 1 });

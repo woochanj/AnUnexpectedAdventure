@@ -34,6 +34,26 @@ export const windupOf = (def: { type: string; charge?: boolean; ultimate?: boole
 /** 공격 이펙트가 대상에 닿기까지 걸리는 시간(초) */
 export const IMPACT_DELAY = 0.08;
 
+/**
+ * 연타 리듬(초): 첫 타 뒤 한 박자 쉬고, 점점 빨라지다가(가속), 마지막 한 방 앞에서 멈칫(감속) 하고 꽂힌다.
+ * 매번 똑같지 않게 간격마다 조금씩 흔든다.
+ */
+export function hitOffsets(n: number, jitter = true): number[] {
+    const out = [0];
+    if (n <= 1) return out;
+    let t = 0;
+    for (let i = 1; i < n; i++) {
+        const last = i === n - 1;
+        let gap = last && n >= 3 ? 0.26 : Math.max(0.055, 0.2 * Math.pow(0.72, i - 1));
+        if (jitter) gap *= 0.88 + Math.random() * 0.24;
+        t += gap;
+        out.push(+t.toFixed(3));
+    }
+    return out;
+}
+/** 연타 전체 길이(초) (흔들림 없이) */
+export const hitSpan = (n: number) => hitOffsets(n, false).at(-1) ?? 0;
+
 /** 냉기가 이만큼 쌓이면 적이 한 번 얼어붙는다 */
 export const FREEZE_AT = 3;
 
@@ -320,12 +340,24 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
     for (const e of flat) {
         if (c.result) break;
         switch (e.kind) {
-            case 'damage':
-                for (let i = 0; i < (e.hits ?? 1); i++) strike(e.amount + comboBonus);
+            case 'damage': {
+                const base = c.delay;
+                const offs = hitOffsets(e.hits ?? 1);
+                offs.forEach((o) => {
+                    c.delay = base + o;
+                    strike(e.amount + comboBonus);
+                });
                 break;
-            case 'damageAll':
-                for (let i = 0; i < (e.hits ?? 1); i++) for (const en of alive(c)) attack(c, 'player', c.player, en.uid, en, e.amount + comboBonus);
+            }
+            case 'damageAll': {
+                const base = c.delay;
+                const offs = hitOffsets(e.hits ?? 1);
+                offs.forEach((o) => {
+                    c.delay = base + o;
+                    for (const en of alive(c)) attack(c, 'player', c.player, en.uid, en, e.amount + comboBonus);
+                });
                 break;
+            }
             case 'block':
                 gainBlock(c, 'player', c.player, e.amount);
                 break;
@@ -481,8 +513,9 @@ export function endTurn(c: CombatState, run: RunState) {
         if (it.attack !== undefined) {
             const base = c.delay;
             let dealt = 0;
+            const offs = hitOffsets(it.hits ?? 1, false).map((o) => o * 0.8);
             for (let i = 0; i < (it.hits ?? 1); i++) {
-                c.delay = base + IMPACT_DELAY + i * 0.14;
+                c.delay = base + IMPACT_DELAY + offs[i];
                 dealt += attack(c, e.uid, e, 'player', c.player, it.attack);
                 if (e.affix === 'venom' && c.player.hp > 0) addStatus(c.player, 'poison', 1);
             }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Dispatch, type ReactNode, useMemo } from 'react';
 import { cardStats, ELEMENT_NAME, needsTarget, STATUS_INFO } from '../game/cards';
+import { hitOffsets, hitSpan } from '../game/combat';
 import { AFFIXES, ATTACK_WINDUP, FREEZE_AT, chargeOf, windupOf, canPlay, ENEMY_LEAD, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
 import { ENEMIES } from '../game/enemies';
@@ -382,7 +383,9 @@ function useJuice(
                         const me = center(hero);
                         const gap = Math.max(56, me.w * 0.3);
                         const multi = act === 'double' || act === 'dagger' || act === 'spin' || !!move?.anims[0]?.includes('combo');
-                        const hold = multi ? 520 : 320;
+                        // 연타는 마지막 타격까지 대상 앞에 머문다
+                        const maxHits = Math.max(1, ...card.effects.map((e) => (e.kind === 'damage' || e.kind === 'damageAll' ? (e.hits ?? 1) : 1)));
+                        const hold = multi || maxHits > 1 ? Math.max(520, hitSpan(maxHits) * 1000 + 320) : 320;
                         const motion = move?.motion ?? 'lunge';
                         const run = ATTACK_WINDUP * 1000 - 20;
                         if (motion === 'lunge') dash(hero, tx - me.x - gap, charge * 1000, run, hold, 460);
@@ -407,7 +410,7 @@ function useJuice(
                 const look = src ? ENEMIES[src.defId].look : undefined;
                 if (el && hero && look?.ranged) {
                     // 원거리: 제자리에서 던지고, 투사체가 날아가 맞는 순간에 닿는다
-                    for (let i = 0; i < (q.hits ?? 1); i++) throwProjectile(field, look.ranged, el, hero, hitAt + i * 140 - PROJECTILE_MS);
+                    for (const o of hitOffsets(q.hits ?? 1, false)) throwProjectile(field, look.ranged, el, hero, hitAt + o * 800 - PROJECTILE_MS);
                 } else if (el && hero && look) {
                     // 몬스터마다 다른 몸동작으로 덮친다 (뛰어들기, 급강하, 돌진, 연타 …)
                     const me = center(el);
@@ -438,9 +441,38 @@ function useJuice(
             const body = field.querySelector<HTMLElement>(`[data-body="${f.target}"]`);
             const sprite = body?.querySelector<HTMLElement>('.fighter-sprite') ?? body?.firstElementChild as HTMLElement | null;
             const amt = f.amount ?? 0;
-            const push = Math.min(28, 8 + amt * 0.9) * (toPlayer ? -1 : 1) * (f.crit ? 1.5 : 1);
             const at = f.delay * 1000;
-            if (sprite) {
+            // 연타: 같은 대상에 0.4초 안쪽으로 이어지는 타격들
+            const mates = c.fx.filter((g) => g.kind === 'dmg' && !g.dot && g.target === f.target && g.id !== f.id && Math.abs(g.delay - f.delay) < 0.4);
+            const chainNext = mates.some((g) => g.delay > f.delay);
+            const finale = !chainNext && mates.some((g) => g.delay < f.delay);
+            const push = Math.min(28, 8 + amt * 0.9) * (toPlayer ? -1 : 1) * (f.crit ? 1.5 : 1) * (finale ? 1.3 : 1);
+            if (sprite && chainNext) {
+                // 중간 타격: 매 타마다 짧고 날카롭게 움찔 (번쩍 + 작은 넉백)
+                const jolt = Math.min(12, 6 + amt * 0.4) * (toPlayer ? -1 : 1) * (f.crit ? 1.5 : 1);
+                sprite.animate(
+                    [
+                        { transform: 'translateX(0) scale(1,1)', filter: toPlayer ? 'brightness(1.1) sepia(1) saturate(9) hue-rotate(-50deg)' : 'brightness(2.6) saturate(0)', easing: 'cubic-bezier(0.1,0.9,0.2,1)' },
+                        { transform: `translateX(${jolt}px) rotate(${toPlayer ? -3 : 3}deg) scale(1.06,0.94)`, filter: 'brightness(1.4)', offset: 0.2, easing: 'cubic-bezier(0.4,0,0.6,1)' },
+                        { transform: `translateX(${jolt * 0.4}px) scale(1,1)`, filter: 'none', offset: 0.6 },
+                        { transform: 'translateX(0) scale(1,1)', filter: 'none' },
+                    ],
+                    { duration: 200, delay: at, composite: 'add' },
+                );
+                // 맞을수록 조금씩 뒤로 밀린다 (연타가 끝나면 천천히 제자리로)
+                const end = Math.max(...mates.map((g) => g.delay)) * 1000;
+                const span = end - at + 520;
+                const step = 3 * (toPlayer ? -1 : 1);
+                sprite.animate(
+                    [
+                        { transform: 'translateX(0)', offset: 0 },
+                        { transform: `translateX(${step}px)`, offset: Math.min(0.2, 60 / span) },
+                        { transform: `translateX(${step}px)`, offset: (end - at + 120) / span, easing: 'cubic-bezier(0.4,0,0.2,1)' },
+                        { transform: 'translateX(0)', offset: 1 },
+                    ],
+                    { duration: span, delay: at, composite: 'add' },
+                );
+            } else if (sprite) {
                 // 맞는 순간 확 밀려나며 찌그러졌다가(빠르게) 천천히 제자리로 (느리게)
                 const squash = Math.min(0.2, 0.06 + amt * 0.008) * (f.crit ? 1.4 : 1);
                 sprite.animate(
@@ -472,7 +504,13 @@ function useJuice(
             // 히트스톱도 피해 단계를 따라 길어진다
             // 주인공을 쓰러뜨린 마지막 일격은 오래 멈춘다
             const lethal = f.target === 'player' && c.result === 'lose' && f === c.fx.filter((g) => g.kind === 'dmg' && g.target === 'player').at(-1);
-            const hold = lethal ? 420 : (dmg >= 10 ? 180 : dmg >= 8 ? 150 : dmg >= 6 ? 120 : dmg >= 3 ? 90 : 60) + (f.target === 'player' ? 40 : 0);
+            // 연타: 중간 타격은 짧게 끊어 속도감을, 마지막 한 방은 길게 멈춰 무게를
+            const near = (g: Fx) => g.kind === 'dmg' && !g.dot && g.target === f.target && Math.abs(g.delay - f.delay) < 0.4 && g.id !== f.id;
+            const chainNext = c.fx.some((g) => near(g) && g.delay > f.delay);
+            const chainPrev = c.fx.some((g) => near(g) && g.delay < f.delay);
+            const finale = !chainNext && chainPrev;
+            const baseHold = (dmg >= 10 ? 180 : dmg >= 8 ? 150 : dmg >= 6 ? 120 : dmg >= 3 ? 90 : 60) + (f.target === 'player' ? 40 : 0);
+            const hold = lethal ? 420 : chainNext ? (f.crit ? 90 : 40) : baseHold + (finale ? 70 : 0) + (f.crit ? 90 : 0);
             clock.current.windows.push([start, start + hold]);
             // 히트스톱 동안 때린 쪽·맞은 쪽 몸 움직임도 멈춘다 (스프라이트만 멈추면 몸이 미끄러져 보임)
             // 장면 전체가 멈춘다: 때린 쪽(주인공 또는 달려든 몬스터)과 맞은 쪽 모두
@@ -483,7 +521,17 @@ function useJuice(
                 window.setTimeout(() => anims.forEach((a) => a.play()), hold);
             }, f.delay * 1000);
             // 화면 흔들림은 피해 4부터, 6·8·10에서 한 단계씩 커진다 (하스스톤 미니언 타격 단계)
-            const amp = lethal ? 12 : (dmg >= 10 ? 9 : dmg >= 8 ? 7 : dmg >= 6 ? 5 : dmg >= 4 ? 2 : 0) * (f.target === 'player' ? 1.3 : 1);
+            const amp0 = (dmg >= 10 ? 9 : dmg >= 8 ? 7 : dmg >= 6 ? 5 : dmg >= 4 ? 2 : 0) * (f.target === 'player' ? 1.3 : 1);
+            const amp = lethal ? 12 : chainNext ? Math.min(amp0, 3) + (f.crit ? 3 : 0) : amp0 + (finale ? 3 : 0) + (f.crit ? 4 : 0);
+            if (f.crit) {
+                // 치명타: 한 프레임 하얗게 + 화면이 앞으로 확 다가왔다 돌아온다
+                const flash = document.createElement('div');
+                flash.className = 'crit-flash';
+                field.appendChild(flash);
+                const fa = flash.animate([{ opacity: 0.55 }, { opacity: 0 }], { duration: 140, delay: f.delay * 1000, fill: 'both', easing: 'ease-out' });
+                fa.finished.then(() => flash.remove()).catch(() => flash.remove());
+                field.animate([{ scale: '1' }, { scale: '1.04', offset: 0.25 }, { scale: '1' }], { duration: 220, delay: f.delay * 1000, easing: 'cubic-bezier(0.2,0.8,0.3,1)' });
+            }
             if (lethal) {
                 // 마지막 일격: 화면이 하얗게 번쩍이고 흑백으로 가라앉는다
                 const flash = document.createElement('div');

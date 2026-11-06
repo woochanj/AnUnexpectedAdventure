@@ -136,7 +136,7 @@ import { CARD_MOVE } from './heroMoves';
 import { ENEMIES } from '../game/enemies';
 import type { Cue } from '../game/types';
 import { CARDS } from '../game/cards';
-import { ATTACK_WINDUP, chargeOf, windupOf } from '../game/combat';
+import { ATTACK_WINDUP, chargeOf, hitOffsets, windupOf } from '../game/combat';
 import * as holyPillar from 'pixelfx/fx/holy/holy-pillar';
 import * as blizzardVortex from 'pixelfx/fx/ice/blizzard-vortex';
 import * as nuke from 'pixelfx/fx/explosions/nuke';
@@ -357,12 +357,25 @@ export function cueVfx(c: Cue): VfxSpec[] {
             const def = CARDS[id];
             const wait = def ? windupOf(def) : attack ? ATTACK_WINDUP : 0;
             const out = specs.map((s) => ({ ...s, delay: (s.delay ?? 0) + wait }));
+            // 같은 이펙트를 여러 번 겹쳐 쓰는 연타 카드는 실제 타격 리듬(가속·멈칫)에 맞춘다
+            const hits = Math.max(1, ...(def?.effects ?? []).map((e) => (e.kind === 'damage' || e.kind === 'damageAll' ? (e.hits ?? 1) : 1)));
+            if (hits > 1) {
+                const offs = hitOffsets(hits, false);
+                const reps = out.filter((s) => specs.filter((x) => x.mod === s.mod).length > 1);
+                reps.forEach((s, i) => (s.delay = wait + (offs[Math.round((i * (hits - 1)) / Math.max(1, reps.length - 1))] ?? 0)));
+            }
             // 강한 기술: 발밑에서 기를 모은다 (속성 색)
             if (def?.charge) for (const ch of chargeVfx(cardElement(id), chargeOf(def), !!def.ultimate)) out.push({ ...ch, delay: ch.delay ?? 0 });
             // 마법사(물 사제): 발밑 물의 마법진, 물방울이 모였다가 물줄기로 날아가 물보라
             if (CARDS[id]?.cls === 'mage') for (const w of mageFlourish(id, c.id, attack, wait)) out.push({ ...w, delay: w.delay ?? 0 });
             // 기사(모험가): 금빛 칼날 궤적과 불꽃, 큰 기술은 땅이 갈라지는 충격파
-            if (attack && CARDS[id].cls === 'knight') for (const k of knightFlourish(id, c.id)) out.push({ ...k, delay: wait + (k.delay ?? 0) });
+            if (attack && CARDS[id].cls === 'knight') {
+                // 카드 자체에 반달 베기가 있으면 그 하나만 금빛으로 (기본 푸른 반달 위에 금빛 반달이 겹쳐 두 개로 보이던 것)
+                const CRESCENT = new Set<FxModule>([swordSlash, uppercut, spearSweep, heavyCleave, doubleSlash, spinSlash]);
+                const ownSlash = out.some((s) => CRESCENT.has(s.mod));
+                for (const s of out) if (CRESCENT.has(s.mod) && !s.opts?.palette) s.opts = { ...s.opts, palette: GOLD };
+                for (const k of knightFlourish(id, c.id, ownSlash)) out.push({ ...k, delay: wait + (k.delay ?? 0) });
+            }
             // 도적(바람 암살자): 바람 칼날이 덧붙는다
             if (attack && CARDS[id].cls === 'rogue') for (const w of windFlourish(id, c.id)) out.push({ ...w, delay: wait + (w.delay ?? 0) });
             // 순간이동하는 기술: 사라지는 자리에 연기, 나타나는 자리에 섬광 (그냥 투명해지면 버그처럼 보인다)
@@ -718,16 +731,14 @@ const KNIGHT_HEAVY = new Set(['heavy_blow', 'oath_blade', 'execution', 'shield_s
 const KNIGHT_MULTI = new Set(['cleave_line', 'chain_strike', 'sweep', 'momentum']);
 
 /** 기사 공격에 덧붙는 금빛 연출 */
-function knightFlourish(id: string, seed: number): VfxSpec[] {
+function knightFlourish(id: string, seed: number, ownSlash = false): VfxSpec[] {
     const all = CARDS[id].effects.some((e) => e.kind === 'damageAll');
     const at = all ? ('all' as const) : ('target' as const);
     const tilt = [-0.5, 0.35, -0.2, 0.55][seed % 4];
     // 칼날이 지나간 금빛 궤적 + 튀는 불꽃
-    const out: VfxSpec[] = [
-        { mod: swordSlash, at, dx: SLASH_DX + 6, dy: -6, speed: 1.3, opts: { palette: GOLD, angle: tilt } },
-        { mod: hitSpark, at, delay: 0.04, opts: { palette: GOLD, seed: seed * 3 } },
-    ];
-    if (KNIGHT_MULTI.has(id)) {
+    const out: VfxSpec[] = [{ mod: hitSpark, at, delay: 0.04, opts: { palette: GOLD, seed: seed * 3 } }];
+    if (!ownSlash) out.unshift({ mod: swordSlash, at, dx: SLASH_DX + 6, dy: -6, speed: 1.3, opts: { palette: GOLD, angle: tilt } });
+    if (KNIGHT_MULTI.has(id) && !ownSlash) {
         out.push({ mod: swordSlash, at, dx: SLASH_DX, delay: 0.16, speed: 1.4, opts: { palette: GOLD, angle: -tilt } });
         out.push({ mod: spinSlash, at, delay: 0.3, speed: 1.6, opts: { palette: GOLD } });
     }

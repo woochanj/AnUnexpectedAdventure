@@ -11,7 +11,7 @@ type Painter = {
     glow(x: number, y: number, r: number, c: number, k?: number): void;
     glowLine(x0: number, y0: number, x1: number, y1: number, r: number, c: number, k?: number): void;
 };
-type Opts = { palette: string[]; seed: number; flip?: boolean; text?: string };
+type Opts = { palette: string[]; seed: number; flip?: boolean; text?: string; label?: string };
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a));
 const mk = (meta: Record<string, unknown>, create: (o: Opts) => { update(dt: number): void; draw(p: Painter): void }) => ({ meta, create }) as unknown as FxModule;
 
@@ -24,6 +24,7 @@ export const critNumberHeavy = mk(
     (o) => {
         const C = fit(o.palette, 8);
         const word = spell(o.text ?? '0');
+        const lab = o.label ? spell(o.label, 'mini') : null;
         const R = new Rng(o.seed);
         const lights = new Lights();
         let t = 0;
@@ -53,6 +54,16 @@ export const critNumberHeavy = mk(
                 const flash = t < 0.05 ? 1 : t < 0.09 ? 0.45 : 0;
                 const items = word.letters.filter((L: { g: unknown }) => L.g).map((L: { g: unknown; x: number }) => ({ g: L.g, x: x0 + L.x * s, y: y0, sx: s, sy: s, flash, a: 1 - out, slant: 1 }));
                 drawWord(p, items, { fill: [C[3], C[4], C[5], C[6]], edge: WHITE, under: C[2], outline: C[0], ow: 2, shadow: C[1] });
+                // CRIT 글자: 숫자보다 한 박자 늦게 위에 쾅 찍힌다 (장식 없이 글자만)
+                const lk = t - 0.06;
+                if (lab && lk > 0) {
+                    const ls = lk < 0.035 ? 3 : 2;
+                    const LW = lab.w * ls;
+                    const lx = Math.round(-LW / 2 + jx);
+                    const ly = Math.round(y0 - 5 * ls - 3);
+                    const lit = lab.letters.filter((L: { g: unknown }) => L.g).map((L: { g: unknown; x: number }) => ({ g: L.g, x: lx + L.x * ls, y: ly, sx: ls, sy: ls, slant: 0.5, flash: lk < 0.035 ? 1 : 0, a: 1 - out }));
+                    drawWord(p, lit, { fill: [C[5], C[6], C[7]], edge: WHITE, under: C[4], outline: C[0], ow: 1, shadow: C[1] });
+                }
                 // 박히는 순간 아래로 짧은 흰 띠 하나 (무게감)
                 if (t < 0.1) p.rect(x0 - 4, y0 + H + 3, W + 8, t < 0.05 ? 3 : 2, t < 0.05 ? WHITE : C[6], 1 - t / 0.1);
                 p.glow(0, y0 + H / 2, 30, C[4], 0.25 * (1 - out) + (t < 0.12 ? 0.5 * (1 - t / 0.12) : 0));

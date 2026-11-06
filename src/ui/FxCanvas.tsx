@@ -253,7 +253,7 @@ export function FxCanvas({
                 const xShift = f.crit ? (f.target === 'player' ? 40 : -40) / st.scale : 0;
                 const toPlayer = f.target === 'player';
                 const opts = f.crit
-                    ? { text: `${f.amount}!`, palette: toPlayer ? CRIT_RED : CRIT_GOLD }
+                    ? { text: `${f.amount}!`, label: 'CRIT', palette: toPlayer ? CRIT_RED : CRIT_GOLD }
                     : { text: `-${f.amount}`, palette: f.dot ? POISON : toPlayer ? undefined : GOLD };
                 const fx = createFx(f.crit ? critNumber : damageNumber, { seed: f.id, ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)), x: Math.round(x + xShift), y: Math.round(y) });
                 live.current.push({ fx, speed: f.crit ? 0.8 : 0.75, stopAt: Infinity });

@@ -6049,3 +6049,162 @@ body {
     right: -6px;
     bottom: auto;
 }
+
+/* ═════════ 걸어 다니는 지도 (파티 원정) ═════════ */
+.ow {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
+    overflow: hidden;
+    background: #120c1c;
+    touch-action: none;
+    user-select: none;
+}
+.ow-world {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transition: transform var(--step) linear;
+    will-change: transform;
+}
+.ow-ground {
+    position: absolute;
+    left: 0;
+    top: 0;
+    image-rendering: pixelated;
+}
+.ow-obj,
+.ow-actor {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+.ow-actor {
+    transition: left var(--step) linear, top var(--step) linear;
+}
+.ow-actor canvas,
+.ow-obj .ow-mon {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    translate: -50% 0;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35));
+}
+.ow-actor .hero-canvas {
+    animation: none;
+}
+.ow-actor.follower canvas {
+    filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35)) brightness(0.94);
+}
+.ow-obj .ow-mon {
+    animation: ow-bob 1.2s steps(2) infinite;
+}
+@keyframes ow-bob {
+    50% { translate: -50% -3px; }
+}
+.ow-label {
+    position: absolute;
+    left: 0;
+    bottom: calc(var(--t) * 1.05);
+    translate: -50% 0;
+    padding: 1px 7px 2px;
+    border: 2px solid #0c0818;
+    border-radius: 5px;
+    background: #f7ebc8;
+    color: #2a1808;
+    font-family: var(--font-head);
+    font-size: 0.78rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 0 #0c0818;
+}
+.ow-shop .ow-label,
+.ow-rest .ow-label {
+    bottom: calc(var(--t) * 2.05);
+}
+.ow-label.ol-shop { background: #ffd84a; }
+.ow-label.ol-rest { background: #ff9a8a; }
+.ow-label.ol-treasure { background: #ffe9a0; }
+.ow-label.ol-elite { background: #e84a5a; color: #fff; bottom: calc(var(--t) * 1.4); }
+.ow-label.ol-boss { background: #2a1040; color: #ffd84a; bottom: calc(var(--t) * 1.8); }
+.ow-banner {
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    translate: -50% 0;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 4px 14px 6px;
+    border: 3px solid #0c0818;
+    border-radius: 8px;
+    background: #f7ebc8;
+    color: #2a1808;
+    box-shadow: 0 4px 0 #0c0818;
+    pointer-events: none;
+}
+.ow-banner b {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+}
+.ow-banner span {
+    font-size: 0.8rem;
+    opacity: 0.75;
+}
+.ow-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    translate: -50% 0;
+    max-width: calc(100% - 190px);
+    padding: 3px 10px 4px;
+    border-radius: 6px;
+    background: rgba(12, 8, 24, 0.72);
+    color: #f2ecdf;
+    font-size: 0.78rem;
+    text-align: center;
+    pointer-events: none;
+}
+/* 화면 방향 버튼 (휴대폰) */
+.ow-pad {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    display: grid;
+    grid-template: repeat(3, 44px) / repeat(3, 44px);
+    opacity: 0.9;
+}
+.ow-pad button {
+    border: 3px solid #0c0818;
+    border-radius: 8px;
+    background: #f7ebc8;
+    color: #2a1808;
+    font-size: 1rem;
+    box-shadow: 0 3px 0 #0c0818;
+    touch-action: none;
+}
+.ow-pad button:active {
+    translate: 0 2px;
+    box-shadow: 0 1px 0 #0c0818;
+    background: #ffd84a;
+}
+.ow-pad .up { grid-area: 1 / 2; }
+.ow-pad .left { grid-area: 2 / 1; }
+.ow-pad .right { grid-area: 2 / 3; }
+.ow-pad .down { grid-area: 3 / 2; }
+@media (min-width: 641px) and (hover: hover) {
+    .ow-pad {
+        opacity: 0.55;
+        scale: 0.8;
+        transform-origin: 0 100%;
+    }
+}
+@media (max-width: 640px) {
+    .ow-hint {
+        display: none;
+    }
+    .ow-label {
+        font-size: 0.66rem;
+    }
+}

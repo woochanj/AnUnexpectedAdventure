@@ -8,6 +8,7 @@ import { CombatScreen } from './ui/CombatScreen';
 import { Hud } from './ui/Hud';
 import { DialogueScreen } from './ui/Dialogue';
 import { MapScreen } from './ui/MapScreen';
+import { Overworld } from './ui/Overworld';
 import { EndScreen, EventScreen, FloorClearScreen, PickScreen, RestScreen, RewardScreen, ShopView, TreasureScreen } from './ui/RoomScreens';
 
 const store = {
@@ -170,7 +171,8 @@ export default function App() {
     let body;
     switch (sc.kind) {
         case 'map':
-            body = <MapScreen run={run} dispatch={dispatch} />;
+            // 파티 원정은 걸어 다니는 지도, 혼자 하는 모험은 갈림길 지도
+            body = run.party ? <Overworld key={run.floor} run={run} dispatch={dispatch} /> : <MapScreen run={run} dispatch={dispatch} />;
             break;
         case 'combat':
             body = <CombatScreen key={`${run.pos}-${run.stats.rooms}`} combat={sc.combat} biome={regionOf(run).id} seed={run.expedition + run.floor * 7 + 3} hero={run.hero} cls={run.cls} dispatch={dispatch} />;

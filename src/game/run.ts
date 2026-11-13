@@ -19,6 +19,8 @@ export type Action =
     | { type: 'moveDir'; dir: Dir }
     | { type: 'play'; idx: number; target: string | null }
     | { type: 'endTurn' }
+    /** 걸어 다니는 지도: 선 칸을 기억하고, 방에 들어가거나(room) 풀숲에서 무언가를 만난다(wild) */
+    | { type: 'ow'; x: number; y: number; room?: number; wild?: boolean }
     | { type: 'combatDone' }
     | { type: 'takeGold' }
     | { type: 'takeCard'; id: string }
@@ -388,6 +390,14 @@ export function reducer(state: GameState, action: Action): GameState {
             else if (sc.kind === 'map') run.facing = action.dir;
             break;
         }
+        case 'ow':
+            if (sc.kind !== 'map') break;
+            run.ow = { x: action.x, y: action.y, f: run.floor };
+            if (action.room !== undefined && run.map.cells[action.room]) {
+                run.pos = action.room;
+                enterRoom(run);
+            } else if (action.wild) run.screen = { kind: 'event', eventId: pick(ENCOUNTER_IDS), encounter: true };
+            break;
         case 'play':
             if (sc.kind === 'combat') playCard(sc.combat, run, action.idx, action.target);
             break;

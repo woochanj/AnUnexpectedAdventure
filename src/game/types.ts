@@ -287,6 +287,8 @@ export interface RunState {
     stats: { kills: number; rooms: number; turns: number };
     /** 이야기 진행 (다시 만나는 인물과의 관계 등) */
     story?: { flags: Record<string, number> };
+    /** 파티 원정: 걸어 다니는 지도에서 선 칸 (f = 그때의 지역) */
+    ow?: { x: number; y: number; f: number };
     /** 랜덤 인카운터 뒤에 원래 가던 방으로 들어가야 하는지 */
     pendingEnter?: boolean;
 }

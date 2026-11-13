@@ -22,7 +22,7 @@ function after(ms: number, fn: () => void) {
 export function showProc(field: HTMLElement, f: Fx, targetUid: string | null) {
     const p = f.proc;
     if (!p) return;
-    const hero = field.querySelector<HTMLElement>('[data-body="player"]');
+    const hero = field.querySelector<HTMLElement>(`[data-body="${f.target}"]`);
     if (!hero) return;
     const fr = field.getBoundingClientRect();
     const hr = hero.getBoundingClientRect();

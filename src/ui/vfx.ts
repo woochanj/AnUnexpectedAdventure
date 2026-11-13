@@ -245,6 +245,7 @@ export const CARD_VFX: Record<string, VfxSpec[]> = {
     chain_strike: [{ mod: whipCrack, at: 'target', dx: -40, speed: 1.3 }, { mod: bluntHit, at: 'target', delay: 0.16, speed: 1.4 }],
     war_cry: [{ mod: exclamation, at: 'self', dy: -60, speed: 1.4 }, { mod: thunderclap, at: 'self', delay: 0.1, speed: 1.6, opts: { palette: ['#2a1406', '#5a2e0a', '#9a5a10', '#d89a20', '#ffd24a', '#fff2b0', '#ffffff'] } }],
     counter_stance: [BLOCK, { mod: thorns, at: 'self', dx: -40, speed: 1.6 }],
+    cover: [{ ...BLOCK, speed: 1.1 }, { mod: exclamation, at: 'self', dy: -60, speed: 1.6 }],
     execution: [{ mod: heavyCleave, at: 'target', dx: -32, speed: 1.4, opts: { palette: BLOOD } }, { mod: critHit, at: 'target', delay: 0.08 }],
     rally: [{ ...BLOCK, speed: 1 }, { mod: blessing, at: 'self', stopAfter: 0.9, speed: 1.4 }],
     rising_slash: [{ mod: uppercut, at: 'target', dx: -26, speed: 1.3 }],

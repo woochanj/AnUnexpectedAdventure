@@ -24,6 +24,8 @@ const LIST: CardDef[] = [
         id: 'torch_swing', name: '횃불 휘두르기', type: 'attack', rarity: 'starter', cost: 1,
         effects: [dmg(5), apply('vulnerable', 1, 'target')], up: { effects: [dmg(7), apply('vulnerable', 2, 'target')] },
     }),
+    // 파티 전투 전용 (보상으로는 나오지 않는다): 적의 공격을 대신 받는다
+    K({ id: 'cover', name: '감싸기', type: 'skill', rarity: 'starter', cost: 1, effects: [block(7), apply('taunt', 1, 'self')], up: { effects: [block(10), apply('taunt', 1, 'self')] } }),
     K({ id: 'shield_bash', name: '방패 치기', type: 'attack', rarity: 'common', cost: 1, effects: [dmg(5), block(4)], up: { effects: [dmg(7), block(6)] } }),
     K({ id: 'sweep', name: '휩쓸기', type: 'attack', rarity: 'common', cost: 1, effects: [dmgAll(5)], up: { effects: [dmgAll(8)] } }),
     K({ id: 'heavy_blow', name: '강타', type: 'attack', rarity: 'common', cost: 2, effects: [dmg(14)], up: { effects: [dmg(19)] } }),
@@ -225,7 +227,7 @@ function boost(e: Effect): Effect {
         case 'heal':
             return { ...e, amount: up(e.amount) };
         case 'apply':
-            return e.status === 'energize' || e.status === 'evade' ? e : { ...e, amount: up(e.amount) };
+            return e.status === 'energize' || e.status === 'evade' || e.status === 'taunt' ? e : { ...e, amount: up(e.amount) };
         case 'combo':
         case 'shatter':
         case 'finisher':
@@ -275,6 +277,7 @@ export const STATUS_INFO: Record<Status, { name: string; desc: string; debuff: b
     frost: { name: '냉기', desc: '3 이상 쌓이면 다음 행동 때 얼어붙어 한 번 쉰다', debuff: true },
     burn: { name: '화상', desc: '턴 시작 시 수치만큼 피해, 그 뒤 절반으로 줄어듦', debuff: true },
     grit: { name: '투지', desc: '방어도로 공격을 막아 낼 때마다 1씩 쌓인다 (최대 10). 투지를 쓰는 카드가 모두 터뜨린다', debuff: false },
+    taunt: { name: '도발', desc: '이번 적 턴 동안 적의 공격을 모두 대신 받는다', debuff: false },
     evade: { name: '회피', desc: '적의 공격을 수치(%) 확률로 피한다 (최대 75%). 내 턴이 시작되면 사라진다', debuff: false },
 };
 

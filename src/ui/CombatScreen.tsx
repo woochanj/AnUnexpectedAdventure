@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Dispatch, type ReactNode, useMemo } from 'react';
 import { cardStats, ELEMENT_NAME, needsTarget, STATUS_INFO } from '../game/cards';
-import { hitOffsets, hitSpan } from '../game/combat';
+import { hitOffsets, hitSpan, isHero, ownerOf, victimOf } from '../game/combat';
+import { CLASSES } from '../game/classes';
 import { AFFIXES, ATTACK_WINDUP, FREEZE_AT, chargeOf, windupOf, canPlay, ENEMY_LEAD, ENEMY_STEP, IMPACT_DELAY, intentDamage } from '../game/combat';
 import { CARDS } from '../game/cards';
 import { ENEMIES } from '../game/enemies';
@@ -63,7 +64,7 @@ function Shake({ fx, target, children }: { fx: Fx[]; target: string; children: R
         <div
             key={h?.id ?? 0}
             className={`fighter-sprite ${h ? 'hit-shake' : ''}`}
-            style={{ animationDelay: `${h?.delay ?? 0}s`, ['--kb' as string]: target === 'player' ? '-12px' : '12px' }}
+            style={{ animationDelay: `${h?.delay ?? 0}s`, ['--kb' as string]: isHero(target) ? '-12px' : '12px' }}
             data-anchor={target}
         >
             {children}
@@ -133,7 +134,7 @@ function q0Target(c: CombatState): string | null {
 
 /** 방패를 꺼내 드는 기사 기술 */
 const SHIELD_HIT = new Set(['shield_bash', 'shield_slam']);
-const SHIELD_GUARD = new Set(['counter_stance']);
+const SHIELD_GUARD = new Set(['counter_stance', 'cover']);
 
 function say(field: HTMLElement, c: CombatState, uid: string, kind: 'start' | 'attack' | 'hurt' | 'death', delayMs: number) {
     const foe = c.enemies.find((e) => e.uid === uid);
@@ -144,16 +145,16 @@ function say(field: HTMLElement, c: CombatState, uid: string, kind: 'start' | 'a
 }
 
 /** 주인공 말풍선: 직업마다 말투가 다르다 */
-function heroSay(field: HTMLElement, cls: ClassId, kind: keyof HeroBarks, delayMs: number) {
+function heroSay(field: HTMLElement, cls: ClassId, kind: keyof HeroBarks, delayMs: number, who = 'player') {
     const text = heroBark(cls, kind);
     // 주인공 그림판은 공격 범위까지 커서 그 위에 띄우면 화면 밖으로 나간다 → 발밑에서 머리 높이만큼 위에 띄운다
     if (text)
         bubble(field, '.player-side', text, `hero bark-${kind}`, delayMs, '-25%', (b) => {
-            const feet = field.querySelector('[data-anchor="player"]')?.getBoundingClientRect();
+            const feet = field.querySelector(`[data-anchor="${who}"]`)?.getBoundingClientRect();
             const box = field.getBoundingClientRect();
             if (!feet) return;
             // 달려가 있는 중이면 그만큼 빼서 원래 자리 머리 위에 띄운다 (말풍선이 화면 가운데에 남지 않게)
-            const body = field.querySelector<HTMLElement>('[data-body="player"]');
+            const body = field.querySelector<HTMLElement>(`[data-body="${who}"]`);
             const m = body ? new DOMMatrixReadOnly(getComputedStyle(body).transform === 'none' ? undefined : getComputedStyle(body).transform) : null;
             const head = Math.min(150, box.height * 0.42);
             Object.assign(b.style, { position: 'absolute', left: `${feet.left + feet.width / 2 - box.left - (m?.m41 ?? 0)}px`, top: `${Math.max(4, feet.bottom - box.top - (m?.m42 ?? 0) - head - 34)}px`, bottom: 'auto' });
@@ -191,7 +192,7 @@ function readyTag(card: CardInst, c: CombatState): { tag: string; cls: string } 
         return { tag: '연계', cls: 'rt-combo' };
     const el = s.def.el;
     if (el && c.lastEl) return el === c.lastEl ? { tag: '공명 +3', cls: `rt-${el}` } : { tag: '반응', cls: `rt-${el}` };
-    const grit = c.player.status.grit ?? 0;
+    const grit = (c.party?.find((m) => m.cls === 'knight') ?? c.player).status.grit ?? 0;
     if (grit > 0 && s.effects.some((e) => e.kind === 'unleash')) return { tag: `투지 ×${grit}`, cls: 'rt-grit' };
     return null;
 }
@@ -199,7 +200,9 @@ function readyTag(card: CardInst, c: CombatState): { tag: string; cls: string } 
 function IntentBadge({ e, c }: { e: EnemyState; c: CombatState }) {
     const it: Intent = e.intent;
     const parts: { cls: string; text: string; tip: string }[] = [];
-    const d = intentDamage(e, c.player);
+    // 파티: 이 적이 노리는 사람 (도발한 사람이 있으면 그 사람)
+    const aim = c.party ? c.party[victimOf(c, e)] : null;
+    const d = intentDamage(e, aim ?? c.player);
     if ((e.status.frost ?? 0) >= FREEZE_AT) {
         return (
             <div className="intent" title="얼어붙어 이번 행동을 쉰다">
@@ -222,6 +225,7 @@ function IntentBadge({ e, c }: { e: EnemyState; c: CombatState }) {
                     {p.text}
                 </span>
             ))}
+            {aim && (it.attack !== undefined || it.debuff || it.curse) && <span className={`intent-aim oc-${aim.cls}`}>▶ {CLASSES[aim.cls].name}</span>}
         </div>
     );
 }
@@ -269,13 +273,13 @@ function throwProjectile(field: HTMLElement, name: string, from: Element, to: El
 }
 
 function useJuice(
-    heroLook: string,
+    heroLook0: string,
     c: CombatState,
     fieldRef: React.RefObject<HTMLDivElement | null>,
     clock: React.RefObject<HitStopClock>,
     setHeroAction: (a: HeroAction) => void,
-    cls: ClassId,
-    setSkin: (s: string | null) => void,
+    cls0: ClassId,
+    setSkin: (s: { who: string; skin: string } | null) => void,
 ) {
     const skinTimer = useRef(0);
     const saidLow = useRef(false);
@@ -286,6 +290,11 @@ function useJuice(
         const field = fieldRef.current;
         if (!field) return;
         const now = performance.now();
+        // 파티: 말풍선·동작의 주인을 가린다. 혼자면 늘 그 주인공
+        const main = c.party?.find((m) => m.hp > 0);
+        const cls = main?.cls ?? cls0;
+        const mainKey = main?.key ?? 'player';
+        const clsOf = (k: string) => c.party?.find((m) => m.key === k)?.cls ?? cls0;
 
         // 몸동작 + 대상 앞까지 달려가기
         const center = (el: Element) => {
@@ -317,6 +326,9 @@ function useJuice(
         };
 
         for (const q of c.cues.filter((q) => q.id > seenCue.current)) {
+            // 이 카드를 쓰는 사람
+            const who = q.kind === 'card' ? (q.source ?? 'player') : 'player';
+            const heroLook = c.party?.find((m) => m.key === who)?.hero ?? heroLook0;
             // 효과음
             if (q.kind === 'card') {
                 const cd = CARDS[q.card ?? ''];
@@ -330,17 +342,17 @@ function useJuice(
             if (q.kind === 'poison') sfx.poison(q.delay);
             if (q.kind === 'enemyAttack' && q.source && Math.random() < 0.35) say(field, c, q.source, 'attack', q.delay * 1000 - 150);
             if (q.kind === 'death' && q.target) say(field, c, q.target, 'death', q.delay * 1000 + 80);
-            if (q.kind === 'death' && Math.random() < 0.3) heroSay(field, cls, 'kill', q.delay * 1000 + 450);
+            if (q.kind === 'death' && Math.random() < 0.3) heroSay(field, cls, 'kill', q.delay * 1000 + 450, mainKey);
             if (q.kind === 'card') {
                 const cd = CARDS[q.card ?? ''];
                 // 이 카드는 다른 무기로: 그 스프라이트로 잠깐 바꿔 들었다가 돌아온다
                 const skin = CARD_SKIN[heroLook]?.[q.card ?? ''];
                 window.clearTimeout(skinTimer.current);
-                setSkin(skin ?? null);
+                setSkin(skin ? { who, skin } : null);
                 if (skin) skinTimer.current = window.setTimeout(() => setSkin(null), ((cd ? windupOf(cd) : 0.4) + 1.3) * 1000);
-                if (cd?.ultimate) heroSay(field, cls, 'ultimate', 60);
-                else if (cd?.charge && Math.random() < 0.6) heroSay(field, cls, 'skill', 60);
-                else if (cd?.type === 'skill' && cd.effects.some((e) => e.kind === 'block') && Math.random() < 0.25) heroSay(field, cls, 'guard', 60);
+                if (cd?.ultimate) heroSay(field, clsOf(who), 'ultimate', 60, who);
+                else if (cd?.charge && Math.random() < 0.6) heroSay(field, clsOf(who), 'skill', 60, who);
+                else if (cd?.type === 'skill' && cd.effects.some((e) => e.kind === 'block') && Math.random() < 0.25) heroSay(field, clsOf(who), 'guard', 60, who);
             }
             if (q.kind === 'death') {
                 sfx.death(q.delay + 0.1);
@@ -363,9 +375,9 @@ function useJuice(
                 const move = CARD_MOVE[q.card ?? ''];
                 const inPlace = !!card?.ranged || lookIsRanged(heroLook) || (!!move && IN_PLACE.has(move.motion));
                 const charge = card ? chargeOf(card) : 0;
-                setHeroAction({ id: q.id, act, windup: card ? Math.max(windupOf(card), attack ? 0 : 0.05) : 0.05, ranged: inPlace, anims: move?.anims, charge });
+                setHeroAction({ id: q.id, who, act, windup: card ? Math.max(windupOf(card), attack ? 0 : 0.05) : 0.05, ranged: inPlace, anims: move?.anims, charge });
                 if (charge) chargeMoment(field, cardElement(q.card ?? ''), card?.ultimate ? card.name : null, charge);
-                const hero = field.querySelector<HTMLElement>('[data-body="player"]');
+                const hero = field.querySelector<HTMLElement>(`[data-body="${who}"]`);
                 // 제자리 카드(주문·방어·강화)도 카드마다 다른 몸짓
                 if (hero && inPlace && move) {
                     const still = IN_PLACE.has(move.motion) ? move.motion : (STILL_FOR[move.motion] ?? 'stay');
@@ -403,9 +415,9 @@ function useJuice(
             }
             if (q.kind === 'enemyAttack') {
                 const hitAt = (q.delay + IMPACT_DELAY) * 1000;
-                window.setTimeout(() => setHeroAction({ id: q.id, act: 'hurt', windup: 0 }), hitAt);
+                window.setTimeout(() => setHeroAction({ id: q.id, who: q.target ?? 'player', act: 'hurt', windup: 0 }), hitAt);
                 const el = q.source ? field.querySelector<HTMLElement>(`[data-body="${q.source}"]`) : null;
-                const hero = field.querySelector<HTMLElement>('[data-body="player"]');
+                const hero = field.querySelector<HTMLElement>(`[data-body="${q.target ?? 'player'}"]`);
                 const src = c.enemies.find((e) => e.uid === q.source);
                 const look = src ? ENEMIES[src.defId].look : undefined;
                 if (el && hero && look?.ranged) {
@@ -428,16 +440,16 @@ function useJuice(
             if (f.kind === 'heal') sfx.heal(f.delay);
             if (f.kind === 'dmg' && !f.dot) {
                 if (f.crit) sfx.crit(f.delay);
-                else if (f.target === 'player') sfx.hurt(f.delay);
+                else if (isHero(f.target)) sfx.hurt(f.delay);
                 else sfx.hit(f.amount ?? 5, f.delay);
             }
         }
         for (const f of c.fx.filter((f) => f.id > seenFx.current && f.proc)) showProc(field, f, q0Target(c));
-        for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg' && !f.dot && f.target !== 'player'))
+        for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg' && !f.dot && !isHero(f.target)))
             if (Math.random() < 0.15) say(field, c, f.target, 'hurt', f.delay * 1000 + 120);
         // 피격 반응: 맞은 쪽이 뒤로 밀리고 번쩍인다. 주인공이 맞으면 화면 가장자리도 붉게
         for (const f of c.fx.filter((f) => f.id > seenFx.current && f.kind === 'dmg' && !f.dot && (f.amount ?? 0) > 0)) {
-            const toPlayer = f.target === 'player';
+            const toPlayer = isHero(f.target);
             const body = field.querySelector<HTMLElement>(`[data-body="${f.target}"]`);
             const sprite = body?.querySelector<HTMLElement>('.fighter-sprite') ?? body?.firstElementChild as HTMLElement | null;
             const amt = f.amount ?? 0;
@@ -485,10 +497,10 @@ function useJuice(
                     { duration: (toPlayer ? 460 : 380) + Math.min(160, amt * 6), delay: at, composite: 'add' },
                 );
             }
-            if (toPlayer && amt >= 8 && Math.random() < 0.35) heroSay(field, cls, 'hurt', at + 200);
+            if (toPlayer && amt >= 8 && Math.random() < 0.35) heroSay(field, clsOf(f.target), 'hurt', at + 200, f.target);
             if (toPlayer && !saidLow.current && c.player.hp > 0 && c.player.hp <= c.player.maxHp * 0.3) {
                 saidLow.current = true;
-                heroSay(field, cls, 'low', at + 500);
+                heroSay(field, cls, 'low', at + 500, mainKey);
             }
             if (toPlayer) {
                 const v = document.createElement('div');
@@ -503,13 +515,13 @@ function useJuice(
             const start = now + f.delay * 1000;
             // 히트스톱도 피해 단계를 따라 길어진다
             // 주인공을 쓰러뜨린 마지막 일격은 오래 멈춘다
-            const lethal = f.target === 'player' && c.result === 'lose' && f === c.fx.filter((g) => g.kind === 'dmg' && g.target === 'player').at(-1);
+            const lethal = isHero(f.target) && c.result === 'lose' && f === c.fx.filter((g) => g.kind === 'dmg' && isHero(g.target)).at(-1);
             // 연타: 중간 타격은 짧게 끊어 속도감을, 마지막 한 방은 길게 멈춰 무게를
             const near = (g: Fx) => g.kind === 'dmg' && !g.dot && g.target === f.target && Math.abs(g.delay - f.delay) < 0.4 && g.id !== f.id;
             const chainNext = c.fx.some((g) => near(g) && g.delay > f.delay);
             const chainPrev = c.fx.some((g) => near(g) && g.delay < f.delay);
             const finale = !chainNext && chainPrev;
-            const baseHold = (dmg >= 10 ? 180 : dmg >= 8 ? 150 : dmg >= 6 ? 120 : dmg >= 3 ? 90 : 60) + (f.target === 'player' ? 40 : 0);
+            const baseHold = (dmg >= 10 ? 180 : dmg >= 8 ? 150 : dmg >= 6 ? 120 : dmg >= 3 ? 90 : 60) + (isHero(f.target) ? 40 : 0);
             const hold = lethal ? 420 : chainNext ? (f.crit ? 90 : 40) : baseHold + (finale ? 70 : 0) + (f.crit ? 90 : 0);
             clock.current.windows.push([start, start + hold]);
             // 히트스톱 동안 때린 쪽·맞은 쪽 몸 움직임도 멈춘다 (스프라이트만 멈추면 몸이 미끄러져 보임)
@@ -521,7 +533,7 @@ function useJuice(
                 window.setTimeout(() => anims.forEach((a) => a.play()), hold);
             }, f.delay * 1000);
             // 화면 흔들림은 피해 4부터, 6·8·10에서 한 단계씩 커진다 (하스스톤 미니언 타격 단계)
-            const amp0 = (dmg >= 10 ? 9 : dmg >= 8 ? 7 : dmg >= 6 ? 5 : dmg >= 4 ? 2 : 0) * (f.target === 'player' ? 1.3 : 1);
+            const amp0 = (dmg >= 10 ? 9 : dmg >= 8 ? 7 : dmg >= 6 ? 5 : dmg >= 4 ? 2 : 0) * (isHero(f.target) ? 1.3 : 1);
             const amp = lethal ? 12 : chainNext ? Math.min(amp0, 3) + (f.crit ? 3 : 0) : amp0 + (finale ? 3 : 0) + (f.crit ? 4 : 0);
             if (f.crit) {
                 // 치명타: 한 프레임 하얗게 + 화면이 앞으로 확 다가왔다 돌아온다
@@ -618,19 +630,19 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
     for (const q of c.cues) if (q.kind === 'enemyAttack' && q.source) attacks[q.source] = { id: q.id, hitIn: q.delay + IMPACT_DELAY };
     // 적마다 가장 최근에 맞은 순간 → 피격 동작
     const hurts: Record<string, { id: number; delay: number }> = {};
-    for (const f of c.fx) if (f.kind === 'dmg' && f.target !== 'player') hurts[f.target] = { id: f.id, delay: f.delay };
+    for (const f of c.fx) if (f.kind === 'dmg' && !isHero(f.target)) hurts[f.target] = { id: f.id, delay: f.delay };
     // 쓰러지는 순간(초): 상태는 카드를 내자마자 바뀌지만, 연출은 일격이 닿을 때 시작한다
     const dies: Record<string, number> = {};
     for (const q of c.cues) if (q.kind === 'death' && q.target) dies[q.target] = q.delay;
-    // 주인공이 쓰러지는 순간: 마지막으로 맞은 때
-    const heroDieIn = c.result === 'lose' ? Math.max(0, ...c.fx.filter((f) => f.kind === 'dmg' && f.target === 'player').map((f) => f.delay)) : 0;
     // 카드별 무기 스프라이트 (바꿔 들 때 그림이 없어 깜박이지 않게 미리 불러 둔다)
-    const [skin, setSkin] = useState<string | null>(null);
+    const [skin, setSkin] = useState<{ who: string; skin: string } | null>(null);
     useEffect(() => {
-        for (const s of Object.values(CARD_SKIN[hero] ?? {})) for (const a of Object.keys(spriteInfo(s)?.anims ?? {})) spriteImage(s, a);
+        for (const h of c.party?.map((m) => m.hero) ?? [hero]) for (const s of Object.values(CARD_SKIN[h] ?? {})) for (const a of Object.keys(spriteInfo(s)?.anims ?? {})) spriteImage(s, a);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hero]);
     useJuice(hero, c, fieldRef, clock, setHeroAction, cls, setSkin);
     const tagOf = (card: CardInst) => readyTag(card, c);
+    const ownerOfIdx = (idx: number) => (c.hand[idx] ? ownerOf(c, c.hand[idx]) : -1);
 
     const play = useCallback(
         (idx: number, target: string | null) => {
@@ -807,15 +819,37 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                 <FxCanvas container={fieldRef} ambient={weather} className="fx-back weather near" clock={clock} ambientScale={0.75} />
                 {/* 나비·새·도깨비불·횃불 같은 하나짜리는 한 겹만 */}
                 <FxCanvas container={fieldRef} ambient={critters} className="fx-back" clock={clock} ambientScale={0.75} />
-                <div className={`fighter player-side ${drag?.moved && !drag.target ? `self-aim ${drag.release ? "ready" : ""}` : ""}`}>
-                    <div data-body="player">
-                        <Shake fx={c.fx} target="player">
-                            <HeroView char={skin ?? hero} action={heroAction} clock={clock} scale={4} dead={c.result === 'lose'} deadIn={heroDieIn} />
-                        </Shake>
-                    </div>
-                    <FxLayer fx={c.fx} target="player" />
-                    <LandedHpBar fx={c.fx} target="player" hp={c.player.hp} max={c.player.maxHp} block={c.player.block} />
-                    <StatusList status={c.player.status} />
+                {/* 혼자면 주인공 하나, 파티면 세 사람이 나란히 (맨 앞이 기사) */}
+                <div className={`hero-row ${c.party ? 'party' : ''}`}>
+                    {(c.party ?? [null]).map((m, i) => {
+                        const key = m?.key ?? 'player';
+                        const f = m ?? c.player;
+                        const down = m ? m.hp <= 0 : c.result === 'lose';
+                        // 쓰러지는 순간: 마지막으로 맞은 때
+                        const dieIn = down ? Math.max(0, ...c.fx.filter((x) => x.kind === 'dmg' && x.target === key).map((x) => x.delay)) : 0;
+                        // 지금 집은 카드를 쓸 사람이 빛난다
+                        const mine = !m || (drag ? c.party![ownerOfIdx(drag.idx)]?.key === key : false);
+                        return (
+                            <div key={key} className={`fighter player-side ${m ? `party-m pm-${i} ${down ? 'down' : ''}` : ''} ${mine && drag?.moved && !drag.target ? `self-aim ${drag.release ? 'ready' : ''}` : ''} ${m && mine && drag ? 'acting' : ''}`}>
+                                <div data-body={key}>
+                                    <Shake fx={c.fx} target={key}>
+                                        <HeroView
+                                            char={skin?.who === key ? skin.skin : (m?.hero ?? hero)}
+                                            action={heroAction && (heroAction.who ?? 'player') === key ? heroAction : null}
+                                            clock={clock}
+                                            scale={m ? 3 : 4}
+                                            dead={down}
+                                            deadIn={dieIn}
+                                        />
+                                    </Shake>
+                                </div>
+                                <FxLayer fx={c.fx} target={key} />
+                                {m && <span className={`party-name oc-${m.cls}`}>{CLASSES[m.cls].name}</span>}
+                                <LandedHpBar fx={c.fx} target={key} hp={f.hp} max={f.maxHp} block={f.block} />
+                                <StatusList status={f.status} />
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className="enemy-row">
@@ -875,12 +909,12 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
 
             <div className="hand-area">
                 <div className="hand-left">
-                    {cls === 'rogue' && (c.played ?? 0) > 0 && (
+                    {(c.party || cls === 'rogue') && (c.played ?? 0) > 0 && (
                         <div className="combo-count" key={c.played} title="이번 턴에 낸 카드 수 (연계 카드가 강해진다)">
                             연계 <b>{c.played}</b>
                         </div>
                     )}
-                    {cls === 'mage' && c.lastEl && (
+                    {(c.party || cls === 'mage') && c.lastEl && (
                         <div className={`combo-count el-now pe-${c.lastEl}`} key={c.lastEl} title="직전에 쓴 원소: 같은 원소면 공명, 다른 원소면 반응">
                             원소 <b>{ELEMENT_NAME[c.lastEl]}</b>
                         </div>
@@ -919,6 +953,9 @@ export function CombatScreen({ combat: c, biome, seed, hero, cls, dispatch }: { 
                             onPointerDown={(ev) => startDrag(ev, i)}
                         >
                             <CardView card={card} disabled={locked || !canPlay(c, card)} selected={selected === i} onClick={() => clickCard(i)} />
+                            {/* 파티: 이 카드를 누가 쓰는지 */}
+                            {c.party && c.party[ownerOf(c, card)] && <span className={`owner-chip oc-${c.party[ownerOf(c, card)].cls}`}>{CLASSES[c.party[ownerOf(c, card)].cls].name}</span>}
+                            {c.party && ownerOf(c, card) < 0 && !cardStats(card).def.unplayable && <span className="owner-chip oc-down">쓰러짐</span>}
                         </div>
                         );
                     })}

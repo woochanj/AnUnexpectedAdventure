@@ -1,4 +1,4 @@
-export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize' | 'frost' | 'burn' | 'evade' | 'grit';
+export type Status = 'strength' | 'vulnerable' | 'weak' | 'poison' | 'thorns' | 'regen' | 'energize' | 'frost' | 'burn' | 'evade' | 'grit' | 'taunt';
 export type StatusMap = Partial<Record<Status, number>>;
 
 export type Effect =
@@ -117,7 +117,19 @@ export interface Fighter {
     status: StatusMap;
 }
 
+/** 파티 전투의 아군 한 명 */
+export interface Member extends Fighter {
+    /** 화면·연출에서 쓰는 이름표: p0, p1, p2 */
+    key: string;
+    cls: ClassId;
+    hero: string;
+}
+
 export interface EnemyState extends Fighter {
+    /** 파티 전투: 이번 행동에 노리는 아군 (Member.key) */
+    aim?: string;
+    /** 파티 전투: 공격력 배율 */
+    mult?: number;
     uid: string;
     defId: string;
     moveIdx: number;
@@ -189,6 +201,9 @@ export interface CombatState {
     played?: number;
     attacksPlayed?: number;
     lastType?: 'attack' | 'skill' | 'power' | null;
+    /** 파티 전투: 아군들. 있으면 player는 "지금 행동하거나 맞는 사람"을 가리킨다 */
+    party?: Member[];
+    active?: number;
     /** 기사: 막아 낸 공격마다 투지가 쌓인다 */
     gritOn?: boolean;
     /** 마법사: 이번 턴 마지막으로 쓴 원소 */
@@ -259,6 +274,8 @@ export interface RunState {
     floor: number;
     hp: number;
     maxHp: number;
+    /** 파티 원정(시험판): 세 사람의 체력. hp/maxHp는 그 합 */
+    party?: { cls: ClassId; hero: string; hp: number; maxHp: number }[];
     gold: number;
     deck: CardInst[];
     relics: string[];

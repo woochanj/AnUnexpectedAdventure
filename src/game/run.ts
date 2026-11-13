@@ -1,7 +1,7 @@
 import { CARDS, cardLevel, cardPool, MAX_LEVEL } from './cards';
 import { CLASSES } from './classes';
 import { pickRoute } from './biomes';
-import { endTurn, playCard, startCombat } from './combat';
+import { endTurn, link, playCard, startCombat } from './combat';
 import { ENCOUNTER_IDS, EVENTS, type EventApi } from './events';
 import { canStep, generateFloor, reveal, revealAll } from './map';
 import { BOSS_RELICS, RELIC_IDS, RELICS } from './relics';
@@ -12,7 +12,7 @@ export const FLOOR_COUNT = 3;
 const SAVE_KEY = 'aua-run-v4';
 
 export type Action =
-    | { type: 'new'; cls?: ClassId; hero?: string }
+    | { type: 'new'; cls?: ClassId; hero?: string; party?: boolean }
     | { type: 'load'; run: RunState }
     | { type: 'quit' }
     | { type: 'move'; to: number }
@@ -115,7 +115,7 @@ function cardChoices(run: RunState, kind: CombatKind): string[] {
     let guard = 0;
     const want = run.relics.includes('cursed_crown') ? 2 : 3;
     while (out.length < want && guard++ < 60) {
-        const pool = cardPool(rollRarity(kind), run.cls);
+        const pool = cardPool(rollRarity(kind), run.party ? undefined : run.cls);
         if (!pool.length) continue;
         const id = pick(pool);
         if (!out.includes(id)) out.push(id);
@@ -148,7 +148,7 @@ function makeApi(run: RunState): EventApi {
             run.hp += n;
         },
         addRandomCard: (rarity) => {
-            const id = pick(cardPool(rarity, run.cls));
+            const id = pick(cardPool(rarity, run.party ? undefined : run.cls));
             run.deck.push(newCard(run, id));
             return CARDS[id].name;
         },
@@ -179,7 +179,16 @@ function makeApi(run: RunState): EventApi {
 
 // ───────────────────────── 진행 ─────────────────────────
 
-export function newRun(cls: ClassId = 'knight', hero?: string): RunState {
+/** 파티 원정(시험판)의 세 사람과 얇은 공용 시작 덱 */
+const PARTY: { cls: ClassId; hp: number }[] = [
+    { cls: 'knight', hp: 60 },
+    { cls: 'mage', hp: 45 },
+    { cls: 'rogue', hp: 45 },
+];
+const PARTY_DECK = ['slash', 'slash', 'slash', 'guard', 'guard', 'cover', 'spark', 'spark', 'ward', 'frost_bolt', 'stab', 'stab', 'dodge', 'poison_stab'];
+
+export function newRun(cls: ClassId = 'knight', hero?: string, party = false): RunState {
+    if (party) cls = 'knight';
     const map = generateFloor(0);
     const def = CLASSES[cls];
     const run: RunState = {
@@ -200,7 +209,11 @@ export function newRun(cls: ClassId = 'knight', hero?: string): RunState {
         uidSeq: 0,
         stats: { kills: 0, rooms: 1, turns: 0 },
     };
-    run.deck = def.deck.map((id) => newCard(run, id));
+    if (party) {
+        run.party = PARTY.map((m) => ({ cls: m.cls, hero: CLASSES[m.cls].looks[0], hp: m.hp, maxHp: m.hp }));
+        run.hp = run.maxHp = PARTY.reduce((n, m) => n + m.hp, 0);
+    }
+    run.deck = (party ? PARTY_DECK : def.deck).map((id) => newCard(run, id));
     reveal(map, map.start, visionRadius(run));
     // 프롤로그 → 첫 지역 도착
     run.screen = { kind: 'dialogue', scene: 'prologue', next: { kind: 'dialogue', scene: `region:${run.route[0]}`, next: { kind: 'map' } } };
@@ -248,7 +261,7 @@ function makeShop(run: RunState): ShopScreen {
     // 마지막 칸은 가끔 유니크
     const want: Drop[] = ['common', 'common', 'uncommon', 'uncommon', Math.random() < 0.2 ? 'unique' : 'rare'];
     const cards = want.map((rar) => {
-        const pool = cardPool(rar, run.cls);
+        const pool = cardPool(rar, run.party ? undefined : run.cls);
         let id = pick(pool);
         for (let i = 0; i < 10 && ids.has(id); i++) id = pick(pool);
         ids.add(id);
@@ -276,7 +289,11 @@ function finishCombat(run: RunState) {
         return;
     }
     if (c.result !== 'win') return;
-    run.hp = c.player.hp;
+    if (c.party && run.party) {
+        // 쓰러진 사람은 체력 1로 일어난다
+        run.party.forEach((m, i) => (m.hp = Math.max(1, c.party![i].hp)));
+        run.hp = run.party.reduce((n, m) => n + m.hp, 0);
+    } else run.hp = c.player.hp;
     // 불사조 깃털은 한 번 쓰면 사라진다
     if (c.revived) run.relics = run.relics.filter((r) => r !== 'phoenix_feather');
     if (run.relics.includes('blood_charm')) healRun(run, 6);
@@ -349,13 +366,14 @@ function afterEncounter(run: RunState): boolean {
 // ───────────────────────── 리듀서 ─────────────────────────
 
 export function reducer(state: GameState, action: Action): GameState {
-    if (action.type === 'new') return { run: newRun(action.cls, action.hero) };
+    if (action.type === 'new') return { run: newRun(action.cls, action.hero, action.party) };
     if (action.type === 'quit') return { run: null };
     if (action.type === 'load') return { run: action.run };
     if (!state.run) return state;
 
     const run = structuredClone(state.run);
     const sc = run.screen;
+    if (sc.kind === 'combat') link(sc.combat);
 
     switch (action.type) {
         case 'move':

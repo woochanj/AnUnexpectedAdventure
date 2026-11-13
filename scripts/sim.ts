@@ -2,38 +2,46 @@
 // 실행: npx esbuild scripts/sim.ts --bundle --platform=node --outfile=/tmp/sim.cjs && node /tmp/sim.cjs 100
 import { reducer, type Action, type GameState } from '../src/game/run';
 import { canStep } from '../src/game/map';
-import { canPlay, intentDamage } from '../src/game/combat';
+import { canPlay, intentDamage, victimOf } from '../src/game/combat';
 import { cardStats, needsTarget, CARDS } from '../src/game/cards';
 import { EVENTS } from '../src/game/events';
-import type { ClassId, CombatState, RunState } from '../src/game/types';
+import type { ClassId, CombatState, Fighter, RunState } from '../src/game/types';
 
 const RANK: Record<string, number> = { starter: 0, common: 1, uncommon: 2, rare: 3, unique: 4 };
 
-function incoming(c: CombatState) {
+/** 이 사람에게 들어올 피해 (파티면 자기를 노리는 적만) */
+function incoming(c: CombatState, who: Fighter) {
     let n = 0;
     for (const e of c.enemies) {
         if (e.hp <= 0) continue;
-        const d = intentDamage(e, c.player);
+        if (c.party && c.party[victimOf(c, e)] !== who) continue;
+        const d = intentDamage(e, who);
         if (d !== null) n += d * (e.intent.hits ?? 1);
     }
     return n;
 }
 
 function value(c: CombatState) {
-    if (c.result === 'win') return 1e6 + c.player.hp * 100;
+    const heroes: Fighter[] = c.party ? c.party.filter((m) => m.hp > 0) : [c.player];
+    const hpSum = heroes.reduce((n, m) => n + m.hp, 0);
+    if (c.result === 'win') return 1e6 + hpSum * 100;
     if (c.result === 'lose') return -1e6;
-    let v = c.player.hp * 1.5;
-    const inc = incoming(c);
-    v += Math.min(c.player.block, inc) * 1.4 + Math.min(Math.max(0, c.player.block - inc), 10) * 0.1;
-    // 회피: 방어도로 못 막는 피해 중 기대값만큼 피한다
-    v += Math.max(0, inc - c.player.block) * (Math.min(75, c.player.status.evade ?? 0) / 100) * 1.4;
+    let v = hpSum * 1.5 + heroes.length * 20;
+    for (const h of heroes) {
+        const inc = incoming(c, h);
+        v += Math.min(h.block, inc) * 1.4 + Math.min(Math.max(0, h.block - inc), 10) * 0.1;
+        // 회피: 방어도로 못 막는 피해 중 기대값만큼 피한다
+        v += Math.max(0, inc - h.block) * (Math.min(75, h.status.evade ?? 0) / 100) * 1.4;
+        const hs = h.status;
+        if (c.party) v += (hs.strength ?? 0) * 5 + (hs.thorns ?? 0) * 3 + (hs.regen ?? 0) * 4 + (hs.energize ?? 0) * 8 + (hs.grit ?? 0) * 1.5;
+    }
     for (const e of c.enemies) {
         if (e.hp <= 0) continue;
         v -= e.hp + 10;
         v += (e.status.vulnerable ?? 0) * 2 + (e.status.weak ?? 0) * 2 + (e.status.poison ?? 0) * 1.5 + (e.status.burn ?? 0) * 1.2 + Math.min(e.status.frost ?? 0, 3) * 3;
         v -= (e.status.strength ?? 0) * 2;
     }
-    const s = c.player.status;
+    const s = c.party ? {} : c.player.status;
     v += (s.strength ?? 0) * 5 + (s.thorns ?? 0) * 3 + (s.regen ?? 0) * 4 + (s.energize ?? 0) * 8;
     v += c.hand.length * 0.8 + c.energy * 0.6;
     return v;
@@ -92,8 +100,8 @@ function bfsPath(run: RunState, ok: (id: number) => boolean): number[] | null {
 
 interface Result { win: boolean; floor: number; diedTo?: string; kind?: string; hpAtBoss: number[]; deck: number }
 
-export function playRun(cls: ClassId): Result {
-    let st: GameState = reducer({ run: null }, { type: 'new', cls });
+export function playRun(cls: ClassId, party = false): Result {
+    let st: GameState = reducer({ run: null }, { type: 'new', cls, party });
     const hpAtBoss: number[] = [];
     let lastFight = '';
     const sideSteps = new Map<number, number>();
@@ -195,10 +203,12 @@ export function playRun(cls: ClassId): Result {
 }
 
 const N = Number(process.argv[2] ?? 200);
-const classes: ClassId[] = ['knight', 'mage', 'rogue'];
+// node sim.cjs 100 party → 파티 원정만 잰다
+const PARTY = process.argv[3] === 'party';
+const classes: ClassId[] = PARTY ? ['knight'] : ['knight', 'mage', 'rogue'];
 for (const cls of classes) {
     const res: Result[] = [];
-    for (let i = 0; i < N; i++) res.push(playRun(cls));
+    for (let i = 0; i < N; i++) res.push(playRun(cls, PARTY));
     const wins = res.filter((r) => r.win).length;
     const byFloor = [0, 1, 2].map((f) => res.filter((r) => !r.win && r.floor === f).length);
     const killers = new Map<string, number>();

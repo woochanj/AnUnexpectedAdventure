@@ -118,6 +118,8 @@ export function FxView({
 
 export interface HeroAction {
     id: number;
+    /** 파티 전투: 누구의 동작인지 (없으면 혼자인 주인공) */
+    who?: string;
     /** 원거리 공격이면 제자리에서 쓴다 */
     ranged?: boolean;
     /** knight.ts MOVES의 키 */

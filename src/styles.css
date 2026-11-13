@@ -5948,3 +5948,104 @@ body {
     opacity: 0;
     mix-blend-mode: screen;
 }
+
+/* ═════════ 파티 전투 (시험판): 세 사람이 나란히, 맨 앞(오른쪽)이 기사 ═════════ */
+.hero-row {
+    display: contents;
+}
+.hero-row.party {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.fighter.party-m {
+    width: clamp(78px, 10.5vw, 118px);
+    transition: filter 0.2s, opacity 0.4s;
+}
+/* 뒤에 선 두 사람은 살짝 위로 (깊이감) */
+.fighter.party-m.pm-1 { translate: 0 -10px; z-index: 0; }
+.fighter.party-m.pm-2 { translate: 0 4px; z-index: 1; }
+.fighter.party-m.pm-0 { z-index: 2; }
+.fighter.party-m.down {
+    opacity: 0.55;
+    filter: grayscale(0.8);
+}
+.fighter.party-m.acting [data-body] {
+    filter: drop-shadow(0 0 6px rgba(255, 230, 130, 0.95));
+}
+.party-name {
+    font-family: var(--font-head);
+    font-size: 0.72rem;
+    line-height: 1;
+    padding: 2px 6px 3px;
+    border: 2px solid #0c0818;
+    border-radius: 4px;
+    margin-bottom: -2px;
+}
+.oc-knight { background: linear-gradient(#ffe48a, #e0a020); color: #2a1404; }
+.oc-mage { background: linear-gradient(#bfe6ff, #4a9ae8); color: #06203a; }
+.oc-rogue { background: linear-gradient(#c8f4b0, #4ab85a); color: #082a10; }
+.oc-down { background: #5a5468; color: #e8e0f0; }
+/* 손패: 이 카드를 누가 쓰는지 */
+.owner-chip {
+    position: absolute;
+    right: -4px;
+    bottom: -8px;
+    z-index: 4;
+    padding: 1px 6px 2px;
+    border: 2px solid #0c0818;
+    border-radius: 4px;
+    font-family: var(--font-head);
+    font-size: 0.68rem;
+    line-height: 1.1;
+    pointer-events: none;
+    box-shadow: 0 2px 0 #0c0818;
+}
+/* 적 의도: 누구를 노리는지 */
+.intent-aim {
+    margin-left: 4px;
+    padding: 0 5px 1px;
+    border: 2px solid #0c0818;
+    border-radius: 4px;
+    font-family: var(--font-head);
+    font-size: 0.72em;
+    white-space: nowrap;
+}
+.btn-party {
+    display: grid;
+    line-height: 1.1;
+    background: linear-gradient(#5ab8ff, #2a6ad0);
+    color: #fff;
+}
+.btn-party small {
+    font-size: 0.6em;
+    opacity: 0.9;
+}
+.hs-menu .btn.btn-party {
+    font-size: 1.15rem;
+    padding: 8px 20px 10px;
+}
+@media (max-width: 640px) {
+    .fighter.party-m {
+        width: 62px;
+    }
+    .hero-row.party {
+        gap: 0;
+    }
+    .party-name {
+        font-size: 0.6rem;
+        padding: 1px 4px 2px;
+    }
+    .owner-chip {
+        font-size: 0.56rem;
+        padding: 0 4px 1px;
+    }
+}
+/* 주인 표시는 카드 오른쪽 위에 (아래는 손패 영역 밖으로 잘린다) */
+.owner-chip {
+    top: -9px;
+    right: -6px;
+    bottom: auto;
+}

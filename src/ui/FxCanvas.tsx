@@ -1,3 +1,4 @@
+import { isHero } from '../game/combat';
 import { useEffect, useRef, type RefObject } from 'react';
 import { clearFrame, composite, createFrame, createFx, type Frame, type FxInstance } from 'pixelfx';
 import type { Cue, Fx } from '../game/types';
@@ -250,8 +251,8 @@ export function FxCanvas({
                 const x = Math.round((r.left + r.width / 2 - box.left) / st.scale + jitter);
                 // 치명타는 몸을 가리지 않게 머리 위, 공격자 쪽으로 비켜서
                 const y = Math.max(46, Math.round((f.crit ? r.top + r.height * 0.02 : r.top + r.height * 0.2) - box.top) / st.scale);
-                const xShift = f.crit ? (f.target === 'player' ? 40 : -40) / st.scale : 0;
-                const toPlayer = f.target === 'player';
+                const xShift = f.crit ? (isHero(f.target) ? 40 : -40) / st.scale : 0;
+                const toPlayer = isHero(f.target);
                 const opts = f.crit
                     ? { text: `${f.amount}!`, label: 'CRIT', palette: toPlayer ? CRIT_RED : CRIT_GOLD }
                     : { text: `-${f.amount}`, palette: f.dot ? POISON : toPlayer ? undefined : GOLD };
@@ -275,9 +276,9 @@ export function FxCanvas({
         seenHit.current = fresh[fresh.length - 1].id;
         for (const f of fresh) {
             if (f.kind !== 'dmg' || f.dot || !f.amount) continue;
-            const tier = impactTier(f.amount, f.target === 'player');
+            const tier = impactTier(f.amount, isHero(f.target));
             // 치명타: 별 폭발 대신 굵은 베임 한 줄과 바닥 충격파
-            if (f.crit) tier.push({ mod: critSlam, at: 'target', speed: 1, opts: { flip: f.target === 'player' } });
+            if (f.crit) tier.push({ mod: critSlam, at: 'target', speed: 1, opts: { flip: isHero(f.target) } });
             for (const spec of tier) {
                 if (layer && !!spec.behind !== (layer === 'behind')) continue;
                 const run = () => spawn(spec, f.target);
@@ -289,7 +290,7 @@ export function FxCanvas({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [impacts]);
 
-    const spawn = (spec: VfxSpec, anchor: string) => {
+    const spawn = (spec: VfxSpec, anchor: string, from = 'player') => {
         const st = state.current;
         const box = container.current?.getBoundingClientRect();
         const el = container.current?.querySelector<HTMLElement>(`[data-anchor="${anchor}"]`);
@@ -307,7 +308,7 @@ export function FxCanvas({
         let fly: Live['fly'];
         if (spec.fly) {
             // 시전자 손끝(몸 가운데 앞쪽)에서 대상 몸 가운데로
-            const me = bodyBoxOf(container.current?.querySelector('[data-body="player"]') ?? null, box, st.scale);
+            const me = bodyBoxOf(container.current?.querySelector(`[data-body="${from}"]`) ?? null, box, st.scale);
             const x1 = bb ? bb.cx - 6 : x;
             const y1 = bb ? bb.bottom - bb.h * 0.45 : y - 20;
             const x0 = me ? me.cx + 14 : x1 - 200;
@@ -333,13 +334,15 @@ export function FxCanvas({
                 if (layer && !!spec.behind !== (layer === 'behind')) continue;
                 const run = () => {
                     let anchors: string[];
-                    if (spec.at === 'self') anchors = ['player'];
+                    // 파티: 카드를 쓴 사람(또는 적에게 당한 사람) 자리에서
+                    const self = cue.kind === 'card' ? (cue.source ?? 'player') : cue.target && isHero(cue.target) ? cue.target : 'player';
+                    if (spec.at === 'self') anchors = [self];
                     else if (spec.at === 'all')
                         anchors = Array.from(container.current?.querySelectorAll<HTMLElement>('[data-alive="1"] [data-anchor]') ?? []).map(
                             (e) => e.dataset.anchor!,
                         );
                     else anchors = cue.target ? [cue.target] : [];
-                    anchors.forEach((a) => spawn(spec, a));
+                    anchors.forEach((a) => spawn(spec, a, self));
                 };
                 const ms = ((cue.delay ?? 0) + (spec.delay ?? 0)) * 1000;
                 if (ms <= 0) run();

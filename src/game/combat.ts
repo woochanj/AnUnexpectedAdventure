@@ -1,11 +1,85 @@
 import { cardStats, CURSE_CARD, ELEMENT_NAME } from './cards';
 import { ENEMIES } from './enemies';
-import type { Affix, CardInst, CombatKind, Effect, CombatState, Cue, EnemyState, Fighter, Fx, Intent, RunState, SpellElement, Status } from './types';
+import type { Affix, CardInst, CombatKind, Effect, CombatState, Cue, EnemyState, Fighter, Fx, Intent, Member, RunState, SpellElement, Status } from './types';
 import { CLASSES } from './classes';
 import { ENERGY_RELICS } from './relics';
 import { pick, rand, shuffle } from './util';
 
 const HAND_SIZE = 5;
+
+// ───────────── 파티 전투 (시험판) ─────────────
+// 규칙은 한 명일 때와 같고, c.player가 "지금 행동하거나 맞는 사람"을 가리킬 뿐이다.
+/** 아군 이름표인가 (pk(c) 또는 p0·p1·p2) */
+export const isHero = (k: string) => k === 'player' || /^p\d$/.test(k);
+const pk = (c: CombatState) => (c.party ? c.party[c.active ?? 0].key : 'player');
+function setActive(c: CombatState, i: number) {
+    if (!c.party || !c.party[i]) return;
+    c.active = i;
+    c.player = c.party[i];
+}
+/** 저장했다 불러오면 c.player와 party의 연결이 끊어진다. 행동 전에 다시 잇는다 */
+export function link(c: CombatState) {
+    if (c.party) c.player = c.party[c.active ?? 0];
+}
+const aliveIdx = (c: CombatState) => (c.party ?? []).map((_, i) => i).filter((i) => c.party![i].hp > 0);
+/** 살아 있는 아군 모두에게 (한 명 전투면 그 한 명에게) */
+function eachHero(c: CombatState, fn: () => void) {
+    if (!c.party) return fn();
+    const keep = c.active ?? 0;
+    for (const i of aliveIdx(c)) {
+        setActive(c, i);
+        fn();
+    }
+    setActive(c, c.party[keep].hp > 0 ? keep : (aliveIdx(c)[0] ?? keep));
+}
+/** 이 카드를 쓰는 사람: 직업 카드는 그 직업, 공용 카드는 가장 다친 사람. 쓸 사람이 쓰러졌으면 -1 */
+export function ownerOf(c: CombatState, card: CardInst): number {
+    if (!c.party) return 0;
+    const cls = cardStats(card).def.cls;
+    if (cls !== 'neutral') {
+        const i = c.party.findIndex((m) => m.cls === cls);
+        return i >= 0 && c.party[i].hp > 0 ? i : -1;
+    }
+    const p = c.party;
+    return aliveIdx(c).sort((a, b) => p[a].hp / p[a].maxHp - p[b].hp / p[b].maxHp)[0] ?? -1;
+}
+/** 적이 누구를 노릴지 미리 정한다: 앞에 선 사람(첫 번째)이 두 배로 잘 맞는다 */
+function aimAll(c: CombatState) {
+    if (!c.party) return;
+    const pool = aliveIdx(c).flatMap((i) => (i === 0 ? [i, i] : [i]));
+    if (!pool.length) return;
+    for (const e of c.enemies) if (e.hp > 0) e.aim = c.party[pick(pool)].key;
+}
+/** 이 적이 실제로 때릴 사람: 도발한 사람 > 노리던 사람 > 아무나 */
+export function victimOf(c: CombatState, e: EnemyState): number {
+    const p = c.party ?? [];
+    const taunt = p.findIndex((m) => m.hp > 0 && (m.status.taunt ?? 0) > 0);
+    if (taunt >= 0) return taunt;
+    const aim = p.findIndex((m) => m.key === e.aim && m.hp > 0);
+    return aim >= 0 ? aim : (aliveIdx(c)[0] ?? 0);
+}
+/** 원정 체력(run.hp)은 세 사람 체력의 합. 전투 밖에서 바뀐 만큼을 나눠 준다 */
+export function syncParty(run: RunState) {
+    const p = run.party;
+    if (!p) return;
+    const sum = (k: 'hp' | 'maxHp') => p.reduce((n, m) => n + m[k], 0);
+    // ponytail: 최대 체력 변화는 맨 앞 사람 몫. 사람별로 나누려면 여기서
+    p[0].maxHp = Math.max(10, p[0].maxHp + run.maxHp - sum('maxHp'));
+    for (const m of p) m.hp = Math.min(m.hp, m.maxHp);
+    run.maxHp = sum('maxHp');
+    let d = Math.min(run.hp, run.maxHp) - sum('hp');
+    for (; d > 0; d--) {
+        const t = p.filter((m) => m.hp < m.maxHp).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+        if (!t) break;
+        t.hp++;
+    }
+    for (; d < 0; d++) {
+        const t = p.filter((m) => m.hp > 1).sort((a, b) => b.hp - a.hp)[0];
+        if (!t) break;
+        t.hp--;
+    }
+    run.hp = sum('hp');
+}
 const MAX_HAND = 10;
 
 function fx(c: CombatState, target: string, text: string, kind: 'dmg' | 'block' | 'heal' | 'status', extra: Partial<Fx> = {}) {
@@ -145,17 +219,31 @@ export function startCombat(run: RunState, kind: CombatKind, enemyIds: string[])
         delay: 0,
         gritOn: run.cls === 'knight',
     };
+    if (run.party) {
+        syncParty(run);
+        c.party = run.party.map((m, i): Member => ({ key: `p${i}`, cls: m.cls, hero: m.hero, hp: Math.max(1, m.hp), maxHp: m.maxHp, block: 0, status: {} }));
+        setActive(c, 0);
+        // 셋이 싸우는 만큼 에너지 +1, 적은 더 단단하고 아프다
+        c.maxEnergy += 1;
+        for (const e of c.enemies) {
+            e.mult = 1.25;
+            e.hp = e.maxHp = Math.round(e.maxHp * 1.5);
+        }
+        aimAll(c);
+    }
     // 정예와 보스는 무작위 성향을 하나 가진다 (같은 적이라도 매번 다르게)
     if (kind !== 'normal') {
         // 보스는 이미 단단하므로 체력 증가는 빼고, 수치도 정예와 같게
         const pool = (Object.keys(AFFIXES) as Affix[]).filter((a) => kind !== 'boss' || a !== 'tough');
         for (const e of c.enemies) applyAffix(e, pick(pool), false);
     }
-    if (run.relics.includes('whetstone')) addStatus(c.player, 'strength', 1);
-    if (run.relics.includes('war_banner')) addStatus(c.player, 'strength', 2);
+    eachHero(c, () => {
+        if (run.relics.includes('whetstone')) addStatus(c.player, 'strength', 1);
+        if (run.relics.includes('war_banner')) addStatus(c.player, 'strength', 2);
+    });
     if (run.relics.includes('herb_pouch')) for (const e of c.enemies) addStatus(e, 'poison', 3);
     startPlayerTurn(c, run);
-    if (run.relics.includes('iron_shield')) gainBlock(c, 'player', c.player, 8);
+    if (run.relics.includes('iron_shield')) gainBlock(c, pk(c), c.player, 8);
     return c;
 }
 
@@ -206,7 +294,7 @@ const ENEMY_CRIT = 0.05;
 function attack(c: CombatState, aKey: string, attacker: Fighter, dKey: string, defender: Fighter, base: number) {
     if (attacker.hp <= 0 || defender.hp <= 0) return 0;
     // 치명타: 피해 1.5배
-    const chance = aKey === 'player' ? c.critChance : ENEMY_CRIT;
+    const chance = isHero(aKey) ? c.critChance : ENEMY_CRIT;
     // 회피: 확률로 공격을 통째로 피한다 (가시도 터지지 않음)
     const evade = Math.min(75, defender.status.evade ?? 0);
     if (evade > 0 && Math.random() * 100 < evade) {
@@ -218,7 +306,7 @@ function attack(c: CombatState, aKey: string, attacker: Fighter, dKey: string, d
     const blockBefore = defender.block;
     const lost = hit(c, dKey, defender, crit ? Math.floor(d * 1.5) : d, crit);
     // 기사의 투지: 방어도로 공격을 막아 낼 때마다 1
-    if (dKey === 'player' && c.gritOn && d > 0 && defender.block < blockBefore) gainGrit(c, 1);
+    if (isHero(dKey) && (c.party ? (defender as Member).cls === 'knight' : c.gritOn) && d > 0 && defender.block < blockBefore) gainGrit(c, 1);
     const thorns = defender.status.thorns ?? 0;
     if (thorns > 0 && attacker.hp > 0) hit(c, aKey, attacker, thorns);
     return lost;
@@ -227,11 +315,15 @@ function attack(c: CombatState, aKey: string, attacker: Fighter, dKey: string, d
 /** 투지는 10까지 */
 export const GRIT_MAX = 10;
 function gainGrit(c: CombatState, n: number) {
-    const before = c.player.status.grit ?? 0;
+    // 파티에서는 투지가 기사에게 쌓인다
+    const knight = c.party?.find((m) => m.cls === 'knight');
+    const h = c.party ? knight : c.player;
+    if (!h || h.hp <= 0) return;
+    const before = h.status.grit ?? 0;
     const next = Math.min(GRIT_MAX, before + n);
     if (next === before) return;
-    c.player.status.grit = next;
-    fx(c, 'player', `투지 +${next - before}`, 'status');
+    h.status.grit = next;
+    fx(c, knight?.key ?? 'player', `투지 +${next - before}`, 'status');
 }
 
 /** 원소 반응: 직전과 다른 원소를 쓰면 새 원소에 따라 덤이 붙는다 */
@@ -251,14 +343,16 @@ function loseHp(c: CombatState, key: string, f: Fighter, n: number, label: strin
 }
 
 function checkEnd(c: CombatState) {
-    if (c.player.hp <= 0 && (c.reviveLeft ?? 0) > 0) {
+    // 파티는 모두 쓰러져야 진다
+    const all: Fighter[] = c.party ?? [c.player];
+    if (all.every((m) => m.hp <= 0) && (c.reviveLeft ?? 0) > 0) {
         // 불사조 깃털: 한 번 되살아난다
         c.reviveLeft = 0;
         c.revived = true;
-        c.player.hp = Math.ceil(c.player.maxHp / 2);
-        fx(c, 'player', '불사조! 부활', 'heal');
+        for (const m of all) m.hp = Math.ceil(m.maxHp / 2);
+        fx(c, pk(c), '불사조! 부활', 'heal');
     }
-    if (c.player.hp <= 0) c.result = 'lose';
+    if (all.every((m) => m.hp <= 0)) c.result = 'lose';
     else if (alive(c).length === 0) c.result = 'win';
 }
 
@@ -269,24 +363,30 @@ function startPlayerTurn(c: CombatState, run: RunState) {
     c.lastType = null;
     c.lastEl = null;
     run.stats.turns++;
-    c.player.block = 0;
-    delete c.player.status.evade; // 회피는 적 턴 한 번만
-    const poison = c.player.status.poison ?? 0;
-    if (poison > 0) {
-        loseHp(c, 'player', c.player, poison, '독');
-        addStatus(c.player, 'poison', -1);
-        checkEnd(c);
-        if (c.result) return;
-    }
-    c.energy = c.maxEnergy + (c.player.status.energize ?? 0);
-    let n = HAND_SIZE + (run.relics.includes('sage_tome') ? 1 : 0);
+    eachHero(c, () => {
+        c.player.block = 0;
+        delete c.player.status.evade; // 회피·도발은 적 턴 한 번만
+        delete c.player.status.taunt;
+        const poison = c.player.status.poison ?? 0;
+        if (poison > 0) {
+            loseHp(c, pk(c), c.player, poison, '독');
+            addStatus(c.player, 'poison', -1);
+        }
+    });
+    checkEnd(c);
+    if (c.result) return;
+    eachHero(c, () => {}); // 독으로 쓰러진 사람이 있으면 서 있는 사람으로 넘긴다
+    const heroes: Fighter[] = c.party ? c.party.filter((m) => m.hp > 0) : [c.player];
+    c.energy = c.maxEnergy + heroes.reduce((n, m) => n + (m.status.energize ?? 0), 0);
+    // 파티는 덱이 두꺼워서 한 장 더 뽑는다
+    let n = HAND_SIZE + (run.relics.includes('sage_tome') ? 1 : 0) + (c.party ? 1 : 0);
     if (c.turn === 1 && run.relics.includes('rusty_hourglass')) n -= 2;
     drawCards(c, n);
 }
 
 export function canPlay(c: CombatState, card: CardInst): boolean {
     const s = cardStats(card);
-    return !c.result && !s.def.unplayable && s.cost <= c.energy;
+    return !c.result && !s.def.unplayable && s.cost <= c.energy && ownerOf(c, card) >= 0;
 }
 
 export function playCard(c: CombatState, run: RunState, handIdx: number, targetUid: string | null) {
@@ -295,10 +395,15 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
     const s = cardStats(card);
     const target = c.enemies.find((e) => e.uid === targetUid && e.hp > 0) ?? alive(c)[0] ?? null;
 
+    if (c.party) {
+        // 이 카드의 주인이 나서서 쓴다 (치명타 확률도 그 사람 것)
+        setActive(c, ownerOf(c, card));
+        c.critChance = CLASSES[c.party[c.active ?? 0].cls].crit;
+    }
     c.energy -= s.cost;
     c.hand.splice(handIdx, 1);
     c.delay = 0;
-    cue(c, { kind: 'card', card: card.id, target: target?.uid ?? null });
+    cue(c, { kind: 'card', card: card.id, target: target?.uid ?? null, source: pk(c) });
     // 숫자와 흔들림은 이펙트가 대상에 닿는 순간(약 0.08초 뒤)에 맞춘다
     if (s.def.type === 'attack') c.delay = windupOf(s.def) + IMPACT_DELAY;
     else if (s.def.charge) c.delay = windupOf(s.def);
@@ -315,7 +420,7 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
             }
         } else flat.push(e);
     }
-    if (triggered) fx(c, 'player', '연계!', 'status');
+    if (triggered) fx(c, pk(c), '연계!', 'status');
     let comboBonus = flat.reduce((n, e) => n + (e.kind === 'combo' ? e.per * before : 0), 0);
     // 마법사 원소: 같은 원소를 연달아 쓰면 공명(피해 +3), 다른 원소로 바꾸면 반응(새 원소의 덤)
     // 알림은 카드를 낸 직후에 (주문이 날아가는 동안 읽히게), 대상 표시는 맞는 순간에
@@ -326,15 +431,15 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
         if (c.lastEl === el) {
             const hits = flat.some((e) => e.kind === 'damage' || e.kind === 'damageAll');
             comboBonus += RESONANCE;
-            fx(c, 'player', `${ELEMENT_NAME[el]} 공명!`, 'status', { ...procAt, proc: { kind: 'resonance', el, note: hits ? `피해 +${RESONANCE}` : '공명', impact: procAt.impact, all } });
+            fx(c, pk(c), `${ELEMENT_NAME[el]} 공명!`, 'status', { ...procAt, proc: { kind: 'resonance', el, note: hits ? `피해 +${RESONANCE}` : '공명', impact: procAt.impact, all } });
         } else {
-            fx(c, 'player', `${ELEMENT_NAME[c.lastEl]}+${ELEMENT_NAME[el]} 반응!`, 'status', { ...procAt, proc: { kind: 'reaction', el, from: c.lastEl, note: REACTION_NOTE[el], impact: procAt.impact, all } });
+            fx(c, pk(c), `${ELEMENT_NAME[c.lastEl]}+${ELEMENT_NAME[el]} 반응!`, 'status', { ...procAt, proc: { kind: 'reaction', el, from: c.lastEl, note: REACTION_NOTE[el], impact: procAt.impact, all } });
             flat.push(...reaction(el, all));
         }
     }
     if (el) c.lastEl = el;
     const strike = (amount: number) => {
-        if (target) attack(c, 'player', c.player, target.uid, target, amount);
+        if (target) attack(c, pk(c), c.player, target.uid, target, amount);
     };
 
     for (const e of flat) {
@@ -354,12 +459,12 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
                 const offs = hitOffsets(e.hits ?? 1);
                 offs.forEach((o) => {
                     c.delay = base + o;
-                    for (const en of alive(c)) attack(c, 'player', c.player, en.uid, en, e.amount + comboBonus);
+                    for (const en of alive(c)) attack(c, pk(c), c.player, en.uid, en, e.amount + comboBonus);
                 });
                 break;
             }
             case 'block':
-                gainBlock(c, 'player', c.player, e.amount);
+                gainBlock(c, pk(c), c.player, e.amount);
                 break;
             case 'draw':
                 drawCards(c, e.amount);
@@ -368,13 +473,13 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
                 c.energy += e.amount;
                 break;
             case 'heal':
-                heal(c, 'player', c.player, e.amount);
+                heal(c, pk(c), c.player, e.amount);
                 break;
             case 'apply': {
                 const targets = e.to === 'self' ? [c.player] : e.to === 'all' ? alive(c) : target ? [target] : [];
                 for (const t of targets) {
                     addStatus(t, e.status, e.amount);
-                    const key = t === c.player ? 'player' : (t as EnemyState).uid;
+                    const key = t === c.player ? pk(c) : (t as EnemyState).uid;
                     fx(c, key, `${statusShort(e.status)} +${e.amount}`, 'status');
                 }
                 break;
@@ -416,7 +521,7 @@ export function playCard(c: CombatState, run: RunState, handIdx: number, targetU
                 const n = c.player.status.grit ?? 0;
                 if (n > 0 && target) {
                     delete c.player.status.grit;
-                    fx(c, 'player', `투지 폭발 ×${n}`, 'status', { delay: 0.12, proc: { kind: 'unleash', n, note: `피해 +${n * e.per}`, impact: c.delay } });
+                    fx(c, pk(c), `투지 폭발 ×${n}`, 'status', { delay: 0.12, proc: { kind: 'unleash', n, note: `피해 +${n * e.per}`, impact: c.delay } });
                     strike(n * e.per);
                 }
                 break;
@@ -448,7 +553,7 @@ function markDead(c: CombatState, e: EnemyState, run: RunState) {
 }
 
 function statusShort(s: Status): string {
-    return { strength: '힘', vulnerable: '취약', weak: '약화', poison: '독', thorns: '가시', regen: '재생', energize: '활력', frost: '냉기', burn: '화상', evade: '회피', grit: '투지' }[s];
+    return { strength: '힘', vulnerable: '취약', weak: '약화', poison: '독', thorns: '가시', regen: '재생', energize: '활력', frost: '냉기', burn: '화상', evade: '회피', grit: '투지', taunt: '도발' }[s];
 }
 
 export function endTurn(c: CombatState, run: RunState) {
@@ -458,10 +563,12 @@ export function endTurn(c: CombatState, run: RunState) {
     // 저주 카드는 손에 남아 있으면 사라진다
     for (const card of c.hand) (cardStats(card).def.unplayable ? c.exhaust : c.discard).push(card);
     c.hand = [];
-    const regen = c.player.status.regen ?? 0;
-    if (regen > 0) heal(c, 'player', c.player, regen);
-    addStatus(c.player, 'weak', c.player.status.weak ? -1 : 0);
-    addStatus(c.player, 'vulnerable', c.player.status.vulnerable ? -1 : 0);
+    eachHero(c, () => {
+        const regen = c.player.status.regen ?? 0;
+        if (regen > 0) heal(c, pk(c), c.player, regen);
+        addStatus(c.player, 'weak', c.player.status.weak ? -1 : 0);
+        addStatus(c.player, 'vulnerable', c.player.status.vulnerable ? -1 : 0);
+    });
 
     // 적 턴: 행동마다 지연을 늘려 화면에서 한 명씩 움직이게 한다.
     // 첫 적도 예고(0.38초)와 달려드는 동작(최대 0.86초)을 마친 뒤 맞도록 ENEMY_LEAD만큼 늦게 시작한다
@@ -505,7 +612,10 @@ export function endTurn(c: CombatState, run: RunState) {
             continue;
         }
         const it = e.intent;
-        if (it.attack !== undefined) cue(c, { kind: 'enemyAttack', source: e.uid, defId: e.defId, target: 'player', amount: attackDamage(it.attack, e, c.player), hits: it.hits ?? 1 });
+        // 파티: 이 적이 노리는 사람이 맞는다 (도발한 사람이 있으면 그 사람)
+        if (c.party) setActive(c, victimOf(c, e));
+        const atk = it.attack === undefined ? 0 : Math.round(it.attack * (e.mult ?? 1));
+        if (it.attack !== undefined) cue(c, { kind: 'enemyAttack', source: e.uid, defId: e.defId, target: pk(c), amount: attackDamage(atk, e, c.player), hits: it.hits ?? 1 });
         if (it.block) {
             cue(c, { kind: 'enemyBlock', target: e.uid });
             gainBlock(c, e.uid, e, it.block);
@@ -516,10 +626,10 @@ export function endTurn(c: CombatState, run: RunState) {
             const offs = hitOffsets(it.hits ?? 1, false).map((o) => o * 0.8);
             for (let i = 0; i < (it.hits ?? 1); i++) {
                 c.delay = base + IMPACT_DELAY + offs[i];
-                dealt += attack(c, e.uid, e, 'player', c.player, it.attack);
+                dealt += attack(c, e.uid, e, pk(c), c.player, atk);
                 if (e.affix === 'venom' && c.player.hp > 0) addStatus(c.player, 'poison', 1);
             }
-            if (e.affix === 'venom') fx(c, 'player', `독 +${it.hits ?? 1}`, 'status');
+            if (e.affix === 'venom') fx(c, pk(c), `독 +${it.hits ?? 1}`, 'status');
             if (it.drain && dealt > 0 && e.hp > 0) {
                 cue(c, { kind: 'enemyHeal', target: e.uid });
                 heal(c, e.uid, e, dealt);
@@ -538,14 +648,14 @@ export function endTurn(c: CombatState, run: RunState) {
             fx(c, e.uid, `${statusShort(it.buff.status)} +${it.buff.amount}`, 'status');
         }
         if (it.debuff) {
-            cue(c, { kind: 'enemyDebuff', source: e.uid, target: 'player' });
+            cue(c, { kind: 'enemyDebuff', source: e.uid, target: pk(c) });
             addStatus(c.player, it.debuff.status, it.debuff.amount);
-            fx(c, 'player', `${statusShort(it.debuff.status)} +${it.debuff.amount}`, 'status');
+            fx(c, pk(c), `${statusShort(it.debuff.status)} +${it.debuff.amount}`, 'status');
         }
         if (it.curse) {
-            cue(c, { kind: 'enemyDebuff', source: e.uid, target: 'player' });
+            cue(c, { kind: 'enemyDebuff', source: e.uid, target: pk(c) });
             for (let i = 0; i < it.curse; i++) c.discard.push({ uid: `curse${(c.curseSeq = (c.curseSeq ?? 0) + 1)}`, id: CURSE_CARD, upgraded: false });
-            fx(c, 'player', `저주 +${it.curse}`, 'status');
+            fx(c, pk(c), `저주 +${it.curse}`, 'status');
         }
         if (it.healAll)
             for (const a of alive(c)) {
@@ -562,11 +672,12 @@ export function endTurn(c: CombatState, run: RunState) {
     if (c.result) return;
 
     for (const e of alive(c)) e.intent = pickIntent(e);
+    aimAll(c);
     startPlayerTurn(c, run);
 }
 
 /** 화면에 표시할 적 의도 피해량 */
 export function intentDamage(e: EnemyState, player: Fighter): number | null {
     if (e.intent.attack === undefined) return null;
-    return attackDamage(e.intent.attack, e, player);
+    return attackDamage(Math.round(e.intent.attack * (e.mult ?? 1)), e, player);
 }

@@ -27,7 +27,7 @@ const store = {
     },
 };
 
-function Title({ onNew, onContinue, canContinue }: { onNew: (cls: ClassId, hero: string) => void; onContinue: () => void; canContinue: boolean }) {
+function Title({ onNew, onContinue, canContinue }: { onNew: (cls: ClassId, hero: string, party?: boolean) => void; onContinue: () => void; canContinue: boolean }) {
     const [cls, setCls] = useState<ClassId>(() => (CLASS_IDS.includes(store.get('aua-class') as ClassId) ? (store.get('aua-class') as ClassId) : 'knight'));
     const [looks, setLooks] = useState<Record<string, string>>(() => {
         try {
@@ -108,6 +108,9 @@ function Title({ onNew, onContinue, canContinue }: { onNew: (cls: ClassId, hero:
                 <button className={`btn ${canContinue ? '' : 'btn-primary'}`} onClick={() => (!canContinue || confirm('새 모험을 시작하면 저장된 진행이 사라져요. 시작할까요?')) && onNew(cls, hero)}>
                     새 모험
                 </button>
+                <button className="btn btn-party" onClick={() => (!canContinue || confirm('파티 원정을 시작하면 저장된 진행이 사라져요. 시작할까요?')) && onNew('knight', '', true)}>
+                    파티 원정 <small>시험판 · 셋이 함께</small>
+                </button>
             </div>
             </div>
             <details className="hs-help">
@@ -119,6 +122,7 @@ function Title({ onNew, onContinue, canContinue }: { onNew: (cls: ClassId, hero:
                 <li>지역 가장 깊은 곳의 수호자를 쓰러뜨리면 다음 지역으로 떠납니다.</li>
                 <li>기사 · 투지: 방어도로 공격을 막아 낼 때마다 쌓이고, 투지 카드가 한 번에 터뜨려요.</li>
                 <li>마법사 · 원소: 같은 원소를 연달아 쓰면 공명(피해 +3), 다른 원소로 바꾸면 반응(화염은 화상, 냉기는 냉기, 번개는 카드 1장, 대지는 방어도 5).</li>
+                <li>파티 원정(시험판): 기사·마법사·도적이 한 덱을 같이 써요. 카드는 그 직업이 쓰고, 적은 머리 위에 적힌 사람을 노립니다. 기사의 감싸기로 대신 맞을 수 있어요.</li>
                 <li>도적 · 연계: 이번 턴 앞서 낸 카드가 많을수록, 직전 카드가 맞으면 더 강해져요.</li>
             </ul>
             </details>
@@ -147,7 +151,7 @@ export default function App() {
         return (
             <Title
                 canContinue={!!saved}
-                onNew={(cls, hero) => dispatch({ type: 'new', cls, hero })}
+                onNew={(cls, hero, party) => dispatch({ type: 'new', cls, hero, party })}
                 onContinue={() => saved && dispatch({ type: 'load', run: saved })}
             />
         );
@@ -199,7 +203,7 @@ export default function App() {
 
     return (
         <div className="app">
-            <Hud run={run} hp={sc.kind === 'combat' ? sc.combat.player.hp : undefined} fx={sc.kind === 'combat' ? sc.combat.fx : undefined} onQuit={quit} />
+            <Hud run={run} hp={sc.kind === 'combat' ? (sc.combat.party ? sc.combat.party.reduce((n, m) => n + m.hp, 0) : sc.combat.player.hp) : undefined} fx={sc.kind === 'combat' ? sc.combat.fx : undefined} onQuit={quit} />
             <main className="stage">{body}</main>
         </div>
     );

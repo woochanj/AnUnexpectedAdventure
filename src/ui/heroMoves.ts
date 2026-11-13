@@ -48,6 +48,7 @@ export const CARD_MOVE: Record<string, HeroMove> = {
     thorn_stance: M(['special', 'cast'], 'sway'),
     war_cry: M(['airAttack', 'jump'], 'hop'),
     counter_stance: M(['defend', 'attack'], 'lean'),
+    cover: M(['defend', 'cast'], 'backstep'),
     rally: M(['special', 'cast'], 'bow'),
     last_stand: M(['special', 'cast'], 'rise'),
 
